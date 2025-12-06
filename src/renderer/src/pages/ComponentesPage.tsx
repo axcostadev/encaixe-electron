@@ -1,0 +1,159 @@
+import { PageHeader } from "@renderer/components/common/PageHeader"
+import { ComponenteForm } from "@renderer/components/componentes/ComponenteForm"
+import { ComponenteList } from "@renderer/components/componentes/ComponenteList"
+import { Button } from "@renderer/components/ui/button"
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@renderer/components/ui/select"
+import { useApp } from "@renderer/contexts/AppContext"
+import { Componente } from "@renderer/types"
+import { Plus } from "lucide-react"
+import { useMemo, useState } from "react"
+import { useSearchParams } from "react-router-dom"
+import { toast } from "sonner"
+
+export function ComponentesPage() {
+	const {
+		modelos,
+		materiais,
+		addComponente,
+		updateComponente,
+		deleteComponente,
+		getComponentesByModelo,
+		getCoresByModelo,
+	} = useApp()
+
+	const [searchParams, setSearchParams] = useSearchParams()
+	const [formOpen, setFormOpen] = useState(false)
+	const [editingComponente, setEditingComponente] = useState<Componente | null>(
+		null,
+	)
+
+	const selectedModeloId = searchParams.get("modelo") || ""
+
+	const componentes = useMemo(() => {
+		if (!selectedModeloId) return []
+		return getComponentesByModelo(selectedModeloId)
+	}, [selectedModeloId, getComponentesByModelo, modelos])
+
+	const coresModelo = useMemo(() => {
+		if (!selectedModeloId) return []
+		return getCoresByModelo(selectedModeloId)
+	}, [selectedModeloId, getCoresByModelo, modelos])
+
+	const selectedModelo = modelos.find((m) => m.id === selectedModeloId)
+
+	function handleModeloChange(value: string) {
+		setSearchParams({ modelo: value })
+	}
+
+	function handleCreate(data: Omit<Componente, "id" | "modeloId">) {
+		if (!selectedModeloId) return
+		addComponente(selectedModeloId, data)
+		toast.success("Componente criado com sucesso!")
+	}
+
+	function handleEdit(componente: Componente) {
+		setEditingComponente(componente)
+		setFormOpen(true)
+	}
+
+	function handleUpdate(data: Omit<Componente, "id" | "modeloId">) {
+		if (editingComponente && selectedModeloId) {
+			updateComponente(selectedModeloId, editingComponente.id, data)
+			toast.success("Componente atualizado com sucesso!")
+		}
+	}
+
+	function handleDelete(id: string) {
+		if (!selectedModeloId) return
+		deleteComponente(selectedModeloId, id)
+		toast.success("Componente excluído com sucesso!")
+	}
+
+	function handleFormSubmit(data: Omit<Componente, "id" | "modeloId">) {
+		if (editingComponente) {
+			handleUpdate(data)
+		} else {
+			handleCreate(data)
+		}
+		setEditingComponente(null)
+	}
+
+	function handleFormClose(open: boolean) {
+		setFormOpen(open)
+		if (!open) {
+			setEditingComponente(null)
+		}
+	}
+
+	return (
+		<div className="space-y-6">
+			<PageHeader
+				title="Componentes"
+				description="Gerencie os componentes de cada modelo"
+				action={
+					<Button
+						onClick={() => setFormOpen(true)}
+						disabled={!selectedModeloId}
+					>
+						<Plus className="h-4 w-4 mr-2" />
+						Novo Componente
+					</Button>
+				}
+			/>
+
+			<div className="flex items-center gap-4">
+				<div className="w-full max-w-xs">
+					<Select value={selectedModeloId} onValueChange={handleModeloChange}>
+						<SelectTrigger>
+							<SelectValue placeholder="Selecione um modelo" />
+						</SelectTrigger>
+						<SelectContent>
+							{modelos.map((modelo) => (
+								<SelectItem key={modelo.id} value={modelo.id}>
+									{modelo.nome} ({modelo.artigo})
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+				{selectedModelo && (
+					<p className="text-sm text-muted-foreground">
+						{componentes.length} componente(s) • {coresModelo.length} cor(es)
+						disponível(is)
+					</p>
+				)}
+			</div>
+
+			{!selectedModeloId ? (
+				<div className="text-center py-16 text-muted-foreground animate-fade-in">
+					<p>
+						Selecione um modelo para visualizar e gerenciar seus componentes.
+					</p>
+				</div>
+			) : (
+				<ComponenteList
+					componentes={componentes}
+					materiais={materiais}
+					cores={coresModelo}
+					onEdit={handleEdit}
+					onDelete={handleDelete}
+				/>
+			)}
+
+			<ComponenteForm
+				open={formOpen}
+				onOpenChange={handleFormClose}
+				onSubmit={handleFormSubmit}
+				componente={editingComponente}
+				materiais={materiais}
+				coresModelo={coresModelo}
+			/>
+		</div>
+	)
+}
