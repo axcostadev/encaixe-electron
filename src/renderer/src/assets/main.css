@@ -2,6 +2,149 @@
 
 @import "tailwindcss";
 
+@font-face {
+	font-family: "Inter";
+	src: url("./inter.ttf") format("truetype");
+	font-weight: 100 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+@layer base {
+	:root {
+		--background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 217 91% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 40%;
+
+    --radius: 0.5rem;
+
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 32% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 32% 20%;
+    --sidebar-ring: 217 91% 60%;
+	}
+
+	.dark {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 160 84% 45%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 217 91% 60%;
+
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 32% 12%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 32% 12%;
+    --sidebar-ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+	* {
+		@apply border-(--border);
+	}
+
+	body: {
+		@apply bg-(--background) text-(--foreground) font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+	}
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-(--primary) to-(--accent) bg-clip-text text-transparent;
+  }
+
+  .glass-effect {
+    @apply bg-(--card)/80 backdrop-blur-sm;
+  }
+}
+
+@layer components {
+  .table-header {
+    @apply bg-(--muted/50) text-(--muted-foreground) font-medium text-sm uppercase tracking-wider;
+  }
+
+  .table-row-hover {
+    @apply hover:bg-(--muted/30) transition-colors duration-150;
+  }
+
+  .form-section {
+    @apply space-y-4 p-6 bg-(--card) rounded-lg border border-(--border);
+  }
+
+  .page-header {
+    @apply flex items-center justify-between mb-6;
+  }
+
+  .page-title {
+    @apply text-2xl font-semibold text-(--foreground);
+  }
+
+  .card-stats {
+    @apply bg-(--card) rounded-xl border border-(--border) p-6 shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+}
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -43,174 +186,4 @@
 
 .read-the-docs {
   color: #888;
-}
-
-/*
-body {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	overflow: hidden;
-	background: none;
-	user-select: none;
-}
-
-code {
-	font-weight: 600;
-	padding: 3px 5px;
-	border-radius: 2px;
-	background-color: var(--color-background-mute);
-	font-family:
-		ui-monospace,
-		SFMono-Regular,
-		SF Mono,
-		Menlo,
-		Consolas,
-		Liberation Mono,
-		monospace;
-	font-size: 85%;
-}
-
-#root {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	flex-direction: column;
-	margin-bottom: 80px;
-}
-
-.logo {
-	margin-bottom: 20px;
-	-webkit-user-drag: none;
-	height: 128px;
-	width: 128px;
-	will-change: filter;
-	transition: filter 300ms;
-}
-
-.logo:hover {
-	filter: drop-shadow(0 0 1.2em #6988e6aa);
-}
-
-.creator {
-	font-size: 14px;
-	line-height: 16px;
-	color: var(--ev-c-text-2);
-	font-weight: 600;
-	margin-bottom: 10px;
-}
-
-.text {
-	font-size: 28px;
-	color: var(--ev-c-text-1);
-	font-weight: 700;
-	line-height: 32px;
-	text-align: center;
-	margin: 0 10px;
-	padding: 16px 0;
-}
-
-.tip {
-	font-size: 16px;
-	line-height: 24px;
-	color: var(--ev-c-text-2);
-	font-weight: 600;
-}
-
-.react {
-	background: -webkit-linear-gradient(315deg, #087ea4 55%, #7c93ee);
-	background-clip: text;
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
-	font-weight: 700;
-}
-
-.ts {
-	background: -webkit-linear-gradient(315deg, #3178c6 45%, #f0dc4e);
-	background-clip: text;
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
-	font-weight: 700;
-}
-
-.actions {
-	display: flex;
-	padding-top: 32px;
-	margin: -6px;
-	flex-wrap: wrap;
-	justify-content: flex-start;
-}
-
-.action {
-	flex-shrink: 0;
-	padding: 6px;
-}
-
-.action a {
-	cursor: pointer;
-	text-decoration: none;
-	display: inline-block;
-	border: 1px solid transparent;
-	text-align: center;
-	font-weight: 600;
-	white-space: nowrap;
-	border-radius: 20px;
-	padding: 0 20px;
-	line-height: 38px;
-	font-size: 14px;
-	border-color: var(--ev-button-alt-border);
-	color: var(--ev-button-alt-text);
-	background-color: var(--ev-button-alt-bg);
-}
-
-.action a:hover {
-	border-color: var(--ev-button-alt-hover-border);
-	color: var(--ev-button-alt-hover-text);
-	background-color: var(--ev-button-alt-hover-bg);
-}
-
-.versions {
-	position: absolute;
-	bottom: 30px;
-	margin: 0 auto;
-	padding: 15px 0;
-	font-family: "Menlo", "Lucida Console", monospace;
-	display: inline-flex;
-	overflow: hidden;
-	align-items: center;
-	border-radius: 22px;
-	background-color: #202127;
-	backdrop-filter: blur(24px);
-}
-
-.versions li {
-	display: block;
-	float: left;
-	border-right: 1px solid var(--ev-c-gray-1);
-	padding: 0 20px;
-	font-size: 14px;
-	line-height: 14px;
-	opacity: 0.8;
-	&:last-child {
-		border: none;
-	}
-}
-
-@media (max-width: 720px) {
-	.text {
-		font-size: 20px;
-	}
-}
-
-@media (max-width: 620px) {
-	.versions {
-		display: none;
-	}
-}
-
-@media (max-width: 350px) {
-	.tip,
-	.actions {
-		display: none;
-	}
 }
