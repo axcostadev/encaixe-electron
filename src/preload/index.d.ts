@@ -40,6 +40,7 @@ declare global {
 				parseCTC: (filePath: string) => Promise<any>
 				saveCTF: (lines: any) => Promise<any>
 				saveCTC: (lines: any) => Promise<any>
+				buscarOF: (of: string) => Promise<any[]>
 			}
 			dbAPI: {
 				getAllLines: () => Promise<any[]>

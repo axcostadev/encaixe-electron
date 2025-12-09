@@ -27,7 +27,8 @@ const api = {
 		parseCTF: (filePath: string) => ipcRenderer.invoke('parse-ctf', filePath),
 		parseCTC: (filePath: string) => ipcRenderer.invoke('parse-ctc', filePath),
 		saveCTF: (lines: any) => ipcRenderer.invoke('save-ctf', lines),
-		saveCTC: (lines: any) => ipcRenderer.invoke('save-ctc', lines)
+		saveCTC: (lines: any) => ipcRenderer.invoke('save-ctc', lines),
+		buscarOF: (of: string) => ipcRenderer.invoke('buscar-of', of)
 	},
 	dbAPI: {
 		getAllLines: () => ipcRenderer.invoke('query-lines'),

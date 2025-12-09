@@ -126,6 +126,69 @@ export function setupIPC(): void {
 		return await db.clearLines()
 	})
 
+	// Buscar OF nos arquivos CTF/CTC
+	ipcMain.handle('buscar-of', async (_event, ofBuscada: string) => {
+		const fs = await import('fs')
+		const readline = await import('readline')
+		const resultado: any[] = []
+		
+		const caminhos = [
+			'O:\\CORTE\\Alyson\\relatorioGCITXT\\CTC.txt',
+			'O:\\CORTE\\Alyson\\relatorioGCITXT\\CTF.txt'
+		]
+
+		const padraoOF = /PAR\s*(\d{9})\/\d/i
+		const padraoArtigo = /(?:CORTE|COR)\s*(\d{7,9})/i
+		const padraoPares = /N\s*([\d\.]+,[\d]{3})/
+
+		for (const caminho of caminhos) {
+			if (!fs.existsSync(caminho)) continue
+
+			const fileStream = fs.createReadStream(caminho, { encoding: 'latin1' })
+			const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity })
+
+			for await (const linha of rl) {
+				const mOF = padraoOF.exec(linha)
+				if (!mOF) continue
+				
+				const ofLinha = mOF[1]
+				if (ofLinha !== ofBuscada) continue
+
+				let artigo = ''
+				const mArtigo = padraoArtigo.exec(linha)
+				if (mArtigo) artigo = mArtigo[1]
+
+				let codigoCor = ''
+				let grade = ''
+				let modelo = ''
+
+				if (linha.length >= 65) {
+					codigoCor = linha.substring(50, 60).trim()
+					grade = linha.substring(61, 64).trim()
+					modelo = linha.substring(73, 82).trim()
+				}
+
+				let pares = 0
+				const mPares = padraoPares.exec(linha)
+				if (mPares) {
+					const paresStr = mPares[1]
+					const partesPares = paresStr.split(',')
+					try {
+						pares = parseInt(partesPares[0].replace(/\./g, ''))
+					} catch (ex) {
+						pares = 0
+					}
+				}
+
+				if (grade && pares > 0) {
+					resultado.push({ artigo, modelo, codigoCor, grade, pares })
+				}
+			}
+		}
+
+		return resultado
+	})
+
 	// Apelidos handlers
 	ipcMain.handle('apelidos-get-all', async () => {
 		return await gerenciadorApelidos.getAllApelidos()
