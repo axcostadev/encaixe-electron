@@ -1,5 +1,5 @@
 import { cn } from "@renderer/lib/utils"
-import { Box, Layers, LayoutDashboard, Package, Palette } from "lucide-react"
+import { Box, Layers, LayoutDashboard, Package, Palette, Zap } from "lucide-react"
 import { NavLink } from "react-router-dom"
 
 const menuItems = [
@@ -8,6 +8,7 @@ const menuItems = [
 	{ path: "/cores", label: "Cores", icon: Palette },
 	{ path: "/materiais", label: "Materiais", icon: Layers },
 	{ path: "/componentes", label: "Componentes", icon: Package },
+	{ path: "/encaixe", label: "Encaixe", icon: Zap },
 ]
 
 export function Sidebar() {

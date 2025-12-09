@@ -8,6 +8,7 @@ import { CoresPage } from "@renderer/pages/CoresPage"
 import { Dashboard } from "@renderer/pages/Dashboard"
 import { MateriaisPage } from "@renderer/pages/MateriaisPage"
 import { ModelosPage } from "@renderer/pages/ModelosPage"
+import EncaixePage from "@renderer/pages/EncaixePage"
 import NotFound from "@renderer/pages/NotFound"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useState } from "react"
@@ -46,6 +47,7 @@ function App() {
 														<MainLayout>
 															<Routes>
 																<Route path="/" element={<Dashboard />} />
+																<Route path="/encaixe" element={<EncaixePage />} />
 																<Route path="/modelos" element={<ModelosPage />} />
 																<Route path="/cores" element={<CoresPage />} />
 																<Route path="/materiais" element={<MateriaisPage />} />
