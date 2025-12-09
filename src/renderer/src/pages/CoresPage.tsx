@@ -12,33 +12,61 @@ import {
 import { useApp } from "@renderer/contexts/AppContext"
 import { Cor } from "@renderer/types"
 import { Plus } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
 export function CoresPage() {
-	const { modelos, addCor, updateCor, deleteCor, getCoresByModelo } = useApp()
+	const {
+		modelos,
+		loadModelos,
+		addCor,
+		updateCor,
+		deleteCor,
+		getCoresByModelo,
+	} = useApp()
 	const [searchParams, setSearchParams] = useSearchParams()
 	const [formOpen, setFormOpen] = useState(false)
 	const [editingCor, setEditingCor] = useState<Cor | null>(null)
+
+	useEffect(() => {
+		async function load() {
+			try {
+				await loadModelos()
+			} catch {
+				toast.error("Erro ao carregar modelos")
+			}
+		}
+		load()
+	}, [loadModelos])
 
 	const selectedModeloId = searchParams.get("modelo") || ""
 
 	const cores = useMemo(() => {
 		if (!selectedModeloId) return []
-		return getCoresByModelo(selectedModeloId)
-	}, [selectedModeloId, getCoresByModelo, modelos])
+		const id = parseInt(selectedModeloId)
+		if (isNaN(id)) return []
+		return getCoresByModelo(id)
+	}, [selectedModeloId, getCoresByModelo])
 
-	const selectedModelo = modelos.find((m) => m.id === selectedModeloId)
+	const selectedModelo = modelos.find(
+		(m) => m.id === parseInt(selectedModeloId),
+	)
 
 	function handleModeloChange(value: string) {
 		setSearchParams({ modelo: value })
 	}
 
-	function handleCreate(data: { abreviacao: string; nome: string }) {
+	async function handleCreate(data: { abreviacao: string; nome: string }) {
 		if (!selectedModeloId) return
-		addCor(selectedModeloId, data)
-		toast.success("Cor criada com sucesso!")
+		const id = parseInt(selectedModeloId)
+		if (isNaN(id)) return
+		try {
+			await addCor(id, data)
+			toast.success("Cor criada com sucesso!")
+		} catch (error) {
+			toast.error("Erro ao criar cor: " + (error as Error).message)
+		}
 	}
 
 	function handleEdit(cor: Cor) {
@@ -46,17 +74,29 @@ export function CoresPage() {
 		setFormOpen(true)
 	}
 
-	function handleUpdate(data: { abreviacao: string; nome: string }) {
+	async function handleUpdate(data: { abreviacao: string; nome: string }) {
 		if (editingCor && selectedModeloId) {
-			updateCor(selectedModeloId, editingCor.id, data)
-			toast.success("Cor atualizada com sucesso!")
+			const modeloId = parseInt(selectedModeloId)
+			if (isNaN(modeloId)) return
+			try {
+				await updateCor(modeloId, editingCor.id, data)
+				toast.success("Cor atualizada com sucesso!")
+			} catch (error) {
+				toast.error("Erro ao atualizar cor: " + (error as Error).message)
+			}
 		}
 	}
 
-	function handleDelete(id: string) {
+	async function handleDelete(id: number) {
 		if (!selectedModeloId) return
-		deleteCor(selectedModeloId, id)
-		toast.success("Cor excluída com sucesso!")
+		const modeloId = parseInt(selectedModeloId)
+		if (isNaN(modeloId)) return
+		try {
+			await deleteCor(modeloId, id)
+			toast.success("Cor excluída com sucesso!")
+		} catch (error) {
+			toast.error("Erro ao excluir cor: " + (error as Error).message)
+		}
 	}
 
 	function handleFormSubmit(data: { abreviacao: string; nome: string }) {
@@ -99,7 +139,7 @@ export function CoresPage() {
 						</SelectTrigger>
 						<SelectContent>
 							{modelos.map((modelo) => (
-								<SelectItem key={modelo.id} value={modelo.id}>
+								<SelectItem key={modelo.id} value={modelo.id.toString()}>
 									{modelo.nome} ({modelo.artigo})
 								</SelectItem>
 							))}

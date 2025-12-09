@@ -1,11 +1,23 @@
 import { Button } from "@renderer/components/ui/button"
 import { useApp } from "@renderer/contexts/AppContext"
 import { ArrowRight, Box, Layers, Package, Palette } from "lucide-react"
+import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 
 export function Dashboard() {
-	const { modelos, materiais } = useApp()
+	const { modelos, materiais, loadModelos } = useApp()
 	const navigate = useNavigate()
+
+	useEffect(() => {
+		async function load() {
+			try {
+				await loadModelos()
+			} catch {
+				// Ignore errors for now
+			}
+		}
+		load()
+	}, [loadModelos])
 
 	const totalCores = modelos.reduce((acc, m) => acc + m.cores.length, 0)
 	const totalComponentes = modelos.reduce(
