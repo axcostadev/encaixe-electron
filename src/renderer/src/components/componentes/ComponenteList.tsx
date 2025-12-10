@@ -39,12 +39,12 @@ export function ComponenteList({
 	}
 
 	function getMaterialNome(id: string) {
-		return materiais.find((m) => m.id === id)?.artigo || "—"
+		return materiais.find((m) => m.id === parseInt(id))?.artigo || "—"
 	}
 
 	function getCoresNomes(ids: string[]) {
 		return ids
-			.map((id) => cores.find((c) => c.id === id))
+			.map((id) => cores.find((c) => c.id === parseInt(id)))
 			.filter(Boolean)
 			.map((c) => c!.abreviacao)
 	}
@@ -88,7 +88,7 @@ export function ComponenteList({
 										</TableCell>
 										<TableCell>
 											<Badge variant="outline">
-												{getMaterialNome(componente.materialId)}
+												{getMaterialNome(componente.materialId.toString())}
 											</Badge>
 										</TableCell>
 										<TableCell className="text-center">
@@ -130,7 +130,7 @@ export function ComponenteList({
 												<Button
 													variant="ghost"
 													size="icon"
-													onClick={() => setDeleteId(componente.id)}
+													onClick={() => setDeleteId(componente.id.toString())}
 													className="h-8 w-8 text-muted-foreground hover:text-destructive"
 												>
 													<Trash2 className="h-4 w-4" />

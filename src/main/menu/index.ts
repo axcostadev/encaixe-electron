@@ -1,4 +1,4 @@
-import { ipcMain, Menu } from "electron"
+import { ipcMain, Menu, BrowserWindow } from "electron"
 
 export function setupMenu(): void {
 	const menu = Menu.buildFromTemplate([
@@ -60,15 +60,16 @@ export function setupMenu(): void {
 				{
 					label: "Recarregar",
 					accelerator: "CmdOrCtrl+R",
-					click: (menuItem, browserWindow) => {
-						if (browserWindow) browserWindow.reload()
+					click: (_menuItem, browserWindow) => {
+						if (browserWindow) (browserWindow as BrowserWindow).reload()
 					},
 				},
 				{
 					label: "Ferramentas do Desenvolvedor",
 					accelerator: "CmdOrCtrl+Shift+I",
-					click: (menuItem, browserWindow) => {
-						if (browserWindow) browserWindow.webContents.toggleDevTools()
+					click: (_menuItem, browserWindow) => {
+						if (browserWindow)
+							(browserWindow as BrowserWindow).webContents.toggleDevTools()
 					},
 				},
 			],

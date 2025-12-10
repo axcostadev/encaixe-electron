@@ -16,7 +16,6 @@ import { useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
-
 export function ComponentesPage() {
 	const {
 		modelos,
@@ -35,26 +34,29 @@ export function ComponentesPage() {
 	)
 
 	const selectedModeloId = searchParams.get("modelo") || ""
+	const selectedModeloIdNum = selectedModeloId
+		? parseInt(selectedModeloId, 10)
+		: null
 
 	const componentes = useMemo(() => {
-		if (!selectedModeloId) return []
-		return getComponentesByModelo(selectedModeloId)
-	}, [selectedModeloId, getComponentesByModelo, modelos])
+		if (!selectedModeloIdNum) return []
+		return getComponentesByModelo(selectedModeloIdNum)
+	}, [selectedModeloIdNum, getComponentesByModelo])
 
 	const coresModelo = useMemo(() => {
-		if (!selectedModeloId) return []
-		return getCoresByModelo(selectedModeloId)
-	}, [selectedModeloId, getCoresByModelo, modelos])
+		if (!selectedModeloIdNum) return []
+		return getCoresByModelo(selectedModeloIdNum)
+	}, [selectedModeloIdNum, getCoresByModelo])
 
-	const selectedModelo = modelos.find((m) => m.id === selectedModeloId)
+	const selectedModelo = modelos.find((m) => m.id === selectedModeloIdNum)
 
 	function handleModeloChange(value: string) {
 		setSearchParams({ modelo: value })
 	}
 
 	function handleCreate(data: Omit<Componente, "id" | "modeloId">) {
-		if (!selectedModeloId) return
-		addComponente(selectedModeloId, data)
+		if (!selectedModeloIdNum) return
+		addComponente(selectedModeloIdNum, data)
 		toast.success("Componente criado com sucesso!")
 	}
 
@@ -64,15 +66,15 @@ export function ComponentesPage() {
 	}
 
 	function handleUpdate(data: Omit<Componente, "id" | "modeloId">) {
-		if (editingComponente && selectedModeloId) {
-			updateComponente(selectedModeloId, editingComponente.id, data)
+		if (editingComponente && selectedModeloIdNum) {
+			updateComponente(selectedModeloIdNum, editingComponente.id, data)
 			toast.success("Componente atualizado com sucesso!")
 		}
 	}
 
 	function handleDelete(id: string) {
-		if (!selectedModeloId) return
-		deleteComponente(selectedModeloId, id)
+		if (!selectedModeloIdNum) return
+		deleteComponente(selectedModeloIdNum, parseInt(id, 10))
 		toast.success("Componente excluído com sucesso!")
 	}
 
@@ -94,19 +96,19 @@ export function ComponentesPage() {
 
 	return (
 		<div className="space-y-6">
-				<PageHeader
-					title="Componentes"
-					description="Gerencie os componentes de cada modelo"
-					action={
-						<Button
-							onClick={() => setFormOpen(true)}
-							disabled={!selectedModeloId}
-						>
-							<Plus className="h-4 w-4 mr-2" />
-							Novo Componente
-						</Button>
-					}
-				/>
+			<PageHeader
+				title="Componentes"
+				description="Gerencie os componentes de cada modelo"
+				action={
+					<Button
+						onClick={() => setFormOpen(true)}
+						disabled={!selectedModeloIdNum}
+					>
+						<Plus className="h-4 w-4 mr-2" />
+						Novo Componente
+					</Button>
+				}
+			/>
 
 			<div className="flex items-center gap-4">
 				<div className="w-full max-w-xs">
@@ -116,7 +118,7 @@ export function ComponentesPage() {
 						</SelectTrigger>
 						<SelectContent>
 							{modelos.map((modelo) => (
-								<SelectItem key={modelo.id} value={modelo.id}>
+								<SelectItem key={modelo.id} value={modelo.id.toString()}>
 									{modelo.nome} ({modelo.artigo})
 								</SelectItem>
 							))}
@@ -131,7 +133,7 @@ export function ComponentesPage() {
 				)}
 			</div>
 
-			{!selectedModeloId ? (
+			{!selectedModeloIdNum ? (
 				<div className="text-center py-16 text-muted-foreground animate-fade-in">
 					<p>
 						Selecione um modelo para visualizar e gerenciar seus componentes.

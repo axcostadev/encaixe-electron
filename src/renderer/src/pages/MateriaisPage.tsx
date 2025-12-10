@@ -31,7 +31,7 @@ export function MateriaisPage() {
 	}
 
 	function handleDelete(id: string) {
-		deleteMaterial(id)
+		deleteMaterial(parseInt(id, 10))
 		toast.success("Material excluído com sucesso!")
 	}
 

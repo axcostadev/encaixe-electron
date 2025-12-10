@@ -13,7 +13,6 @@ function createWindow(): void {
 		show: false,
 		// mostrar menu por padrão (não esconder com Alt)
 		autoHideMenuBar: false,
-		menuBarVisible: true,
 		...(process.platform === "linux" ? { icon } : {}),
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),

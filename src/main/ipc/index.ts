@@ -12,28 +12,149 @@ import {
 	addModeloCor,
 	deleteModeloCor,
 } from "../database"
-import * as parser from '../modules/arquivoParser.js'
-import * as db from '../modules/db.js'
-import * as gerenciadorApelidos from '../modules/gerenciadorApelidos.js'
-import * as abreviacaoManager from '../modules/abreviacaoManager.js'
-import * as exportadorComelz from '../modules/exportadorComelz.js'
-import * as exportadorEmma from '../modules/exportadorEmma.js'
-import * as exportadorLectra from '../modules/exportadorLectra.js'
-import * as conversorComelz from '../modules/conversorComelz.js'
-import * as conversorEmma from '../modules/conversorEmma.js'
-import * as conversorLectra from '../modules/conversorLectra.js'
+import * as parser from "../modules/arquivoParser.js"
+import * as db from "../modules/db.js"
+import * as gerenciadorApelidos from "../modules/gerenciadorApelidos.js"
+import * as abreviacaoManager from "../modules/abreviacaoManager.js"
+import * as exportadorComelz from "../modules/exportadorComelz.js"
+import * as exportadorEmma from "../modules/exportadorEmma.js"
+import * as exportadorLectra from "../modules/exportadorLectra.js"
+import * as conversorComelz from "../modules/conversorComelz.js"
+import * as conversorEmma from "../modules/conversorEmma.js"
+import * as conversorLectra from "../modules/conversorLectra.js"
+
+// Type definitions
+interface LinhaCTF {
+	artigo: string
+	modelo: string
+	codigoCor: string
+	grade: string
+	pares: number
+	of: string
+}
+
+interface LinhaCTC {
+	of: string
+	artigo: string
+	modelo: string
+	codigoCor: string
+	grade: string
+	pares: number
+	especificacaoTecnica: string
+	prioridade: string
+}
+
+interface DadosCTF {
+	of: string
+	linhas: LinhaCTF[]
+}
+
+interface DadosCTC {
+	of: string
+	linhas: LinhaCTC[]
+}
+
+interface QtyRuleComelz {
+	part_name?: string
+	part_size?: string
+	fitting?: string
+	mirror?: boolean
+	parts?: number
+	material?: string
+	items?: number
+}
+
+interface PedidoComelz {
+	id?: string
+	date?: string
+	note?: string
+	customer?: string
+	split_materials?: boolean
+	model: string
+	qty: QtyRuleComelz[]
+}
+
+interface QtyEmma {
+	part_name: string
+	part_size: string
+	mirror: boolean
+	parts: number
+	angle: number
+	toler: number
+	material_name: string
+	material_x: number
+	material_y: number
+	material_unit: string
+	part_space: number
+	material_plies_up: number
+	material_plies_down: number
+	material_margin: number
+}
+
+interface PedidoEmma {
+	customer: string
+	date: string
+	id: string
+	model: string
+	qty: QtyEmma[]
+}
+
+interface ModelDataLectra {
+	codigo: string
+	tamanho: string | number
+	a: number
+	b: number
+	c: number
+	d: number
+}
+
+interface CadastroObj {
+	artigo?: string
+	modelo?: string
+	componente?: string
+	material?: string
+	cor?: string
+	largura?: string
+	tipoTecido?: string
+	paresCriac?: string
+	conjugNavalha?: string
+	placaPorPar?: string
+	camada?: string
+	espacamento?: string
+	comprimentoMax?: string
+}
+
+interface SaveDialogOptions {
+	title?: string
+	defaultPath?: string
+	filters?: Array<{ name: string; extensions: string[] }>
+}
+
+interface BuscarOFResult {
+	artigo: string
+	modelo: string
+	codigoCor: string
+	grade: string
+	pares: number
+}
+
+interface ConversorOptions {
+	artigo?: string
+	componente?: string
+	[key: string]: unknown // For additional options
+}
 
 export function setupIPC(): void {
 	// Inicializar banco de dados
 	initDatabase()
-	
+
 	// Inicializar banco de dados do electron-app
 	db.initDB()
 
 	// IPC para login
 	ipcMain.handle(
 		"auth:login",
-		async (event, username: string, password: string) => {
+		async (_event, username: string, password: string) => {
 			return await authenticateUser(username, password)
 		},
 	)
@@ -41,7 +162,7 @@ export function setupIPC(): void {
 	// IPC para registrar novo usuário
 	ipcMain.handle(
 		"auth:register",
-		async (event, username: string, password: string, email: string) => {
+		async (_event, username: string, password: string, email: string) => {
 			return await createUser(username, password, email)
 		},
 	)
@@ -56,111 +177,123 @@ export function setupIPC(): void {
 		return await listModelos()
 	})
 
-	ipcMain.handle("modelos:create", async (event, artigo: string, nome: string) => {
-		return await createModelo(artigo, nome)
-	})
+	ipcMain.handle(
+		"modelos:create",
+		async (_event, artigo: string, nome: string) => {
+			return await createModelo(artigo, nome)
+		},
+	)
 
-	ipcMain.handle("modelos:update", async (event, id: number, artigo: string, nome: string) => {
-		return await updateModelo(id, artigo, nome)
-	})
+	ipcMain.handle(
+		"modelos:update",
+		async (_event, id: number, artigo: string, nome: string) => {
+			return await updateModelo(id, artigo, nome)
+		},
+	)
 
-	ipcMain.handle("modelos:delete", async (event, id: number) => {
+	ipcMain.handle("modelos:delete", async (_event, id: number) => {
 		return await deleteModelo(id)
 	})
 
 	// Cores do modelo
-	ipcMain.handle("modelos:cores:list", async (event, modelo_id: number) => {
+	ipcMain.handle("modelos:cores:list", async (_event, modelo_id: number) => {
 		return await listModeloCores(modelo_id)
 	})
 
-	ipcMain.handle("modelos:cores:add", async (event, modelo_id: number, abreviada: string, completa: string) => {
-		return await addModeloCor(modelo_id, abreviada, completa)
-	})
+	ipcMain.handle(
+		"modelos:cores:add",
+		async (_event, modelo_id: number, abreviada: string, completa: string) => {
+			return await addModeloCor(modelo_id, abreviada, completa)
+		},
+	)
 
-	ipcMain.handle("modelos:cores:delete", async (event, id: number) => {
+	ipcMain.handle("modelos:cores:delete", async (_event, id: number) => {
 		return await deleteModeloCor(id)
 	})
 
 	// ==================== HANDLERS DO ELECTRON-APP ====================
-	
+
 	// File selection
-	ipcMain.handle('select-file', async () => {
-		const result = await dialog.showOpenDialog({ 
-			properties: ['openFile'], 
+	ipcMain.handle("select-file", async () => {
+		const result = await dialog.showOpenDialog({
+			properties: ["openFile"],
 			filters: [
-				{ name: 'Text', extensions: ['txt', 'ctf', 'ctc', 'log'] }, 
-				{ name: 'All', extensions: ['*'] }
-			] 
+				{ name: "Text", extensions: ["txt", "ctf", "ctc", "log"] },
+				{ name: "All", extensions: ["*"] },
+			],
 		})
 		if (result.canceled) return null
 		return result.filePaths[0]
 	})
 
 	// Parse handlers
-	ipcMain.handle('parse-ctf', async (_event, filePath: string) => {
+	ipcMain.handle("parse-ctf", async (_event, filePath: string) => {
 		return await parser.parseCTF(filePath)
 	})
 
-	ipcMain.handle('parse-ctc', async (_event, filePath: string) => {
+	ipcMain.handle("parse-ctc", async (_event, filePath: string) => {
 		return await parser.parseCTC(filePath)
 	})
 
 	// Database handlers
-	ipcMain.handle('save-ctf', async (_event, lines: any) => {
+	ipcMain.handle("save-ctf", async (_event, lines: DadosCTF[]) => {
 		return await db.saveCTFLines(lines)
 	})
 
-	ipcMain.handle('save-ctc', async (_event, lines: any) => {
+	ipcMain.handle("save-ctc", async (_event, lines: DadosCTC[]) => {
 		return await db.saveCTCLines(lines)
 	})
 
-	ipcMain.handle('query-lines', async () => {
+	ipcMain.handle("query-lines", async () => {
 		return await db.getAllLines()
 	})
 
-	ipcMain.handle('query-lines-by-of', async (_event, of: string) => {
+	ipcMain.handle("query-lines-by-of", async (_event, of: string) => {
 		return await db.getLinesByOf(of)
 	})
 
-	ipcMain.handle('clear-lines', async () => {
+	ipcMain.handle("clear-lines", async () => {
 		return await db.clearLines()
 	})
 
 	// Buscar OF nos arquivos CTF/CTC
-	ipcMain.handle('buscar-of', async (_event, ofBuscada: string) => {
-		const fs = await import('fs')
-		const readline = await import('readline')
-		const resultado: any[] = []
-		
+	ipcMain.handle("buscar-of", async (_event, ofBuscada: string) => {
+		const fs = await import("fs")
+		const readline = await import("readline")
+		const resultado: BuscarOFResult[] = []
+
 		const caminhos = [
-			'O:\\CORTE\\Alyson\\relatorioGCITXT\\CTC.txt',
-			'O:\\CORTE\\Alyson\\relatorioGCITXT\\CTF.txt'
+			"O:\\CORTE\\Alyson\\relatorioGCITXT\\CTC.txt",
+			"O:\\CORTE\\Alyson\\relatorioGCITXT\\CTF.txt",
 		]
 
 		const padraoOF = /PAR\s*(\d{9})\/\d/i
 		const padraoArtigo = /(?:CORTE|COR)\s*(\d{7,9})/i
-		const padraoPares = /N\s*([\d\.]+,[\d]{3})/
+		const padraoPares = /N\s*([\d.]+,[\d]{3})/
 
 		for (const caminho of caminhos) {
 			if (!fs.existsSync(caminho)) continue
 
-			const fileStream = fs.createReadStream(caminho, { encoding: 'latin1' })
-			const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity })
+			const fileStream = fs.createReadStream(caminho, { encoding: "latin1" })
+			const rl = readline.createInterface({
+				input: fileStream,
+				crlfDelay: Infinity,
+			})
 
 			for await (const linha of rl) {
 				const mOF = padraoOF.exec(linha)
 				if (!mOF) continue
-				
+
 				const ofLinha = mOF[1]
 				if (ofLinha !== ofBuscada) continue
 
-				let artigo = ''
+				let artigo = ""
 				const mArtigo = padraoArtigo.exec(linha)
 				if (mArtigo) artigo = mArtigo[1]
 
-				let codigoCor = ''
-				let grade = ''
-				let modelo = ''
+				let codigoCor = ""
+				let grade = ""
+				let modelo = ""
 
 				if (linha.length >= 65) {
 					codigoCor = linha.substring(50, 60).trim()
@@ -172,10 +305,10 @@ export function setupIPC(): void {
 				const mPares = padraoPares.exec(linha)
 				if (mPares) {
 					const paresStr = mPares[1]
-					const partesPares = paresStr.split(',')
+					const partesPares = paresStr.split(",")
 					try {
-						pares = parseInt(partesPares[0].replace(/\./g, ''))
-					} catch (ex) {
+						pares = parseInt(partesPares[0].replace(/\./g, ""))
+					} catch {
 						pares = 0
 					}
 				}
@@ -190,127 +323,195 @@ export function setupIPC(): void {
 	})
 
 	// Apelidos handlers
-	ipcMain.handle('apelidos-get-all', async () => {
+	ipcMain.handle("apelidos-get-all", async () => {
 		return await gerenciadorApelidos.getAllApelidos()
 	})
 
-	ipcMain.handle('apelidos-get', async (_event, componente: string) => {
+	ipcMain.handle("apelidos-get", async (_event, componente: string) => {
 		return await gerenciadorApelidos.getApelido(componente)
 	})
 
-	ipcMain.handle('apelidos-save', async (_event, componente: string, apelido: string) => {
-		return await gerenciadorApelidos.saveApelido(componente, apelido)
-	})
+	ipcMain.handle(
+		"apelidos-save",
+		async (_event, componente: string, apelido: string) => {
+			return await gerenciadorApelidos.saveApelido(componente, apelido)
+		},
+	)
 
-	ipcMain.handle('apelidos-remove', async (_event, componente: string) => {
+	ipcMain.handle("apelidos-remove", async (_event, componente: string) => {
 		return await gerenciadorApelidos.removeApelido(componente)
 	})
 
 	// Abreviacoes handlers
-	ipcMain.handle('abreviacoes-get-all', async () => {
+	ipcMain.handle("abreviacoes-get-all", async () => {
 		return await abreviacaoManager.getAllAbreviacoes()
 	})
 
-	ipcMain.handle('abreviacoes-save', async (_event, componente: string, abrev: string) => {
-		return await abreviacaoManager.saveAbreviacao(componente, abrev)
-	})
+	ipcMain.handle(
+		"abreviacoes-save",
+		async (_event, componente: string, abrev: string) => {
+			return await abreviacaoManager.saveAbreviacao(componente, abrev)
+		},
+	)
 
-	ipcMain.handle('abreviacoes-remove', async (_event, componente: string) => {
+	ipcMain.handle("abreviacoes-remove", async (_event, componente: string) => {
 		return await abreviacaoManager.removeAbreviacao(componente)
 	})
 
 	// Export handlers
-	ipcMain.handle('show-save-dialog', async (_event, opts: any) => {
-		const res = await dialog.showSaveDialog({
-			title: opts?.title || 'Salvar arquivo',
-			defaultPath: opts?.defaultPath || undefined,
-			filters: opts?.filters || []
-		})
-		if (res.canceled) return null
-		return res.filePath
-	})
+	ipcMain.handle(
+		"show-save-dialog",
+		async (_event, opts: SaveDialogOptions) => {
+			const res = await dialog.showSaveDialog({
+				title: opts?.title || "Salvar arquivo",
+				defaultPath: opts?.defaultPath || undefined,
+				filters: opts?.filters || [],
+			})
+			if (res.canceled) return null
+			return res.filePath
+		},
+	)
 
-	ipcMain.handle('export-comelz', async (_event, pedidoObj: any, caminho: string) => {
-		return await exportadorComelz.exportar(pedidoObj, caminho)
-	})
+	ipcMain.handle(
+		"export-comelz",
+		async (_event, pedidoObj: PedidoComelz, caminho: string) => {
+			return await exportadorComelz.exportar(pedidoObj, caminho)
+		},
+	)
 
-	ipcMain.handle('export-emma', async (_event, pedidoObj: any, caminho: string) => {
-		return await exportadorEmma.exportar(pedidoObj, caminho)
-	})
+	ipcMain.handle(
+		"export-emma",
+		async (_event, pedidoObj: PedidoEmma, caminho: string) => {
+			return await exportadorEmma.exportar(pedidoObj, caminho)
+		},
+	)
 
-	ipcMain.handle('export-lectra', async (_event, modelos: any, caminho: string, markerName: string) => {
-		return await exportadorLectra.exportarMkx(modelos, caminho, markerName)
-	})
+	ipcMain.handle(
+		"export-lectra",
+		async (
+			_event,
+			modelos: ModelDataLectra[],
+			caminho: string,
+			markerName: string,
+		) => {
+			return await exportadorLectra.exportarMkx(modelos, caminho, markerName)
+		},
+	)
 
 	// Conversor handlers
-	ipcMain.handle('conversor-comelz', async (_event, parsedCTF: any, parsedCTC: any, options: any) => {
-		let cadastro = null
-		try {
-			if (options && options.artigo) {
-				cadastro = options.componente ? await db.findCadastro(options.artigo, options.componente) : await db.getCadastroByArtigo(options.artigo)
+	ipcMain.handle(
+		"conversor-comelz",
+		async (
+			_event,
+			parsedCTF: DadosCTF,
+			parsedCTC: DadosCTC,
+			options: ConversorOptions,
+		) => {
+			let cadastro = null
+			try {
+				if (options && options.artigo) {
+					cadastro = options.componente
+						? await db.findCadastro(options.artigo, options.componente)
+						: await db.getCadastroByArtigo(options.artigo)
+				}
+			} catch (err) {
+				console.error("Erro buscando cadastro para conversor Comelz:", err)
 			}
-		} catch (err) {
-			console.error('Erro buscando cadastro para conversor Comelz:', err)
-		}
-		return conversorComelz.converterParaQtyRules(parsedCTF, parsedCTC, cadastro || options)
-	})
+			return conversorComelz.converterParaQtyRules(
+				parsedCTF,
+				parsedCTC,
+				cadastro || options,
+			)
+		},
+	)
 
-	ipcMain.handle('conversor-emma', async (_event, parsedCTF: any, parsedCTC: any, options: any) => {
-		let cadastro = null
-		try {
-			if (options && options.artigo) {
-				cadastro = options.componente ? await db.findCadastro(options.artigo, options.componente) : await db.getCadastroByArtigo(options.artigo)
+	ipcMain.handle(
+		"conversor-emma",
+		async (
+			_event,
+			parsedCTF: DadosCTF,
+			parsedCTC: DadosCTC,
+			options: ConversorOptions,
+		) => {
+			let cadastro = null
+			try {
+				if (options && options.artigo) {
+					cadastro = options.componente
+						? await db.findCadastro(options.artigo, options.componente)
+						: await db.getCadastroByArtigo(options.artigo)
+				}
+			} catch (err) {
+				console.error("Erro buscando cadastro para conversor Emma:", err)
 			}
-		} catch (err) {
-			console.error('Erro buscando cadastro para conversor Emma:', err)
-		}
-		return conversorEmma.converterParaQtyEmma(parsedCTF, parsedCTC, cadastro || options)
-	})
+			return conversorEmma.converterParaQtyEmma(
+				parsedCTF,
+				parsedCTC,
+				cadastro || options,
+			)
+		},
+	)
 
-	ipcMain.handle('conversor-lectra', async (_event, parsedCTF: any, parsedCTC: any, options: any) => {
-		let cadastro = null
-		try {
-			if (options && options.artigo) {
-				cadastro = options.componente ? await db.findCadastro(options.artigo, options.componente) : await db.getCadastroByArtigo(options.artigo)
+	ipcMain.handle(
+		"conversor-lectra",
+		async (
+			_event,
+			parsedCTF: DadosCTF,
+			parsedCTC: DadosCTC,
+			options: ConversorOptions,
+		) => {
+			let cadastro = null
+			try {
+				if (options && options.artigo) {
+					cadastro = options.componente
+						? await db.findCadastro(options.artigo, options.componente)
+						: await db.getCadastroByArtigo(options.artigo)
+				}
+			} catch (err) {
+				console.error("Erro buscando cadastro para conversor Lectra:", err)
 			}
-		} catch (err) {
-			console.error('Erro buscando cadastro para conversor Lectra:', err)
-		}
-		return conversorLectra.converterParaModelData(parsedCTF, parsedCTC, cadastro || options)
-	})
+			return conversorLectra.converterParaModelData(
+				parsedCTF,
+				parsedCTC,
+				cadastro || options,
+			)
+		},
+	)
 
 	// Cadastro handlers
-	ipcMain.handle('cadastro-open-file', async () => {
-		const res = await dialog.showOpenDialog({ 
-			title: 'Carregar Cadastro', 
-			properties: ['openFile'], 
-			filters: [{ name: 'Text', extensions: ['txt'] }] 
+	ipcMain.handle("cadastro-open-file", async () => {
+		const res = await dialog.showOpenDialog({
+			title: "Carregar Cadastro",
+			properties: ["openFile"],
+			filters: [{ name: "Text", extensions: ["txt"] }],
 		})
 		if (res.canceled) return null
 		return res.filePaths[0]
 	})
 
-	ipcMain.handle('cadastro-save', async (_event, cadastroObj: any) => {
+	ipcMain.handle("cadastro-save", async (_event, cadastroObj: CadastroObj) => {
 		return await db.saveCadastro(cadastroObj)
 	})
 
-	ipcMain.handle('cadastro-get-by-artigo', async (_event, artigo: string) => {
+	ipcMain.handle("cadastro-get-by-artigo", async (_event, artigo: string) => {
 		return await db.getCadastroByArtigo(artigo)
 	})
 
-	ipcMain.handle('cadastro-find', async (_event, artigo: string, componente: string) => {
-		return await db.findCadastro(artigo, componente)
-	})
+	ipcMain.handle(
+		"cadastro-find",
+		async (_event, artigo: string, componente: string) => {
+			return await db.findCadastro(artigo, componente)
+		},
+	)
 
-	ipcMain.handle('cadastro-list', async (_event, limit: number) => {
+	ipcMain.handle("cadastro-list", async (_event, limit: number) => {
 		return await db.listCadastros(limit || 100)
 	})
 
-	ipcMain.handle('cadastro-delete', async (_event, id: number) => {
+	ipcMain.handle("cadastro-delete", async (_event, id: number) => {
 		return await db.deleteCadastroById(id)
 	})
 
-	ipcMain.handle('cadastro-import-folder', async () => {
+	ipcMain.handle("cadastro-import-folder", async () => {
 		// Implementar importação em lote se necessário
 		return { imported: 0 }
 	})

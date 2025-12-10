@@ -56,7 +56,7 @@ export function ComponenteForm({
 			setFormData({
 				sequencia: componente.sequencia.toString(),
 				nome: componente.nome,
-				materialId: componente.materialId,
+				materialId: componente.materialId.toString(),
 				tipoTecido: componente.tipoTecido,
 				conjugacaoNavalha: componente.conjugacaoNavalha,
 				placaPar: componente.placaPar,
@@ -103,7 +103,7 @@ export function ComponenteForm({
 		onSubmit({
 			sequencia: parseInt(formData.sequencia) || 0,
 			nome: formData.nome.trim(),
-			materialId: formData.materialId,
+			materialId: parseInt(formData.materialId) || 0,
 			tipoTecido: formData.tipoTecido.trim(),
 			conjugacaoNavalha: formData.conjugacaoNavalha.trim(),
 			placaPar: formData.placaPar.trim(),
@@ -162,7 +162,10 @@ export function ComponenteForm({
 									</SelectTrigger>
 									<SelectContent>
 										{materiais.map((material) => (
-											<SelectItem key={material.id} value={material.id}>
+											<SelectItem
+												key={material.id}
+												value={material.id.toString()}
+											>
 												{material.artigo} ({material.largura}cm)
 											</SelectItem>
 										))}
@@ -262,9 +265,11 @@ export function ComponenteForm({
 										<div key={cor.id} className="flex items-center space-x-2">
 											<Checkbox
 												id={`cor-${cor.id}`}
-												checked={formData.coresDisponiveis.includes(cor.id)}
+												checked={formData.coresDisponiveis.includes(
+													cor.id.toString(),
+												)}
 												onCheckedChange={(checked) =>
-													handleCorToggle(cor.id, checked as boolean)
+													handleCorToggle(cor.id.toString(), checked as boolean)
 												}
 											/>
 											<label

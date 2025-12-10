@@ -1,12 +1,32 @@
 import { Button } from "@renderer/components/ui/button"
 import { Input } from "@renderer/components/ui/input"
 import { Label } from "@renderer/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@renderer/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@renderer/components/ui/table"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@renderer/components/ui/card"
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@renderer/components/ui/select"
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@renderer/components/ui/table"
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@renderer/components/ui/card"
 import { useState } from "react"
 import { Alert, AlertDescription } from "@renderer/components/ui/alert"
 import { useEncaixe } from "@renderer/hooks/useEncaixe"
+import { PedidoComelz, PedidoEmma, ModelDataLectra } from "@renderer/types"
 
 type GradePar = {
 	artigo: string
@@ -33,55 +53,56 @@ type CadastroInfo = {
 }
 
 export function GeracaoArquivosTab() {
-	const [ofSearch, setOfSearch] = useState('')
-	const [artigoSearch, setArtigoSearch] = useState('')
+	const [ofSearch, setOfSearch] = useState("")
+	const [artigoSearch, setArtigoSearch] = useState("")
 	const [gradePares, setGradePares] = useState<GradePar[]>([])
 	const [cadastrosInfo, setCadastrosInfo] = useState<CadastroInfo[]>([])
-	const [componenteSelecionado, setComponenteSelecionado] = useState<string | null>(null)
-	const [maquinaSelecionada, setMaquinaSelecionada] = useState<string>('Emma')
-	const [message, setMessage] = useState('')
+	const [componenteSelecionado, setComponenteSelecionado] = useState<
+		string | null
+	>(null)
+	const [maquinaSelecionada, setMaquinaSelecionada] = useState<string>("Emma")
+	const [message, setMessage] = useState<string>("")
 
 	const {
 		loading,
-		error,
 		buscarOF: buscarOFHook,
 		buscarArtigo: buscarArtigoHook,
 		converterParaComelz,
 		converterParaEmma,
 		converterParaLectra,
 		exportarArquivo,
-		cadastrarApelido: cadastrarApelidoHook
+		cadastrarApelido: cadastrarApelidoHook,
 	} = useEncaixe()
 
 	async function buscarOF() {
 		if (!ofSearch || ofSearch.length !== 9) {
-			setMessage('Digite uma OF válida com 9 dígitos')
+			setMessage("Digite uma OF válida com 9 dígitos")
 			return
 		}
 
-		setMessage('')
+		setMessage("")
 		const result = await buscarOFHook(ofSearch)
 		setGradePares(result)
-		
+
 		if (result.length === 0) {
-			setMessage('OF não encontrada nos arquivos CTF/CTC')
+			setMessage("OF não encontrada nos arquivos CTF/CTC")
 		}
 	}
 
 	async function buscarArtigo() {
 		if (!artigoSearch.trim()) {
-			setMessage('Digite um artigo para buscar')
+			setMessage("Digite um artigo para buscar")
 			return
 		}
 
-		setMessage('')
+		setMessage("")
 		setCadastrosInfo([])
 		setComponenteSelecionado(null)
-		
+
 		const cadastros = await buscarArtigoHook(artigoSearch.trim())
-		
+
 		if (cadastros.length === 0) {
-			setMessage('Nenhum cadastro encontrado para o artigo informado')
+			setMessage("Nenhum cadastro encontrado para o artigo informado")
 			return
 		}
 
@@ -90,72 +111,79 @@ export function GeracaoArquivosTab() {
 
 	async function cadastrarApelido() {
 		if (!componenteSelecionado) {
-			setMessage('Selecione um componente primeiro')
+			setMessage("Selecione um componente primeiro")
 			return
 		}
 
-		const apelido = prompt(`Digite o apelido para o componente ${componenteSelecionado}:`)
-		
+		const apelido = prompt(
+			`Digite o apelido para o componente ${componenteSelecionado}:`,
+		)
+
 		if (apelido && apelido.trim()) {
-			const success = await cadastrarApelidoHook(componenteSelecionado, apelido.trim())
+			const success = await cadastrarApelidoHook(
+				componenteSelecionado,
+				apelido.trim(),
+			)
 			if (success) {
-				setMessage('Apelido cadastrado com sucesso!')
+				setMessage("Apelido cadastrado com sucesso!")
 			}
 		}
 	}
 
 	async function gerarArquivo() {
 		if (!componenteSelecionado) {
-			setMessage('Selecione um componente primeiro')
+			setMessage("Selecione um componente primeiro")
 			return
 		}
 
 		if (gradePares.length === 0) {
-			setMessage('Busque uma OF primeiro para gerar o arquivo')
+			setMessage("Busque uma OF primeiro para gerar o arquivo")
 			return
 		}
 
-		setMessage('')
+		setMessage("")
 
-		const cadastroSelecionado = cadastrosInfo.find(c => c.componente === componenteSelecionado)
-		
+		const cadastroSelecionado = cadastrosInfo.find(
+			(c) => c.componente === componenteSelecionado,
+		)
+
 		if (!cadastroSelecionado) {
-			setMessage('Cadastro não encontrado para o componente selecionado')
+			setMessage("Cadastro não encontrado para o componente selecionado")
 			return
 		}
 
 		try {
-			let dados: any = null
-			
+			let dados: PedidoComelz | PedidoEmma | ModelDataLectra[] | null = null
+
 			// Converter de acordo com a máquina selecionada
-			if (maquinaSelecionada === 'Emma') {
+			if (maquinaSelecionada === "Emma") {
 				dados = await converterParaEmma(cadastroSelecionado)
-			} else if (maquinaSelecionada === 'Comelz') {
+			} else if (maquinaSelecionada === "Comelz") {
 				dados = await converterParaComelz(cadastroSelecionado)
-			} else if (maquinaSelecionada === 'Lectra') {
+			} else if (maquinaSelecionada === "Lectra") {
 				dados = await converterParaLectra(cadastroSelecionado)
 			}
 
 			if (!dados) {
-				setMessage('Erro ao converter dados')
+				setMessage("Erro ao converter dados")
 				return
 			}
 
 			// Exportar arquivo
 			const savePath = await exportarArquivo(
-				maquinaSelecionada.toLowerCase() as 'comelz' | 'emma' | 'lectra',
+				maquinaSelecionada.toLowerCase() as "comelz" | "emma" | "lectra",
 				dados,
-				'MARKER_' + Date.now()
+				"MARKER_" + Date.now(),
 			)
 
 			if (savePath) {
 				setMessage(`Arquivo gerado com sucesso: ${savePath}`)
 			} else {
-				setMessage('Exportação cancelada')
+				setMessage("Exportação cancelada")
 			}
 		} catch (err) {
-			console.error('Erro ao gerar arquivo:', err)
-			setMessage('Erro ao gerar arquivo: ' + String(err))
+			console.error("Erro ao gerar arquivo:", err)
+			setMessage("Erro ao gerar arquivo: " + String(err))
 		}
 	}
 
@@ -165,7 +193,9 @@ export function GeracaoArquivosTab() {
 			<Card>
 				<CardHeader>
 					<CardTitle>Buscar por OF</CardTitle>
-					<CardDescription>Digite o número da OF para visualizar a grade e pares</CardDescription>
+					<CardDescription>
+						Digite o número da OF para visualizar a grade e pares
+					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<div className="flex gap-2">
@@ -181,7 +211,7 @@ export function GeracaoArquivosTab() {
 						</div>
 						<div className="flex items-end">
 							<Button onClick={buscarOF} disabled={loading}>
-								{loading ? 'Buscando...' : 'Buscar OF'}
+								{loading ? "Buscando..." : "Buscar OF"}
 							</Button>
 						</div>
 					</div>
@@ -219,7 +249,9 @@ export function GeracaoArquivosTab() {
 			<Card>
 				<CardHeader>
 					<CardTitle>Buscar Artigo e Selecionar Componente</CardTitle>
-					<CardDescription>Digite o artigo para visualizar os cadastros e componentes</CardDescription>
+					<CardDescription>
+						Digite o artigo para visualizar os cadastros e componentes
+					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<div className="flex gap-2">
@@ -234,7 +266,7 @@ export function GeracaoArquivosTab() {
 						</div>
 						<div className="flex items-end">
 							<Button onClick={buscarArtigo} disabled={loading}>
-								{loading ? 'Buscando...' : 'Buscar Artigo'}
+								{loading ? "Buscando..." : "Buscar Artigo"}
 							</Button>
 						</div>
 					</div>
@@ -244,20 +276,49 @@ export function GeracaoArquivosTab() {
 							<div className="border rounded-lg p-4 bg-muted/50">
 								<h4 className="font-semibold mb-2">Informações do Cadastro</h4>
 								{cadastrosInfo.map((cad, idx) => (
-									<div key={idx} className="text-sm space-y-1 mb-4 pb-4 border-b last:border-b-0">
-										<p><strong>Artigo:</strong> {cad.artigo}</p>
-										<p><strong>Modelo:</strong> {cad.modelo}</p>
-										<p><strong>Componente:</strong> {cad.componente}</p>
-										<p><strong>Material:</strong> {cad.material}</p>
-										<p><strong>Cor:</strong> {cad.cor}</p>
-										<p><strong>Largura:</strong> {cad.largura}</p>
-										<p><strong>Tipo Tecido:</strong> {cad.tipoTecido}</p>
-										<p><strong>Pares Criac:</strong> {cad.paresCriac}</p>
-										<p><strong>Conjug Navalha:</strong> {cad.conjugNavalha}</p>
-										<p><strong>Placa Por Par:</strong> {cad.placaPorPar}</p>
-										<p><strong>Camada:</strong> {cad.camada}</p>
-										<p><strong>Espacamento:</strong> {cad.espacamento}</p>
-										<p><strong>Comprimento Max:</strong> {cad.comprimentoMax}</p>
+									<div
+										key={idx}
+										className="text-sm space-y-1 mb-4 pb-4 border-b last:border-b-0"
+									>
+										<p>
+											<strong>Artigo:</strong> {cad.artigo}
+										</p>
+										<p>
+											<strong>Modelo:</strong> {cad.modelo}
+										</p>
+										<p>
+											<strong>Componente:</strong> {cad.componente}
+										</p>
+										<p>
+											<strong>Material:</strong> {cad.material}
+										</p>
+										<p>
+											<strong>Cor:</strong> {cad.cor}
+										</p>
+										<p>
+											<strong>Largura:</strong> {cad.largura}
+										</p>
+										<p>
+											<strong>Tipo Tecido:</strong> {cad.tipoTecido}
+										</p>
+										<p>
+											<strong>Pares Criac:</strong> {cad.paresCriac}
+										</p>
+										<p>
+											<strong>Conjug Navalha:</strong> {cad.conjugNavalha}
+										</p>
+										<p>
+											<strong>Placa Por Par:</strong> {cad.placaPorPar}
+										</p>
+										<p>
+											<strong>Camada:</strong> {cad.camada}
+										</p>
+										<p>
+											<strong>Espacamento:</strong> {cad.espacamento}
+										</p>
+										<p>
+											<strong>Comprimento Max:</strong> {cad.comprimentoMax}
+										</p>
 									</div>
 								))}
 							</div>
@@ -268,7 +329,11 @@ export function GeracaoArquivosTab() {
 									{cadastrosInfo.map((cad, idx) => (
 										<Button
 											key={idx}
-											variant={componenteSelecionado === cad.componente ? 'default' : 'outline'}
+											variant={
+												componenteSelecionado === cad.componente
+													? "default"
+													: "outline"
+											}
 											onClick={() => setComponenteSelecionado(cad.componente)}
 										>
 											Componente: {cad.componente}
@@ -287,7 +352,10 @@ export function GeracaoArquivosTab() {
 					<div className="flex flex-wrap gap-4 items-end">
 						<div className="flex-1 min-w-[200px]">
 							<Label htmlFor="maquina-select">Máquina</Label>
-							<Select value={maquinaSelecionada} onValueChange={setMaquinaSelecionada}>
+							<Select
+								value={maquinaSelecionada}
+								onValueChange={setMaquinaSelecionada}
+							>
 								<SelectTrigger id="maquina-select">
 									<SelectValue />
 								</SelectTrigger>
@@ -298,10 +366,17 @@ export function GeracaoArquivosTab() {
 								</SelectContent>
 							</Select>
 						</div>
-						<Button onClick={gerarArquivo} disabled={loading || !componenteSelecionado}>
+						<Button
+							onClick={gerarArquivo}
+							disabled={loading || !componenteSelecionado}
+						>
 							Gerar Arquivo
 						</Button>
-						<Button onClick={cadastrarApelido} variant="outline" disabled={!componenteSelecionado}>
+						<Button
+							onClick={cadastrarApelido}
+							variant="outline"
+							disabled={!componenteSelecionado}
+						>
 							Cadastrar Apelido
 						</Button>
 					</div>
