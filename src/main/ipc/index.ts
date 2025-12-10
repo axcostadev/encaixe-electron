@@ -157,6 +157,9 @@ export function setupIPC(): void {
 	// Inicializar banco de dados do electron-app
 	db.initDB()
 
+	// Inicializar gerenciador de apelidos (cria tabela no DB se necessário)
+	gerenciadorApelidos.init().catch((err) => console.error('Erro inicializando gerenciadorApelidos:', err))
+
 	// IPC para login
 	ipcMain.handle(
 		"auth:login",
