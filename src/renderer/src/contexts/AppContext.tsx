@@ -51,11 +51,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 	async function loadModelos() {
 		const modelosFromAPI = await window.api.modelos.list()
-		const modelosWithExtras = modelosFromAPI.map((m) => ({
-			...m,
-			cores: [],
-			componentes: [],
-		}))
+		const modelosWithExtras = await Promise.all(
+			modelosFromAPI.map(async (m) => {
+				const coresFromAPI = await window.api.modelos.cores.list(m.id)
+				const cores: Cor[] = coresFromAPI.map((c) => ({
+					id: c.id,
+					modeloId: c.modelo_id,
+					abreviacao: c.cor_abreviada,
+					nome: c.cor_completa,
+				}))
+				return {
+					...m,
+					cores,
+					componentes: [], // TODO: load componentes when API ready
+				}
+			}),
+		)
 		setModelos(modelosWithExtras)
 	}
 	async function addModelo(
@@ -123,19 +134,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
 	}
 
 	async function updateCor(modeloId: number, corId: number, cor: Partial<Cor>) {
-		// Note: No update API for cores, updating locally only
-		setModelos((prev) =>
-			prev.map((m) =>
-				m.id === modeloId
-					? {
-							...m,
-							cores: m.cores.map((c) =>
-								c.id === corId ? { ...c, ...cor } : c,
-							),
-						}
-					: m,
-			),
-		)
+		// Since no update API, delete old and add new
+		const responseDelete = await window.api.modelos.cores.delete(corId)
+		if (responseDelete.success) {
+			const responseAdd = await window.api.modelos.cores.add(
+				modeloId,
+				cor.abreviacao!,
+				cor.nome!,
+			)
+			if (responseAdd.success && responseAdd.cor) {
+				const newCor: Cor = {
+					id: responseAdd.cor.id,
+					modeloId: responseAdd.cor.modelo_id,
+					abreviacao: responseAdd.cor.cor_abreviada,
+					nome: responseAdd.cor.cor_completa,
+				}
+				setModelos((prev) =>
+					prev.map((m) =>
+						m.id === modeloId
+							? {
+									...m,
+									cores: m.cores.map((c) => (c.id === corId ? newCor : c)),
+								}
+							: m,
+					),
+				)
+			} else {
+				throw new Error(responseAdd.message)
+			}
+		} else {
+			throw new Error(responseDelete.message)
+		}
 	}
 
 	async function deleteCor(modeloId: number, corId: number) {
