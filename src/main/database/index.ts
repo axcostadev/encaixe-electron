@@ -10,13 +10,15 @@ import {
 	listModeloCores,
 	addModeloCor,
 	deleteModeloCor,
+} from "./models"
+import {
 	Material,
 	SentidoType,
 	listMateriais,
 	createMaterial,
 	updateMaterial,
 	deleteMaterial,
-} from "./models"
+} from "./materiais"
 
 export type { Modelo, ModeloCor }
 export type { LoginResult }
