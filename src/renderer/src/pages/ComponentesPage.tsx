@@ -16,6 +16,7 @@ import { useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
+
 export function ComponentesPage() {
 	const {
 		modelos,
@@ -93,19 +94,19 @@ export function ComponentesPage() {
 
 	return (
 		<div className="space-y-6">
-			<PageHeader
-				title="Componentes"
-				description="Gerencie os componentes de cada modelo"
-				action={
-					<Button
-						onClick={() => setFormOpen(true)}
-						disabled={!selectedModeloId}
-					>
-						<Plus className="h-4 w-4 mr-2" />
-						Novo Componente
-					</Button>
-				}
-			/>
+				<PageHeader
+					title="Componentes"
+					description="Gerencie os componentes de cada modelo"
+					action={
+						<Button
+							onClick={() => setFormOpen(true)}
+							disabled={!selectedModeloId}
+						>
+							<Plus className="h-4 w-4 mr-2" />
+							Novo Componente
+						</Button>
+					}
+				/>
 
 			<div className="flex items-center gap-4">
 				<div className="w-full max-w-xs">
