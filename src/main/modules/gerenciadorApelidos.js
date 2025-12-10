@@ -2,11 +2,20 @@ import fs from "fs/promises"
 import path from "path"
 import { fileURLToPath } from "url"
 import sqlite3 from "sqlite3"
+import { app } from "electron"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const AP_FILE = path.join(__dirname, "..", "config", "apelidos.txt")
-const DB_FILE = path.join(__dirname, "encaixe.db")
+
+// Persist runtime DB and config in a stable location so rebuilds don't erase them.
+// Use Electron's userData directory which points to a per-user app folder.
+const USER_DATA =
+	app && typeof app.getPath === "function"
+		? app.getPath("userData")
+		: path.join(__dirname, "..", "data")
+const CONFIG_DIR = path.join(USER_DATA, "config")
+const AP_FILE = path.join(CONFIG_DIR, "apelidos.txt")
+const DB_FILE = path.join(USER_DATA, "encaixe.db")
 
 let dbConn = null
 
