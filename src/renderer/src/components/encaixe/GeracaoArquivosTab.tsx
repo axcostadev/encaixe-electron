@@ -43,7 +43,7 @@ type CadastroInfo = {
 	material: string
 	cor: string
 	largura: string
-	tipoTecido: string
+	tipoTecido: number
 	paresCriac: string
 	conjugNavalha: string
 	placaPorPar: string
@@ -299,7 +299,7 @@ export function GeracaoArquivosTab() {
 											<strong>Largura:</strong> {cad.largura}
 										</p>
 										<p>
-											<strong>Tipo Tecido:</strong> {cad.tipoTecido}
+											<strong>Tipo Tecido:</strong> {String(cad.tipoTecido)}
 										</p>
 										<p>
 											<strong>Pares Criac:</strong> {cad.paresCriac}

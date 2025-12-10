@@ -1,4 +1,10 @@
-import { Componente, Cor, Material, Modelo } from "@renderer/types"
+import {
+	Componente,
+	ComponentePayload,
+	Cor,
+	Material,
+	Modelo,
+} from "@renderer/types"
 import { createContext, ReactNode, useContext, useState } from "react"
 
 interface AppContextType {
@@ -33,12 +39,12 @@ interface AppContextType {
 	// Componentes
 	addComponente: (
 		modeloId: number,
-		componente: Omit<Componente, "id" | "modeloId">,
+		componente: ComponentePayload,
 	) => Promise<void>
 	updateComponente: (
 		modeloId: number,
 		componenteId: number,
-		componente: Partial<Componente>,
+		componente: Partial<ComponentePayload>,
 	) => Promise<void>
 	deleteComponente: (modeloId: number, componenteId: number) => Promise<void>
 	getComponentesByModelo: (modeloId: number) => Componente[]
@@ -242,13 +248,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
 	// Componentes
 	async function addComponente(
 		modeloId: number,
-		componente: Omit<Componente, "id" | "modeloId">,
+		componente: ComponentePayload,
 	) {
 		// TODO: Call API
+		// assign a default sequence number if not provided by backend
+		const modelo = modelos.find((m) => m.id === modeloId)
+		const nextSequencia = modelo
+			? Math.max(0, ...modelo.componentes.map((c) => c.sequencia)) + 1
+			: 0
 		const newComponente: Componente = {
 			...componente,
 			id: Math.floor(Math.random() * 10000), // Temporary
 			modeloId,
+			sequencia: nextSequencia,
 		}
 		setModelos((prev) =>
 			prev.map((m) =>
@@ -262,7 +274,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 	async function updateComponente(
 		modeloId: number,
 		componenteId: number,
-		componente: Partial<Componente>,
+		componente: Partial<ComponentePayload>,
 	) {
 		// TODO: Call API
 		setModelos((prev) =>

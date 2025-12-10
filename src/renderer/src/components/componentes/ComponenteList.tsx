@@ -72,6 +72,7 @@ export function ComponenteList({
 								<TableHead className="w-[80px] text-center">Camadas</TableHead>
 								<TableHead className="w-[80px] text-center">% Perda</TableHead>
 								<TableHead>Cores</TableHead>
+								<TableHead>Tamanhos</TableHead>
 								<TableHead className="w-[100px] text-right">Ações</TableHead>
 							</TableRow>
 						</TableHeader>
@@ -111,6 +112,20 @@ export function ComponenteList({
 													),
 												)}
 												{componente.coresDisponiveis.length === 0 && (
+													<span className="text-muted-foreground text-sm">
+														—
+													</span>
+												)}
+											</div>
+										</TableCell>
+										<TableCell>
+											<div className="flex flex-wrap gap-1">
+												{componente.tamanhos?.map((tamanho, i) => (
+													<Badge key={i} variant="outline" className="text-xs">
+														{tamanho.tamanhoInicial}-{tamanho.tamanhoFinal}
+													</Badge>
+												))}
+												{!componente.tamanhos?.length && (
 													<span className="text-muted-foreground text-sm">
 														—
 													</span>

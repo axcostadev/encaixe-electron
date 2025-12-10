@@ -10,7 +10,7 @@ import {
 	SelectValue,
 } from "@renderer/components/ui/select"
 import { useApp } from "@renderer/contexts/AppContext"
-import { Componente } from "@renderer/types"
+import { Componente, ComponentePayload } from "@renderer/types"
 import { Plus } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
@@ -54,7 +54,7 @@ export function ComponentesPage() {
 		setSearchParams({ modelo: value })
 	}
 
-	function handleCreate(data: Omit<Componente, "id" | "modeloId">) {
+	function handleCreate(data: ComponentePayload) {
 		if (!selectedModeloIdNum) return
 		addComponente(selectedModeloIdNum, data)
 		toast.success("Componente criado com sucesso!")
@@ -65,7 +65,7 @@ export function ComponentesPage() {
 		setFormOpen(true)
 	}
 
-	function handleUpdate(data: Omit<Componente, "id" | "modeloId">) {
+	function handleUpdate(data: ComponentePayload) {
 		if (editingComponente && selectedModeloIdNum) {
 			updateComponente(selectedModeloIdNum, editingComponente.id, data)
 			toast.success("Componente atualizado com sucesso!")
@@ -78,7 +78,7 @@ export function ComponentesPage() {
 		toast.success("Componente excluído com sucesso!")
 	}
 
-	function handleFormSubmit(data: Omit<Componente, "id" | "modeloId">) {
+	function handleFormSubmit(data: ComponentePayload) {
 		if (editingComponente) {
 			handleUpdate(data)
 		} else {
