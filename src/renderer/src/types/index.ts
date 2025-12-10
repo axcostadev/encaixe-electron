@@ -27,7 +27,7 @@ export interface Componente {
 	sequencia: number
 	nome: string
 	materialId: number
-	tipoTecido: string
+	tipoTecido: number
 	conjugacaoNavalha: string
 	placaPar: string
 	camadas: number
