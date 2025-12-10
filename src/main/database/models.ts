@@ -487,3 +487,207 @@ export function deleteComponente(
 		}
 	})
 }
+
+// ==================== Busca de Cadastro por Artigo ====================
+
+export interface CadastroInfo {
+	artigo: string
+	modelo: string
+	componente: string
+	material: string
+	cor: string
+	largura: string
+	tipoTecido: number
+	paresCriac: string
+	conjugNavalha: string
+	placaPorPar: string
+	camada: string
+	espacamento: string
+	comprimentoMax: string
+}
+
+/**
+ * Busca modelo e componentes pelo artigo (com ou sem prefixo COR).
+ * Retorna array de CadastroInfo (um item por componente encontrado).
+ */
+export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
+	return new Promise((resolve) => {
+		if (!artigo) {
+			console.log("[models] getCadastroByArtigo: empty artigo")
+			return resolve([])
+		}
+
+		const database = getDatabase()
+
+		// Normalize: try exact match, digits-only, and LIKE
+		const variants = [artigo]
+		const digits = String(artigo).replace(/\D/g, "")
+		if (digits && !variants.includes(digits)) variants.push(digits)
+
+		console.log("[models] getCadastroByArtigo called with:", artigo, "variants:", variants)
+
+		let idx = 0
+
+		const tryNextVariant = (): void => {
+			if (idx >= variants.length) {
+				// fallback: LIKE on digits
+				if (digits) {
+					database.get(
+						"SELECT id, artigo, nome FROM modelos WHERE artigo LIKE ? LIMIT 1",
+						[`%${digits}%`],
+						(err: Error | null, row: ModeloRow | undefined) => {
+							if (err || !row) {
+								console.log("[models] LIKE query no match")
+								return resolve([])
+							}
+							console.log("[models] LIKE query found modelo:", row.id, row.artigo)
+							loadComponentesForModelo(row)
+						},
+					)
+					return
+				}
+				return resolve([])
+			}
+
+			const v = variants[idx++]
+			database.get(
+				"SELECT id, artigo, nome FROM modelos WHERE artigo = ? LIMIT 1",
+				[v],
+				(err: Error | null, row: ModeloRow | undefined) => {
+					if (err) {
+						console.log("[models] exact query error for", v, err)
+						return tryNextVariant()
+					}
+					if (row) {
+						console.log("[models] exact match found modelo:", row.id, row.artigo)
+						loadComponentesForModelo(row)
+						return
+					}
+					tryNextVariant()
+				},
+			)
+		}
+
+		const loadComponentesForModelo = (modelo: ModeloRow): void => {
+			database.all(
+				"SELECT id, modelo_id, numero_tecido, nome, dados FROM componentes WHERE modelo_id = ? ORDER BY id",
+				[modelo.id],
+				async (err: Error | null, compRows: ComponenteRow[]) => {
+					if (err || !compRows || compRows.length === 0) {
+						console.log("[models] no componentes found for modelo", modelo.id)
+						return resolve([])
+					}
+
+					// Load materiais for reference
+					database.all(
+						"SELECT id, artigo, largura FROM materiais",
+						[],
+						(matErr: Error | null, materiais: Array<{ id: number; artigo: string; largura: number }>) => {
+							if (matErr) {
+								console.log("[models] error loading materiais:", matErr)
+							}
+							const matMap = new Map<number, { artigo: string; largura: number }>()
+							for (const m of materiais || []) {
+								matMap.set(m.id, { artigo: m.artigo, largura: m.largura })
+							}
+
+							// Load modelo_cores for reference
+							database.all(
+								"SELECT id, cor_abreviada, cor_completa FROM modelo_cores WHERE modelo_id = ?",
+								[modelo.id],
+								(corErr: Error | null, cores: Array<{ id: number; cor_abreviada: string; cor_completa: string }>) => {
+									if (corErr) {
+										console.log("[models] error loading cores:", corErr)
+									}
+									const corMap = new Map<number, string>()
+									for (const c of cores || []) {
+										corMap.set(c.id, c.cor_abreviada)
+									}
+
+									// Load tamanhos for each componente
+									const resultPromises = compRows.map((comp) => {
+										return new Promise<CadastroInfo>((resComp) => {
+											database.all(
+												"SELECT tamanho FROM tamanhos WHERE componente_id = ? ORDER BY id",
+												[comp.id],
+												(tamErr: Error | null, tamRows: Array<{ tamanho: string }>) => {
+													let dados: ComponenteDados | null = null
+													if (comp.dados) {
+														try {
+															dados = JSON.parse(comp.dados) as ComponenteDados
+														} catch {
+															dados = null
+														}
+													}
+
+													const mat = dados?.materialId ? matMap.get(dados.materialId) : null
+													const corIds = dados?.coresDisponiveis || []
+													const corNames = corIds
+														.map((cid) => corMap.get(Number(cid)) || cid)
+														.join(",")
+
+													// Build tamanhos string
+													let tamanhosStr = ""
+													if (tamRows && tamRows.length > 0) {
+														const nums: number[] = []
+														for (const t of tamRows) {
+															const s = String(t.tamanho)
+															if (s.includes("-")) {
+																const [a, b] = s.split("-")
+																const start = parseInt(a) || 0
+																const end = parseInt(b) || start
+																for (let n = start; n <= end; n++) nums.push(n)
+															} else {
+																const v = parseInt(s) || 0
+																if (v) nums.push(v)
+															}
+														}
+														if (nums.length > 0) {
+															const min = Math.min(...nums)
+															const max = Math.max(...nums)
+															tamanhosStr = `${min}-${max}`
+														}
+													}
+
+													const info: CadastroInfo = {
+														artigo: modelo.artigo,
+														modelo: modelo.nome,
+														componente: comp.nome,
+														material: mat?.artigo || "",
+														cor: corNames,
+														largura: mat?.largura?.toString() || "",
+														tipoTecido: dados?.tipoTecido || 0,
+														paresCriac: tamanhosStr,
+														conjugNavalha: dados?.conjugacaoNavalha || "",
+														placaPorPar: dados?.placaPar || "",
+														camada: dados?.camadas?.toString() || "0",
+														espacamento: dados?.espacamento?.toString() || "",
+														comprimentoMax: dados?.compMaximo?.toString() || "",
+													}
+
+													resComp(info)
+												},
+											)
+										})
+									})
+
+									Promise.all(resultPromises)
+										.then((infos) => {
+											console.log("[models] getCadastroByArtigo returning", infos.length, "componentes")
+											resolve(infos)
+										})
+										.catch((e) => {
+											console.log("[models] error building cadastro infos:", e)
+											resolve([])
+										})
+								},
+							)
+						},
+					)
+				},
+			)
+		}
+
+		tryNextVariant()
+	})
+}

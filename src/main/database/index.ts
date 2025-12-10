@@ -16,8 +16,9 @@ import {
 	addComponente,
 	updateComponente,
 	deleteComponente,
+	getCadastroByArtigo,
 } from "./models"
-import type { Componente, ComponenteDados } from "./models"
+import type { Componente, ComponenteDados, CadastroInfo } from "./models"
 import {
 	Material,
 	SentidoType,
@@ -32,6 +33,7 @@ export type { LoginResult }
 export type { Material, SentidoType }
 export type { Componente }
 export type { ComponenteDados }
+export type { CadastroInfo }
 export {
 	initDatabase,
 	closeDatabase,
@@ -52,4 +54,5 @@ export {
 	addComponente,
 	updateComponente,
 	deleteComponente,
+	getCadastroByArtigo,
 }

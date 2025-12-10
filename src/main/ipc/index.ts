@@ -19,6 +19,7 @@ import {
 	addComponente,
 	updateComponente,
 	deleteComponente,
+	getCadastroByArtigo,
 } from "../database"
 import type { ComponenteDados } from "../database"
 import * as parser from "../modules/arquivoParser.js"
@@ -595,7 +596,10 @@ export function setupIPC(): void {
 	})
 
 	ipcMain.handle("cadastro-get-by-artigo", async (_event, artigo: string) => {
-		return await db.getCadastroByArtigo(artigo)
+		console.log("[IPC] cadastro-get-by-artigo called:", artigo)
+		const result = await getCadastroByArtigo(artigo)
+		console.log("[IPC] cadastro-get-by-artigo result:", result.length > 0 ? result.length + " items" : false)
+		return result.length > 0 ? result : false
 	})
 
 	ipcMain.handle(
