@@ -88,7 +88,7 @@ export function GeracaoArquivosTab() {
 		converterParaLectra,
 		exportarArquivo,
 		cadastrarApelido: cadastrarApelidoHook,
-		buscarApelido: buscarApelidoHook,
+		
 	} = useEncaixe()
 
 	// Carregar todos os apelidos cadastrados ao montar o componente
@@ -138,25 +138,7 @@ export function GeracaoArquivosTab() {
 		}
 	}
 
-	async function buscarArtigo() {
-		if (!artigoSearch.trim()) {
-			setMessage("Digite um artigo para buscar")
-			return
-		}
-
-		setMessage("")
-		setCadastrosInfo([])
-		setComponenteSelecionado(null)
-
-		const cadastros = await buscarArtigoHook(artigoSearch.trim())
-
-		if (cadastros.length === 0) {
-			setMessage("Nenhum cadastro encontrado para o artigo informado")
-			return
-		}
-
-		setCadastrosInfo(cadastros)
-	}
+	// Note: explicit artigo search is handled via buscarOF which auto-calls buscarArtigoHook.
 
 	function abrirDialogApelido() {
 		if (!componenteSelecionado) {

@@ -640,6 +640,9 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 													tamErr: Error | null,
 													tamRows: Array<{ tamanho: string }>,
 												) => {
+													if (tamErr) {
+														console.log("[models] error loading tamanhos:", tamErr)
+													}
 													let dados: ComponenteDados | null = null
 													if (comp.dados) {
 														try {
