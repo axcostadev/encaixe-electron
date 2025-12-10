@@ -154,9 +154,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 						m.id === modeloId
 							? {
 									...m,
-									cores: m.cores.map((c) =>
-										c.id === corId ? newCor : c,
-									),
+									cores: m.cores.map((c) => (c.id === corId ? newCor : c)),
 								}
 							: m,
 					),
