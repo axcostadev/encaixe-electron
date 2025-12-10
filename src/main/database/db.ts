@@ -1,7 +1,6 @@
 import fs from "fs"
 import path from "path"
 import sqlite3 from "sqlite3"
-import { app } from "electron"
 
 const DB_PATH = path.join("C:", "Aincrad", "CuttingRoom")
 const DB_FILE = path.join(DB_PATH, "app.db")
