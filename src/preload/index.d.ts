@@ -65,6 +65,39 @@ interface MaterialCreateResponse {
 	id?: number
 }
 
+interface ComponenteBackend {
+	id: number
+	modelo_id: number
+	numero_tecido: string
+	nome: string
+	dados?: Record<string, unknown> | null
+	tamanhos?: Array<{ tamanhoInicial: number; tamanhoFinal: number }>
+}
+
+interface ComponenteCreateResponse {
+	success: boolean
+	message: string
+	componenteId?: number
+}
+
+interface ComponentesAPI {
+	list: (modelo_id: number) => Promise<ComponenteBackend[]>
+	create: (
+		modelo_id: number,
+		nome: string,
+		dados: Record<string, unknown> | null,
+		tamanhos: Array<{ tamanhoInicial: number; tamanhoFinal: number }>,
+	) => Promise<ComponenteCreateResponse>
+	update: (
+		modelo_id: number,
+		componente_id: number,
+		nome: string,
+		dados: Record<string, unknown> | null,
+		tamanhos: Array<{ tamanhoInicial: number; tamanhoFinal: number }>,
+	) => Promise<OperationResponse>
+	delete: (modelo_id: number, componente_id: number) => Promise<OperationResponse>
+}
+
 interface ModelosCoresAPI {
 	list: (modelo_id: number) => Promise<ModeloCor[]>
 	add: (
@@ -112,6 +145,7 @@ declare global {
 			auth: AuthAPI
 			modelos: ModelosAPI
 			materiais: MateriaisAPI
+			componentes: ComponentesAPI
 			electronAPI: {
 				selectFile: () => Promise<string | null>
 				parseCTF: (filePath: string) => Promise<any>

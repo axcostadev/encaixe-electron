@@ -67,10 +67,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
 					abreviacao: c.cor_abreviada,
 					nome: c.cor_completa,
 				}))
+
+				// carregar componentes do backend
+				const componentesFromAPI = await window.api.componentes.list(m.id)
+				const componentes: Componente[] = (componentesFromAPI || []).map((c: any, idx: number) => {
+					const dados = c.dados || {}
+					return {
+						id: c.id,
+						modeloId: c.modelo_id,
+						sequencia: (dados.sequencia as number) || idx,
+						nome: c.nome,
+						materialId: (dados.materialId as number) || 0,
+						tipoTecido: (dados.tipoTecido as number) || 0,
+						conjugacaoNavalha: (dados.conjugacaoNavalha as string) || "",
+						placaPar: (dados.placaPar as string) || "",
+						camadas: (dados.camadas as number) || 0,
+						espacamento: (dados.espacamento as number) || 0,
+						compMaximo: (dados.compMaximo as number) || 0,
+						percPerda: (dados.percPerda as number) || 0,
+						coresDisponiveis: (dados.coresDisponiveis as string[]) || [],
+						tamanhos: c.tamanhos || [],
+					}
+				})
+
 				return {
 					...m,
 					cores,
-					componentes: [], // TODO: load componentes when API ready
+					componentes,
 				}
 			}),
 		)
@@ -250,25 +273,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		modeloId: number,
 		componente: ComponentePayload,
 	) {
-		// TODO: Call API
-		// assign a default sequence number if not provided by backend
-		const modelo = modelos.find((m) => m.id === modeloId)
-		const nextSequencia = modelo
-			? Math.max(0, ...modelo.componentes.map((c) => c.sequencia)) + 1
-			: 0
-		const newComponente: Componente = {
-			...componente,
-			id: Math.floor(Math.random() * 10000), // Temporary
-			modeloId,
-			sequencia: nextSequencia,
+		// Persistir no backend
+		const dados = {
+			materialId: componente.materialId,
+			tipoTecido: componente.tipoTecido,
+			conjugacaoNavalha: componente.conjugacaoNavalha,
+			placaPar: componente.placaPar,
+			camadas: componente.camadas,
+			espacamento: componente.espacamento,
+			compMaximo: componente.compMaximo,
+			percPerda: componente.percPerda,
+			coresDisponiveis: componente.coresDisponiveis,
 		}
-		setModelos((prev) =>
-			prev.map((m) =>
-				m.id === modeloId
-					? { ...m, componentes: [...m.componentes, newComponente] }
-					: m,
-			),
+
+		const res = await window.api.componentes.create(
+			modeloId,
+			componente.nome,
+			dados,
+			componente.tamanhos || [],
 		)
+
+		if (res && res.success) {
+			const componenteId: number = res.componenteId || Math.floor(Math.random() * 10000)
+			const modelo = modelos.find((m) => m.id === modeloId)
+			const nextSequencia = modelo
+				? Math.max(0, ...modelo.componentes.map((c) => c.sequencia)) + 1
+				: 0
+			const newComponente: Componente = {
+				...componente,
+				id: componenteId,
+				modeloId,
+				sequencia: nextSequencia,
+			}
+			setModelos((prev) =>
+				prev.map((m) =>
+					m.id === modeloId
+						? { ...m, componentes: [...m.componentes, newComponente] }
+						: m,
+				),
+			)
+		} else {
+			throw new Error(res?.message || "Erro ao criar componente")
+		}
 	}
 
 	async function updateComponente(
@@ -276,33 +322,61 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		componenteId: number,
 		componente: Partial<ComponentePayload>,
 	) {
-		// TODO: Call API
-		setModelos((prev) =>
-			prev.map((m) =>
-				m.id === modeloId
-					? {
+		// Persistir no backend
+		const dados = {
+			materialId: componente.materialId,
+			tipoTecido: componente.tipoTecido,
+			conjugacaoNavalha: componente.conjugacaoNavalha,
+			placaPar: componente.placaPar,
+			camadas: componente.camadas,
+			espacamento: componente.espacamento,
+			compMaximo: componente.compMaximo,
+			percPerda: componente.percPerda,
+			coresDisponiveis: componente.coresDisponiveis,
+		}
+
+		const res = await window.api.componentes.update(
+			modeloId,
+			componenteId,
+			componente.nome || "",
+			dados,
+			componente.tamanhos || [],
+		)
+
+		if (res && res.success) {
+			setModelos((prev) =>
+				prev.map((m) =>
+					m.id === modeloId
+						? {
 							...m,
 							componentes: m.componentes.map((c) =>
 								c.id === componenteId ? { ...c, ...componente } : c,
 							),
 						}
-					: m,
-			),
-		)
+						: m,
+				),
+			)
+		} else {
+			throw new Error(res?.message || "Erro ao atualizar componente")
+		}
 	}
 
 	async function deleteComponente(modeloId: number, componenteId: number) {
-		// TODO: Call API
-		setModelos((prev) =>
-			prev.map((m) =>
-				m.id === modeloId
-					? {
+		const res = await window.api.componentes.delete(modeloId, componenteId)
+		if (res && res.success) {
+			setModelos((prev) =>
+				prev.map((m) =>
+					m.id === modeloId
+						? {
 							...m,
 							componentes: m.componentes.filter((c) => c.id !== componenteId),
 						}
-					: m,
-			),
-		)
+						: m,
+				),
+			)
+		} else {
+			throw new Error(res?.message || "Erro ao deletar componente")
+		}
 	}
 
 	function getComponentesByModelo(modeloId: number): Componente[] {
