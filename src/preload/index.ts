@@ -43,21 +43,38 @@ const api = {
 		delete: (id: number) => ipcRenderer.invoke("materiais:delete", id),
 	},
 	componentes: {
-		list: (modelo_id: number) => ipcRenderer.invoke("componentes:list", modelo_id),
+		list: (modelo_id: number) =>
+			ipcRenderer.invoke("componentes:list", modelo_id),
 		create: (
 			modelo_id: number,
 			nome: string,
 			dados: unknown,
 			tamanhos: Array<{ tamanhoInicial: number; tamanhoFinal: number }>,
-		) => ipcRenderer.invoke("componentes:create", modelo_id, nome, dados, tamanhos),
+		) =>
+			ipcRenderer.invoke(
+				"componentes:create",
+				modelo_id,
+				nome,
+				dados,
+				tamanhos,
+			),
 		update: (
 			modelo_id: number,
 			componente_id: number,
 			nome: string,
 			dados: unknown,
 			tamanhos: Array<{ tamanhoInicial: number; tamanhoFinal: number }>,
-		) => ipcRenderer.invoke("componentes:update", modelo_id, componente_id, nome, dados, tamanhos),
-		delete: (modelo_id: number, componente_id: number) => ipcRenderer.invoke("componentes:delete", modelo_id, componente_id),
+		) =>
+			ipcRenderer.invoke(
+				"componentes:update",
+				modelo_id,
+				componente_id,
+				nome,
+				dados,
+				tamanhos,
+			),
+		delete: (modelo_id: number, componente_id: number) =>
+			ipcRenderer.invoke("componentes:delete", modelo_id, componente_id),
 	},
 	// APIs do electron-app
 	electronAPI: {

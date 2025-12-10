@@ -70,25 +70,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 				// carregar componentes do backend
 				const componentesFromAPI = await window.api.componentes.list(m.id)
-				const componentes: Componente[] = (componentesFromAPI || []).map((c: any, idx: number) => {
-					const dados = c.dados || {}
-					return {
-						id: c.id,
-						modeloId: c.modelo_id,
-						sequencia: (dados.sequencia as number) || idx,
-						nome: c.nome,
-						materialId: (dados.materialId as number) || 0,
-						tipoTecido: (dados.tipoTecido as number) || 0,
-						conjugacaoNavalha: (dados.conjugacaoNavalha as string) || "",
-						placaPar: (dados.placaPar as string) || "",
-						camadas: (dados.camadas as number) || 0,
-						espacamento: (dados.espacamento as number) || 0,
-						compMaximo: (dados.compMaximo as number) || 0,
-						percPerda: (dados.percPerda as number) || 0,
-						coresDisponiveis: (dados.coresDisponiveis as string[]) || [],
-						tamanhos: c.tamanhos || [],
-					}
-				})
+				const componentes: Componente[] = (componentesFromAPI || []).map(
+					(c: any, idx: number) => {
+						const dados = c.dados || {}
+						return {
+							id: c.id,
+							modeloId: c.modelo_id,
+							sequencia: (dados.sequencia as number) || idx,
+							nome: c.nome,
+							materialId: (dados.materialId as number) || 0,
+							tipoTecido: (dados.tipoTecido as number) || 0,
+							conjugacaoNavalha: (dados.conjugacaoNavalha as string) || "",
+							placaPar: (dados.placaPar as string) || "",
+							camadas: (dados.camadas as number) || 0,
+							espacamento: (dados.espacamento as number) || 0,
+							compMaximo: (dados.compMaximo as number) || 0,
+							percPerda: (dados.percPerda as number) || 0,
+							coresDisponiveis: (dados.coresDisponiveis as string[]) || [],
+							tamanhos: c.tamanhos || [],
+						}
+					},
+				)
 
 				return {
 					...m,
@@ -294,7 +296,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		)
 
 		if (res && res.success) {
-			const componenteId: number = res.componenteId || Math.floor(Math.random() * 10000)
+			const componenteId: number =
+				res.componenteId || Math.floor(Math.random() * 10000)
 			const modelo = modelos.find((m) => m.id === modeloId)
 			const nextSequencia = modelo
 				? Math.max(0, ...modelo.componentes.map((c) => c.sequencia)) + 1
@@ -348,11 +351,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 				prev.map((m) =>
 					m.id === modeloId
 						? {
-							...m,
-							componentes: m.componentes.map((c) =>
-								c.id === componenteId ? { ...c, ...componente } : c,
-							),
-						}
+								...m,
+								componentes: m.componentes.map((c) =>
+									c.id === componenteId ? { ...c, ...componente } : c,
+								),
+							}
 						: m,
 				),
 			)
@@ -368,9 +371,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 				prev.map((m) =>
 					m.id === modeloId
 						? {
-							...m,
-							componentes: m.componentes.filter((c) => c.id !== componenteId),
-						}
+								...m,
+								componentes: m.componentes.filter((c) => c.id !== componenteId),
+							}
 						: m,
 				),
 			)

@@ -95,7 +95,10 @@ interface ComponentesAPI {
 		dados: Record<string, unknown> | null,
 		tamanhos: Array<{ tamanhoInicial: number; tamanhoFinal: number }>,
 	) => Promise<OperationResponse>
-	delete: (modelo_id: number, componente_id: number) => Promise<OperationResponse>
+	delete: (
+		modelo_id: number,
+		componente_id: number,
+	) => Promise<OperationResponse>
 }
 
 interface ModelosCoresAPI {
