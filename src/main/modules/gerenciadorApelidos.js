@@ -33,7 +33,7 @@ function abreviarPadrao(componente) {
 
 export async function init() {
 	return new Promise((resolve, reject) => {
-		console.log('[AP] using encaixe DB file at:', DB_FILE)
+		console.log("[AP] using encaixe DB file at:", DB_FILE)
 		sqlite3.verbose()
 		dbConn = new sqlite3.Database(DB_FILE, (err) => {
 			if (err) return reject(err)

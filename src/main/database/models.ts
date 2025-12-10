@@ -524,7 +524,12 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 		const digits = String(artigo).replace(/\D/g, "")
 		if (digits && !variants.includes(digits)) variants.push(digits)
 
-		console.log("[models] getCadastroByArtigo called with:", artigo, "variants:", variants)
+		console.log(
+			"[models] getCadastroByArtigo called with:",
+			artigo,
+			"variants:",
+			variants,
+		)
 
 		let idx = 0
 
@@ -540,7 +545,11 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 								console.log("[models] LIKE query no match")
 								return resolve([])
 							}
-							console.log("[models] LIKE query found modelo:", row.id, row.artigo)
+							console.log(
+								"[models] LIKE query found modelo:",
+								row.id,
+								row.artigo,
+							)
 							loadComponentesForModelo(row)
 						},
 					)
@@ -559,7 +568,11 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 						return tryNextVariant()
 					}
 					if (row) {
-						console.log("[models] exact match found modelo:", row.id, row.artigo)
+						console.log(
+							"[models] exact match found modelo:",
+							row.id,
+							row.artigo,
+						)
 						loadComponentesForModelo(row)
 						return
 					}
@@ -582,11 +595,17 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 					database.all(
 						"SELECT id, artigo, largura FROM materiais",
 						[],
-						(matErr: Error | null, materiais: Array<{ id: number; artigo: string; largura: number }>) => {
+						(
+							matErr: Error | null,
+							materiais: Array<{ id: number; artigo: string; largura: number }>,
+						) => {
 							if (matErr) {
 								console.log("[models] error loading materiais:", matErr)
 							}
-							const matMap = new Map<number, { artigo: string; largura: number }>()
+							const matMap = new Map<
+								number,
+								{ artigo: string; largura: number }
+							>()
 							for (const m of materiais || []) {
 								matMap.set(m.id, { artigo: m.artigo, largura: m.largura })
 							}
@@ -595,7 +614,14 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 							database.all(
 								"SELECT id, cor_abreviada, cor_completa FROM modelo_cores WHERE modelo_id = ?",
 								[modelo.id],
-								(corErr: Error | null, cores: Array<{ id: number; cor_abreviada: string; cor_completa: string }>) => {
+								(
+									corErr: Error | null,
+									cores: Array<{
+										id: number
+										cor_abreviada: string
+										cor_completa: string
+									}>,
+								) => {
 									if (corErr) {
 										console.log("[models] error loading cores:", corErr)
 									}
@@ -610,7 +636,10 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 											database.all(
 												"SELECT tamanho FROM tamanhos WHERE componente_id = ? ORDER BY id",
 												[comp.id],
-												(tamErr: Error | null, tamRows: Array<{ tamanho: string }>) => {
+												(
+													tamErr: Error | null,
+													tamRows: Array<{ tamanho: string }>,
+												) => {
 													let dados: ComponenteDados | null = null
 													if (comp.dados) {
 														try {
@@ -620,7 +649,9 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 														}
 													}
 
-													const mat = dados?.materialId ? matMap.get(dados.materialId) : null
+													const mat = dados?.materialId
+														? matMap.get(dados.materialId)
+														: null
 													const corIds = dados?.coresDisponiveis || []
 													const corNames = corIds
 														.map((cid) => corMap.get(Number(cid)) || cid)
@@ -673,7 +704,11 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 
 									Promise.all(resultPromises)
 										.then((infos) => {
-											console.log("[models] getCadastroByArtigo returning", infos.length, "componentes")
+											console.log(
+												"[models] getCadastroByArtigo returning",
+												infos.length,
+												"componentes",
+											)
 											resolve(infos)
 										})
 										.catch((e) => {

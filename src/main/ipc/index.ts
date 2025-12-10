@@ -598,7 +598,10 @@ export function setupIPC(): void {
 	ipcMain.handle("cadastro-get-by-artigo", async (_event, artigo: string) => {
 		console.log("[IPC] cadastro-get-by-artigo called:", artigo)
 		const result = await getCadastroByArtigo(artigo)
-		console.log("[IPC] cadastro-get-by-artigo result:", result.length > 0 ? result.length + " items" : false)
+		console.log(
+			"[IPC] cadastro-get-by-artigo result:",
+			result.length > 0 ? result.length + " items" : false,
+		)
 		return result.length > 0 ? result : false
 	})
 
