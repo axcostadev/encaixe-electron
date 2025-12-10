@@ -88,7 +88,6 @@ export function GeracaoArquivosTab() {
 		converterParaLectra,
 		exportarArquivo,
 		cadastrarApelido: cadastrarApelidoHook,
-		
 	} = useEncaixe()
 
 	// Carregar todos os apelidos cadastrados ao montar o componente
