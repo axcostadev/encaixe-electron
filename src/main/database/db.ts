@@ -1,8 +1,9 @@
 import fs from "fs"
 import path from "path"
 import sqlite3 from "sqlite3"
+import { app } from "electron"
 
-const DB_PATH = "C:\\Aincrad\\CuttingRoom"
+const DB_PATH = path.join("C:", "Aincrad", "CuttingRoom")
 const DB_FILE = path.join(DB_PATH, "app.db")
 
 // Criar diretório se não existir
@@ -80,17 +81,10 @@ export function initDatabase(): void {
 		CREATE TABLE IF NOT EXISTS materiais (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			artigo TEXT NOT NULL,
-			cor TEXT NOT NULL,
-			espessura REAL,
-			largura REAL,
-			sentido_corte TEXT,
-			conjugacao_navalha INTEGER,
-			placa_par INTEGER,
-			camadas INTEGER,
-			espacamento REAL,
-			setor_id INTEGER,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			FOREIGN KEY (setor_id) REFERENCES setores(id)
+			largura REAL NOT NULL,
+			obs TEXT,
+			sentido TEXT NOT NULL DEFAULT 'S',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)
 	`)
 

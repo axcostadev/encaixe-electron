@@ -11,6 +11,10 @@ import {
 	listModeloCores,
 	addModeloCor,
 	deleteModeloCor,
+	listMateriais,
+	createMaterial,
+	updateMaterial,
+	deleteMaterial,
 } from "../database"
 import * as parser from "../modules/arquivoParser.js"
 import * as db from "../modules/db.js"
@@ -144,6 +148,8 @@ interface ConversorOptions {
 	[key: string]: unknown // For additional options
 }
 
+type SentidoType = "S" | "N" | "U"
+
 export function setupIPC(): void {
 	// Inicializar banco de dados
 	initDatabase()
@@ -209,6 +215,45 @@ export function setupIPC(): void {
 
 	ipcMain.handle("modelos:cores:delete", async (_event, id: number) => {
 		return await deleteModeloCor(id)
+	})
+
+	// Materiais
+	ipcMain.handle("materiais:list", async () => {
+		return await listMateriais()
+	})
+
+	ipcMain.handle(
+		"materiais:create",
+		async (
+			_event,
+			artigo: string,
+			largura: number,
+			obs: string | undefined,
+			sentido: SentidoType,
+		) => {
+			console.log("Creating material:", { artigo, largura, obs, sentido })
+			const result = await createMaterial(artigo, largura, obs, sentido)
+			console.log("Create result:", result)
+			return result
+		},
+	)
+
+	ipcMain.handle(
+		"materiais:update",
+		async (
+			_event,
+			id: number,
+			artigo: string,
+			largura: number,
+			obs: string | undefined,
+			sentido: SentidoType,
+		) => {
+			return await updateMaterial(id, artigo, largura, obs, sentido)
+		},
+	)
+
+	ipcMain.handle("materiais:delete", async (_event, id: number) => {
+		return await deleteMaterial(id)
 	})
 
 	// ==================== HANDLERS DO ELECTRON-APP ====================

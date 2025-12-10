@@ -6,6 +6,7 @@ interface AppContextType {
 	materiais: Material[]
 
 	loadModelos: () => Promise<void>
+	loadMateriais: () => Promise<void>
 
 	// Modelos
 	addModelo: (
@@ -69,6 +70,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		)
 		setModelos(modelosWithExtras)
 	}
+
+	async function loadMateriais() {
+		const materiaisFromAPI = await window.api.materiais.list()
+		setMateriais(materiaisFromAPI)
+	}
+
 	async function addModelo(
 		modelo: Omit<Modelo, "id" | "cores" | "componentes">,
 	) {
@@ -189,24 +196,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 	// Materiais
 	async function addMaterial(material: Omit<Material, "id">) {
-		// TODO: Call API when available
-		const newMaterial: Material = {
-			...material,
-			id: Math.floor(Math.random() * 10000), // Temporary
+		const response = await window.api.materiais.create(
+			material.artigo,
+			material.largura,
+			material.obs,
+			material.sentido,
+		)
+		if (response.success && response.id) {
+			const newMaterial: Material = {
+				...material,
+				id: response.id,
+			}
+			setMateriais((prev) => [...prev, newMaterial])
+		} else {
+			throw new Error(response.message)
 		}
-		setMateriais((prev) => [...prev, newMaterial])
 	}
 
 	async function updateMaterial(id: number, material: Partial<Material>) {
-		// TODO: Call API
-		setMateriais((prev) =>
-			prev.map((m) => (m.id === id ? { ...m, ...material } : m)),
+		const response = await window.api.materiais.update(
+			id,
+			material.artigo || "",
+			material.largura || 0,
+			material.obs,
+			material.sentido,
 		)
+		if (response.success) {
+			setMateriais((prev) =>
+				prev.map((m) => (m.id === id ? { ...m, ...material } : m)),
+			)
+		} else {
+			throw new Error(response.message)
+		}
 	}
 
 	async function deleteMaterial(id: number) {
-		// TODO: Call API
-		setMateriais((prev) => prev.filter((m) => m.id !== id))
+		const response = await window.api.materiais.delete(id)
+		if (response.success) {
+			setMateriais((prev) => prev.filter((m) => m.id !== id))
+		} else {
+			throw new Error(response.message)
+		}
 	}
 
 	// Componentes
@@ -274,6 +304,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 				modelos,
 				materiais,
 				loadModelos,
+				loadMateriais,
 				addModelo,
 				updateModelo,
 				deleteModelo,

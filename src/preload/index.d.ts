@@ -51,6 +51,20 @@ interface OperationResponse {
 	message: string
 }
 
+interface Material {
+	id: number
+	artigo: string
+	largura: number
+	obs?: string
+	sentido: "S" | "N" | "U"
+}
+
+interface MaterialCreateResponse {
+	success: boolean
+	message: string
+	id?: number
+}
+
 interface ModelosCoresAPI {
 	list: (modelo_id: number) => Promise<ModeloCor[]>
 	add: (
@@ -73,12 +87,31 @@ interface ModelosAPI {
 	cores: ModelosCoresAPI
 }
 
+interface MateriaisAPI {
+	list: () => Promise<Material[]>
+	create: (
+		artigo: string,
+		largura: number,
+		obs?: string,
+		sentido?: "S" | "N" | "U",
+	) => Promise<MaterialCreateResponse>
+	update: (
+		id: number,
+		artigo: string,
+		largura: number,
+		obs?: string,
+		sentido?: "S" | "N" | "U",
+	) => Promise<OperationResponse>
+	delete: (id: number) => Promise<OperationResponse>
+}
+
 declare global {
 	interface Window {
 		electron: ElectronAPI
 		api: {
 			auth: AuthAPI
 			modelos: ModelosAPI
+			materiais: MateriaisAPI
 			electronAPI: {
 				selectFile: () => Promise<string | null>
 				parseCTF: (filePath: string) => Promise<any>
@@ -105,11 +138,21 @@ declare global {
 			}
 			exportAPI: {
 				showSaveDialog: (opts: any) => Promise<string | null>
-				exportComelz: (pedidoObj: any, caminho: string) => Promise<{ path: string }>
+				exportComelz: (
+					pedidoObj: any,
+					caminho: string,
+				) => Promise<{ path: string }>
 			}
 			exportAPI2: {
-				exportEmma: (pedidoObj: any, caminho: string) => Promise<{ path: string }>
-				exportLectra: (modelos: any, caminho: string, markerName: string) => Promise<{ path: string }>
+				exportEmma: (
+					pedidoObj: any,
+					caminho: string,
+				) => Promise<{ path: string }>
+				exportLectra: (
+					modelos: any,
+					caminho: string,
+					markerName: string,
+				) => Promise<{ path: string }>
 			}
 			conversorAPI: {
 				toComelz: (parsedCTF: any, parsedCTC: any, options: any) => Promise<any>

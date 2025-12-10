@@ -17,7 +17,7 @@ import { useState } from "react"
 interface MaterialListProps {
 	materiais: Material[]
 	onEdit: (material: Material) => void
-	onDelete: (id: string) => void
+	onDelete: (id: number) => void
 }
 
 export function MaterialList({
@@ -25,10 +25,10 @@ export function MaterialList({
 	onEdit,
 	onDelete,
 }: MaterialListProps) {
-	const [deleteId, setDeleteId] = useState<string | null>(null)
+	const [deleteId, setDeleteId] = useState<number | null>(null)
 
 	function handleConfirmDelete() {
-		if (deleteId) {
+		if (deleteId !== null) {
 			onDelete(deleteId)
 			setDeleteId(null)
 		}
@@ -89,7 +89,7 @@ export function MaterialList({
 										<Button
 											variant="ghost"
 											size="icon"
-											onClick={() => setDeleteId(material.id.toString())}
+											onClick={() => setDeleteId(material.id)}
 											className="h-8 w-8 text-muted-foreground hover:text-destructive"
 										>
 											<Trash2 className="h-4 w-4" />
@@ -103,7 +103,7 @@ export function MaterialList({
 			</div>
 
 			<DeleteConfirmDialog
-				open={!!deleteId}
+				open={deleteId !== null}
 				onOpenChange={() => setDeleteId(null)}
 				onConfirm={handleConfirmDelete}
 				title="Excluir Material"

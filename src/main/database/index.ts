@@ -10,10 +10,17 @@ import {
 	listModeloCores,
 	addModeloCor,
 	deleteModeloCor,
+	Material,
+	SentidoType,
+	listMateriais,
+	createMaterial,
+	updateMaterial,
+	deleteMaterial,
 } from "./models"
 
 export type { Modelo, ModeloCor }
 export type { LoginResult }
+export type { Material, SentidoType }
 export {
 	initDatabase,
 	closeDatabase,
@@ -26,4 +33,8 @@ export {
 	listModeloCores,
 	addModeloCor,
 	deleteModeloCor,
+	listMateriais,
+	createMaterial,
+	updateMaterial,
+	deleteMaterial,
 }
