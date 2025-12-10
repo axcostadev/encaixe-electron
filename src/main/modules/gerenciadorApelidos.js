@@ -86,6 +86,11 @@ export async function getAllApelidos() {
 }
 
 export async function saveApelido(componente, apelido) {
+	console.log("[AP] saveApelido called:", {
+		componente,
+		apelido,
+		hasDbConn: !!dbConn,
+	})
 	if (!componente || !apelido)
 		throw new Error("componente e apelido obrigatorios")
 	const key = componente.trim().toLowerCase()
@@ -93,13 +98,19 @@ export async function saveApelido(componente, apelido) {
 	if (dbConn) {
 		return new Promise((resolve, reject) => {
 			const sql = `INSERT INTO apelidos (componente, apelido) VALUES (?, ?) ON CONFLICT(componente) DO UPDATE SET apelido=excluded.apelido`
+			console.log("[AP] Executing SQL:", sql, "with", [key, apelido.trim()])
 			dbConn.run(sql, [key, apelido.trim()], function (err) {
-				if (err) return reject(err)
+				if (err) {
+					console.error("[AP] SQL error:", err)
+					return reject(err)
+				}
+				console.log("[AP] Insert successful, changes:", this.changes)
 				// return updated map
 				getAllApelidos().then(resolve).catch(reject)
 			})
 		})
 	}
+	console.log("[AP] No dbConn, falling back to file")
 
 	const mapa = await getAllApelidos()
 	mapa[key] = apelido.trim()

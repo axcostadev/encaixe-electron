@@ -227,18 +227,25 @@ export function useEncaixe() {
 		async (
 			formato: "comelz" | "emma" | "lectra",
 			dados: any,
-			markerName?: string,
+			nomeArquivo?: string,
 		): Promise<string | null> => {
 			setLoading(true)
 			setError(null)
 			try {
+				const extensao = formato === "lectra" ? "mkx" : "json"
 				const filters =
 					formato === "lectra"
 						? [{ name: "MKX", extensions: ["mkx"] }]
 						: [{ name: "JSON", extensions: ["json"] }]
 
+				// Usar nomeArquivo como defaultPath se fornecido (ex: 435023600-ENF-LI.json)
+				const defaultPath = nomeArquivo
+					? `${nomeArquivo}.${extensao}`
+					: undefined
+
 				const savePath = await (window as any).api.exportAPI.showSaveDialog({
 					title: `Exportar ${formato.toUpperCase()}`,
+					defaultPath,
 					filters,
 				})
 
@@ -252,7 +259,7 @@ export function useEncaixe() {
 					await (window as any).api.exportAPI2.exportLectra(
 						dados,
 						savePath,
-						markerName || "MARKER_" + Date.now(),
+						nomeArquivo || "MARKER_" + Date.now(),
 					)
 				}
 
@@ -274,7 +281,7 @@ export function useEncaixe() {
 			setLoading(true)
 			setError(null)
 			try {
-				await (window as any).api.apelidoAPI.save(componente, apelido)
+				await (window as any).api.apelidosAPI.save(componente, apelido)
 				return true
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err)
@@ -291,7 +298,7 @@ export function useEncaixe() {
 	const buscarApelido = useCallback(
 		async (componente: string): Promise<string> => {
 			try {
-				return await (window as any).api.apelidoAPI.get(componente)
+				return await (window as any).api.apelidosAPI.get(componente)
 			} catch (err) {
 				return ""
 			}

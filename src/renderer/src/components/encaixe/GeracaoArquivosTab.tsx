@@ -23,10 +23,19 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@renderer/components/ui/card"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Alert, AlertDescription } from "@renderer/components/ui/alert"
 import { useEncaixe } from "@renderer/hooks/useEncaixe"
 import { PedidoComelz, PedidoEmma, ModelDataLectra } from "@renderer/types"
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@renderer/components/ui/dialog"
+import { ScrollArea } from "@renderer/components/ui/scroll-area"
 
 type GradePar = {
 	artigo: string
@@ -63,6 +72,13 @@ export function GeracaoArquivosTab() {
 	const [maquinaSelecionada, setMaquinaSelecionada] = useState<string>("Emma")
 	const [message, setMessage] = useState<string>("")
 
+	// Estados para gerenciamento de apelidos
+	const [apelidosMap, setApelidosMap] = useState<Record<string, string>>({})
+	const [apelidoSelecionado, setApelidoSelecionado] = useState<string>("")
+	const [dialogApelidoAberto, setDialogApelidoAberto] = useState(false)
+	const [novoApelido, setNovoApelido] = useState("")
+	const [componenteParaApelido, setComponenteParaApelido] = useState("")
+
 	const {
 		loading,
 		buscarOF: buscarOFHook,
@@ -72,7 +88,21 @@ export function GeracaoArquivosTab() {
 		converterParaLectra,
 		exportarArquivo,
 		cadastrarApelido: cadastrarApelidoHook,
+		buscarApelido: buscarApelidoHook,
 	} = useEncaixe()
+
+	// Carregar todos os apelidos cadastrados ao montar o componente
+	useEffect(() => {
+		async function carregarApelidos() {
+			try {
+				const apelidos = await (window as any).api.apelidosAPI.getAll()
+				setApelidosMap(apelidos || {})
+			} catch (err) {
+				console.error("Erro ao carregar apelidos:", err)
+			}
+		}
+		carregarApelidos()
+	}, [])
 
 	async function buscarOF() {
 		if (!ofSearch || ofSearch.length !== 9) {
@@ -86,6 +116,25 @@ export function GeracaoArquivosTab() {
 
 		if (result.length === 0) {
 			setMessage("OF não encontrada nos arquivos CTF/CTC")
+		} else {
+			// Auto-preencher o campo artigo com "COR" + artigo da primeira linha
+			const primeiroArtigo = result[0]?.artigo
+			if (primeiroArtigo) {
+				const artigoComCOR = primeiroArtigo.startsWith("COR")
+					? primeiroArtigo
+					: "COR" + primeiroArtigo
+				setArtigoSearch(artigoComCOR)
+
+				// Buscar cadastros automaticamente após preencher o artigo
+				setCadastrosInfo([])
+				setComponenteSelecionado(null)
+				const cadastros = await buscarArtigoHook(artigoComCOR)
+				if (cadastros.length === 0) {
+					setMessage("Nenhum cadastro encontrado para o artigo informado")
+				} else {
+					setCadastrosInfo(cadastros)
+				}
+			}
 		}
 	}
 
@@ -109,24 +158,40 @@ export function GeracaoArquivosTab() {
 		setCadastrosInfo(cadastros)
 	}
 
-	async function cadastrarApelido() {
+	function abrirDialogApelido() {
 		if (!componenteSelecionado) {
 			setMessage("Selecione um componente primeiro")
 			return
 		}
+		setComponenteParaApelido(componenteSelecionado)
+		setNovoApelido("")
+		setDialogApelidoAberto(true)
+	}
 
-		const apelido = prompt(
-			`Digite o apelido para o componente ${componenteSelecionado}:`,
+	async function salvarApelido() {
+		if (!componenteParaApelido || !novoApelido.trim()) {
+			setMessage("Digite um apelido válido")
+			return
+		}
+
+		const success = await cadastrarApelidoHook(
+			componenteParaApelido,
+			novoApelido.trim(),
 		)
 
-		if (apelido && apelido.trim()) {
-			const success = await cadastrarApelidoHook(
-				componenteSelecionado,
-				apelido.trim(),
+		if (success) {
+			// Atualizar mapa de apelidos local
+			setApelidosMap((prev) => ({
+				...prev,
+				[componenteParaApelido.toLowerCase()]: novoApelido.trim(),
+			}))
+			setMessage(
+				`Apelido "${novoApelido.trim()}" cadastrado para "${componenteParaApelido}"!`,
 			)
-			if (success) {
-				setMessage("Apelido cadastrado com sucesso!")
-			}
+			setDialogApelidoAberto(false)
+			setNovoApelido("")
+		} else {
+			setMessage("Erro ao cadastrar apelido")
 		}
 	}
 
@@ -138,6 +203,11 @@ export function GeracaoArquivosTab() {
 
 		if (gradePares.length === 0) {
 			setMessage("Busque uma OF primeiro para gerar o arquivo")
+			return
+		}
+
+		if (!apelidoSelecionado) {
+			setMessage("Selecione um apelido para o nome do arquivo")
 			return
 		}
 
@@ -169,11 +239,14 @@ export function GeracaoArquivosTab() {
 				return
 			}
 
-			// Exportar arquivo
+			// Usar o apelido selecionado no nome do arquivo
+			const nomeArquivo = `${ofSearch}-${apelidoSelecionado}`
+
+			// Exportar arquivo com nome personalizado (OF-APELIDO)
 			const savePath = await exportarArquivo(
 				maquinaSelecionada.toLowerCase() as "comelz" | "emma" | "lectra",
 				dados,
-				"MARKER_" + Date.now(),
+				nomeArquivo,
 			)
 
 			if (savePath) {
@@ -186,6 +259,12 @@ export function GeracaoArquivosTab() {
 			setMessage("Erro ao gerar arquivo: " + String(err))
 		}
 	}
+
+	// Obter lista de apelidos únicos para o dropdown
+	const apelidosLista = Object.entries(apelidosMap).map(([comp, apelido]) => ({
+		componente: comp,
+		apelido,
+	}))
 
 	return (
 		<div className="space-y-6">
@@ -245,33 +324,14 @@ export function GeracaoArquivosTab() {
 				</CardContent>
 			</Card>
 
-			{/* Seção de Busca por Artigo */}
-			<Card>
-				<CardHeader>
-					<CardTitle>Buscar Artigo e Selecionar Componente</CardTitle>
-					<CardDescription>
-						Digite o artigo para visualizar os cadastros e componentes
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="space-y-4">
-					<div className="flex gap-2">
-						<div className="flex-1">
-							<Label htmlFor="artigo-search">Artigo</Label>
-							<Input
-								id="artigo-search"
-								value={artigoSearch}
-								onChange={(e) => setArtigoSearch(e.target.value)}
-								placeholder="Digite o artigo"
-							/>
-						</div>
-						<div className="flex items-end">
-							<Button onClick={buscarArtigo} disabled={loading}>
-								{loading ? "Buscando..." : "Buscar Artigo"}
-							</Button>
-						</div>
-					</div>
-
-					{cadastrosInfo.length > 0 && (
+			{/* Seção de Informações do Cadastro (carregado automaticamente após buscar OF) */}
+			{cadastrosInfo.length > 0 && (
+				<Card>
+					<CardHeader>
+						<CardTitle>Cadastro Encontrado</CardTitle>
+						<CardDescription>Artigo: {artigoSearch}</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
 						<div className="space-y-4">
 							<div className="border rounded-lg p-4 bg-muted/50">
 								<h4 className="font-semibold mb-2">Informações do Cadastro</h4>
@@ -342,9 +402,9 @@ export function GeracaoArquivosTab() {
 								</div>
 							</div>
 						</div>
-					)}
-				</CardContent>
-			</Card>
+					</CardContent>
+				</Card>
+			)}
 
 			{/* Controles de Geração */}
 			<Card>
@@ -366,22 +426,110 @@ export function GeracaoArquivosTab() {
 								</SelectContent>
 							</Select>
 						</div>
+						<div className="flex-1 min-w-[200px]">
+							<Label htmlFor="apelido-select">
+								Apelido para nome do arquivo
+							</Label>
+							<Select
+								value={apelidoSelecionado}
+								onValueChange={setApelidoSelecionado}
+							>
+								<SelectTrigger id="apelido-select">
+									<SelectValue placeholder="Selecione um apelido" />
+								</SelectTrigger>
+								<SelectContent>
+									<ScrollArea className="h-[200px]">
+										{apelidosLista.length === 0 ? (
+											<SelectItem value="_none" disabled>
+												Nenhum apelido cadastrado
+											</SelectItem>
+										) : (
+											apelidosLista.map(({ componente, apelido }) => (
+												<SelectItem key={componente} value={apelido}>
+													{componente} - {apelido}
+												</SelectItem>
+											))
+										)}
+									</ScrollArea>
+								</SelectContent>
+							</Select>
+						</div>
 						<Button
 							onClick={gerarArquivo}
-							disabled={loading || !componenteSelecionado}
+							disabled={
+								loading || !componenteSelecionado || !apelidoSelecionado
+							}
 						>
 							Gerar Arquivo
 						</Button>
 						<Button
-							onClick={cadastrarApelido}
+							onClick={abrirDialogApelido}
 							variant="outline"
 							disabled={!componenteSelecionado}
 						>
 							Cadastrar Apelido
 						</Button>
 					</div>
+					{ofSearch && apelidoSelecionado && (
+						<p className="text-sm text-muted-foreground mt-2">
+							Nome do arquivo:{" "}
+							<strong>
+								{ofSearch}-{apelidoSelecionado}.json
+							</strong>
+						</p>
+					)}
 				</CardContent>
 			</Card>
+
+			{/* Dialog para cadastrar apelido */}
+			<Dialog open={dialogApelidoAberto} onOpenChange={setDialogApelidoAberto}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Cadastrar Apelido</DialogTitle>
+						<DialogDescription>
+							Digite o apelido para o componente "{componenteParaApelido}"
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4 py-4">
+						<div className="space-y-2">
+							<Label htmlFor="novo-apelido">Apelido</Label>
+							<Input
+								id="novo-apelido"
+								value={novoApelido}
+								onChange={(e) => setNovoApelido(e.target.value.toUpperCase())}
+								placeholder="Ex: PLCVIST"
+							/>
+						</div>
+						{Object.keys(apelidosMap).length > 0 && (
+							<div className="space-y-2">
+								<Label>Apelidos já cadastrados:</Label>
+								<ScrollArea className="h-[150px] border rounded-md p-2">
+									{Object.entries(apelidosMap).map(([comp, apelido]) => (
+										<div
+											key={comp}
+											className="flex justify-between text-sm py-1 border-b last:border-b-0"
+										>
+											<span>{comp}</span>
+											<span className="font-mono font-semibold">{apelido}</span>
+										</div>
+									))}
+								</ScrollArea>
+							</div>
+						)}
+					</div>
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setDialogApelidoAberto(false)}
+						>
+							Cancelar
+						</Button>
+						<Button onClick={salvarApelido} disabled={!novoApelido.trim()}>
+							Salvar
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 
 			{/* Mensagens de Status */}
 			{message && (
