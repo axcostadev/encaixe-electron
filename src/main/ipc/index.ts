@@ -11,17 +11,17 @@ import {
 	listModeloCores,
 	addModeloCor,
 	deleteModeloCor,
-} from "./database"
-import * as parser from './modules/arquivoParser.js'
-import * as db from './modules/db.js'
-import * as gerenciadorApelidos from './modules/gerenciadorApelidos.js'
-import * as abreviacaoManager from './modules/abreviacaoManager.js'
-import * as exportadorComelz from './modules/exportadorComelz.js'
-import * as exportadorEmma from './modules/exportadorEmma.js'
-import * as exportadorLectra from './modules/exportadorLectra.js'
-import * as conversorComelz from './modules/conversorComelz.js'
-import * as conversorEmma from './modules/conversorEmma.js'
-import * as conversorLectra from './modules/conversorLectra.js'
+} from "../database"
+import * as parser from '../modules/arquivoParser.js'
+import * as db from '../modules/db.js'
+import * as gerenciadorApelidos from '../modules/gerenciadorApelidos.js'
+import * as abreviacaoManager from '../modules/abreviacaoManager.js'
+import * as exportadorComelz from '../modules/exportadorComelz.js'
+import * as exportadorEmma from '../modules/exportadorEmma.js'
+import * as exportadorLectra from '../modules/exportadorLectra.js'
+import * as conversorComelz from '../modules/conversorComelz.js'
+import * as conversorEmma from '../modules/conversorEmma.js'
+import * as conversorLectra from '../modules/conversorLectra.js'
 
 export function setupIPC(): void {
 	// Inicializar banco de dados
