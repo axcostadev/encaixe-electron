@@ -19,8 +19,10 @@ export function initDatabase(): void {
 		}
 	})
 
+	const database = db!
+
 	// Criar tabela de usuários
-	db.run(`
+	database.run(`
 		CREATE TABLE IF NOT EXISTS users (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			username TEXT UNIQUE NOT NULL,
@@ -31,7 +33,7 @@ export function initDatabase(): void {
 	`)
 
 	// Criar tabela de Modelos
-	db.run(`
+	database.run(`
 		CREATE TABLE IF NOT EXISTS modelos (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			artigo TEXT UNIQUE NOT NULL,
@@ -41,7 +43,7 @@ export function initDatabase(): void {
 	`)
 
 	// Criar tabela de Cores de Modelos
-	db.run(`
+	database.run(`
 		CREATE TABLE IF NOT EXISTS modelo_cores (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			modelo_id INTEGER NOT NULL,
@@ -53,21 +55,54 @@ export function initDatabase(): void {
 	`)
 
 	// Criar tabela de Componentes
-	db.run(`
+	database.run(`
 		CREATE TABLE IF NOT EXISTS componentes (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			modelo_id INTEGER NOT NULL,
 			modelo_cor_id INTEGER NOT NULL,
 			numero_tecido TEXT NOT NULL,
 			nome TEXT NOT NULL,
+			-- Dados extras (json) para armazenar campos do formulário
+			dados TEXT,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (modelo_id) REFERENCES modelos(id),
 			FOREIGN KEY (modelo_cor_id) REFERENCES modelo_cores(id)
 		)
 	`)
 
+	// Garantir que a coluna `dados` exista (em bancos antigos)
+	// Usa PRAGMA table_info para checar existência da coluna antes de executar ALTER TABLE
+	database.all(
+		"PRAGMA table_info(componentes)",
+		(err: Error | null, rows?: { name: string }[]) => {
+			if (err) {
+				// se houver erro ao consultar, logamos e não tentamos alterar
+				console.error("Erro verificando estrutura de componentes:", err)
+				return
+			}
+
+			const hasDados = (rows || []).some((r) => r.name === "dados")
+			if (hasDados) return
+
+			database.run(
+				`ALTER TABLE componentes ADD COLUMN dados TEXT`,
+				(alterErr: Error | null) => {
+					if (alterErr) {
+						// Ignorar se for coluna duplicada (concorrência) ou logar outros erros
+						if (!String(alterErr.message).toLowerCase().includes("duplicate")) {
+							console.error(
+								"Erro ao adicionar coluna 'dados' na tabela componentes:",
+								alterErr,
+							)
+						}
+					}
+				},
+			)
+		},
+	)
+
 	// Criar tabela de Setores
-	db.run(`
+	database.run(`
 		CREATE TABLE IF NOT EXISTS setores (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			nome TEXT UNIQUE NOT NULL,
@@ -76,7 +111,7 @@ export function initDatabase(): void {
 	`)
 
 	// Criar tabela de Materiais
-	db.run(`
+	database.run(`
 		CREATE TABLE IF NOT EXISTS materiais (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			artigo TEXT NOT NULL,
@@ -88,7 +123,7 @@ export function initDatabase(): void {
 	`)
 
 	// Criar tabela de Componente-Material
-	db.run(`
+	database.run(`
 		CREATE TABLE IF NOT EXISTS componente_materiais (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			componente_id INTEGER NOT NULL,
@@ -100,7 +135,7 @@ export function initDatabase(): void {
 	`)
 
 	// Criar tabela de Tamanhos
-	db.run(`
+	database.run(`
 		CREATE TABLE IF NOT EXISTS tamanhos (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			componente_id INTEGER NOT NULL,
@@ -111,7 +146,7 @@ export function initDatabase(): void {
 	`)
 
 	// Criar usuário padrão se não existir
-	db.run(
+	database.run(
 		"INSERT INTO users (username, password, email) VALUES (?, ?, ?)",
 		["admin", "123456", "admin@example.com"],
 		(err) => {

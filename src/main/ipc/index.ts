@@ -15,7 +15,12 @@ import {
 	createMaterial,
 	updateMaterial,
 	deleteMaterial,
+	listComponentes,
+	addComponente,
+	updateComponente,
+	deleteComponente,
 } from "../database"
+import type { ComponenteDados } from "../database"
 import * as parser from "../modules/arquivoParser.js"
 import * as db from "../modules/db.js"
 import * as gerenciadorApelidos from "../modules/gerenciadorApelidos.js"
@@ -158,7 +163,11 @@ export function setupIPC(): void {
 	db.initDB()
 
 	// Inicializar gerenciador de apelidos (cria tabela no DB se necessário)
-	gerenciadorApelidos.init().catch((err) => console.error('Erro inicializando gerenciadorApelidos:', err))
+	gerenciadorApelidos
+		.init()
+		.catch((err) =>
+			console.error("Erro inicializando gerenciadorApelidos:", err),
+		)
 
 	// IPC para login
 	ipcMain.handle(
@@ -208,6 +217,51 @@ export function setupIPC(): void {
 	ipcMain.handle("modelos:cores:list", async (_event, modelo_id: number) => {
 		return await listModeloCores(modelo_id)
 	})
+
+	// Componentes do modelo
+	ipcMain.handle("componentes:list", async (_event, modelo_id: number) => {
+		return await listComponentes(modelo_id)
+	})
+
+	ipcMain.handle(
+		"componentes:create",
+		async (
+			_event,
+			modelo_id: number,
+			nome: string,
+			dados: ComponenteDados | null,
+			tamanhos: { tamanhoInicial: number; tamanhoFinal: number }[],
+		) => {
+			return await addComponente(modelo_id, nome, dados, tamanhos)
+		},
+	)
+
+	ipcMain.handle(
+		"componentes:update",
+		async (
+			_event,
+			modelo_id: number,
+			componente_id: number,
+			nome: string,
+			dados: ComponenteDados | null,
+			tamanhos: { tamanhoInicial: number; tamanhoFinal: number }[],
+		) => {
+			return await updateComponente(
+				modelo_id,
+				componente_id,
+				nome,
+				dados,
+				tamanhos,
+			)
+		},
+	)
+
+	ipcMain.handle(
+		"componentes:delete",
+		async (_event, modelo_id: number, componente_id: number) => {
+			return await deleteComponente(modelo_id, componente_id)
+		},
+	)
 
 	ipcMain.handle(
 		"modelos:cores:add",

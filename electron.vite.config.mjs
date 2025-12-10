@@ -4,6 +4,7 @@ import { defineConfig, externalizeDepsPlugin } from "electron-vite"
 import { resolve } from "path"
 
 export default defineConfig({
+	publicDir: "resources",
 	main: {
 		plugins: [externalizeDepsPlugin()],
 	},

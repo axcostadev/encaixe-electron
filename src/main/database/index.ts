@@ -12,6 +12,13 @@ import {
 	deleteModeloCor,
 } from "./models"
 import {
+	listComponentes,
+	addComponente,
+	updateComponente,
+	deleteComponente,
+} from "./models"
+import type { Componente, ComponenteDados } from "./models"
+import {
 	Material,
 	SentidoType,
 	listMateriais,
@@ -23,6 +30,8 @@ import {
 export type { Modelo, ModeloCor }
 export type { LoginResult }
 export type { Material, SentidoType }
+export type { Componente }
+export type { ComponenteDados }
 export {
 	initDatabase,
 	closeDatabase,
@@ -39,4 +48,8 @@ export {
 	createMaterial,
 	updateMaterial,
 	deleteMaterial,
+	listComponentes,
+	addComponente,
+	updateComponente,
+	deleteComponente,
 }
