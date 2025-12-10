@@ -16,11 +16,11 @@ import { useState } from "react"
 interface CorListProps {
 	cores: Cor[]
 	onEdit: (cor: Cor) => void
-	onDelete: (id: string) => void
+	onDelete: (id: number) => void
 }
 
 export function CorList({ cores, onEdit, onDelete }: CorListProps) {
-	const [deleteId, setDeleteId] = useState<string | null>(null)
+	const [deleteId, setDeleteId] = useState<number | null>(null)
 
 	function handleConfirmDelete() {
 		if (deleteId) {

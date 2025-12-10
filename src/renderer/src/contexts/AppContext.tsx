@@ -5,82 +5,125 @@ interface AppContextType {
 	modelos: Modelo[]
 	materiais: Material[]
 
+	loadModelos: () => Promise<void>
+
 	// Modelos
-	addModelo: (modelo: Omit<Modelo, "id" | "cores" | "componentes">) => void
-	updateModelo: (id: string, modelo: Partial<Modelo>) => void
-	deleteModelo: (id: string) => void
+	addModelo: (
+		modelo: Omit<Modelo, "id" | "cores" | "componentes">,
+	) => Promise<void>
+	updateModelo: (id: number, modelo: Partial<Modelo>) => Promise<void>
+	deleteModelo: (id: number) => Promise<void>
 
 	// Cores
-	addCor: (modeloId: string, cor: Omit<Cor, "id" | "modeloId">) => void
-	updateCor: (modeloId: string, corId: string, cor: Partial<Cor>) => void
-	deleteCor: (modeloId: string, corId: string) => void
-	getCoresByModelo: (modeloId: string) => Cor[]
+	addCor: (modeloId: number, cor: Omit<Cor, "id" | "modeloId">) => Promise<void>
+	updateCor: (
+		modeloId: number,
+		corId: number,
+		cor: Partial<Cor>,
+	) => Promise<void>
+	deleteCor: (modeloId: number, corId: number) => Promise<void>
+	getCoresByModelo: (modeloId: number) => Cor[]
 
 	// Materiais
-	addMaterial: (material: Omit<Material, "id">) => void
-	updateMaterial: (id: string, material: Partial<Material>) => void
-	deleteMaterial: (id: string) => void
+	addMaterial: (material: Omit<Material, "id">) => Promise<void>
+	updateMaterial: (id: number, material: Partial<Material>) => Promise<void>
+	deleteMaterial: (id: number) => Promise<void>
 
 	// Componentes
 	addComponente: (
-		modeloId: string,
+		modeloId: number,
 		componente: Omit<Componente, "id" | "modeloId">,
-	) => void
+	) => Promise<void>
 	updateComponente: (
-		modeloId: string,
-		componenteId: string,
+		modeloId: number,
+		componenteId: number,
 		componente: Partial<Componente>,
-	) => void
-	deleteComponente: (modeloId: string, componenteId: string) => void
-	getComponentesByModelo: (modeloId: string) => Componente[]
+	) => Promise<void>
+	deleteComponente: (modeloId: number, componenteId: number) => Promise<void>
+	getComponentesByModelo: (modeloId: number) => Componente[]
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
-
-function generateId(): string {
-	return Math.random().toString(36).substring(2, 15)
-}
 
 export function AppProvider({ children }: { children: ReactNode }) {
 	const [modelos, setModelos] = useState<Modelo[]>([])
 	const [materiais, setMateriais] = useState<Material[]>([])
 
-	// Modelos
-	function addModelo(modelo: Omit<Modelo, "id" | "cores" | "componentes">) {
-		const newModelo: Modelo = {
-			...modelo,
-			id: generateId(),
+	async function loadModelos() {
+		const modelosFromAPI = await window.api.modelos.list()
+		const modelosWithExtras = modelosFromAPI.map((m) => ({
+			...m,
 			cores: [],
 			componentes: [],
+		}))
+		setModelos(modelosWithExtras)
+	}
+	async function addModelo(
+		modelo: Omit<Modelo, "id" | "cores" | "componentes">,
+	) {
+		const response = await window.api.modelos.create(modelo.artigo, modelo.nome)
+		if (response.success && response.modelo) {
+			const newModelo: Modelo = {
+				...response.modelo,
+				cores: [],
+				componentes: [],
+			}
+			setModelos((prev) => [...prev, newModelo])
+		} else {
+			throw new Error(response.message)
 		}
-		setModelos((prev) => [...prev, newModelo])
 	}
 
-	function updateModelo(id: string, modelo: Partial<Modelo>) {
-		setModelos((prev) =>
-			prev.map((m) => (m.id === id ? { ...m, ...modelo } : m)),
+	async function updateModelo(id: number, modelo: Partial<Modelo>) {
+		const response = await window.api.modelos.update(
+			id,
+			modelo.artigo!,
+			modelo.nome!,
 		)
+		if (response.success) {
+			setModelos((prev) =>
+				prev.map((m) => (m.id === id ? { ...m, ...modelo } : m)),
+			)
+		} else {
+			throw new Error(response.message)
+		}
 	}
 
-	function deleteModelo(id: string) {
-		setModelos((prev) => prev.filter((m) => m.id !== id))
+	async function deleteModelo(id: number) {
+		const response = await window.api.modelos.delete(id)
+		if (response.success) {
+			setModelos((prev) => prev.filter((m) => m.id !== id))
+		} else {
+			throw new Error(response.message)
+		}
 	}
 
 	// Cores
-	function addCor(modeloId: string, cor: Omit<Cor, "id" | "modeloId">) {
-		const newCor: Cor = {
-			...cor,
-			id: generateId(),
+	async function addCor(modeloId: number, cor: Omit<Cor, "id" | "modeloId">) {
+		const response = await window.api.modelos.cores.add(
 			modeloId,
-		}
-		setModelos((prev) =>
-			prev.map((m) =>
-				m.id === modeloId ? { ...m, cores: [...m.cores, newCor] } : m,
-			),
+			cor.abreviacao,
+			cor.nome,
 		)
+		if (response.success && response.cor) {
+			const newCor: Cor = {
+				id: response.cor.id,
+				modeloId: response.cor.modelo_id,
+				abreviacao: response.cor.cor_abreviada,
+				nome: response.cor.cor_completa,
+			}
+			setModelos((prev) =>
+				prev.map((m) =>
+					m.id === modeloId ? { ...m, cores: [...m.cores, newCor] } : m,
+				),
+			)
+		} else {
+			throw new Error(response.message)
+		}
 	}
 
-	function updateCor(modeloId: string, corId: string, cor: Partial<Cor>) {
+	async function updateCor(modeloId: number, corId: number, cor: Partial<Cor>) {
+		// Note: No update API for cores, updating locally only
 		setModelos((prev) =>
 			prev.map((m) =>
 				m.id === modeloId
@@ -95,48 +138,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		)
 	}
 
-	function deleteCor(modeloId: string, corId: string) {
-		setModelos((prev) =>
-			prev.map((m) =>
-				m.id === modeloId
-					? { ...m, cores: m.cores.filter((c) => c.id !== corId) }
-					: m,
-			),
-		)
+	async function deleteCor(modeloId: number, corId: number) {
+		const response = await window.api.modelos.cores.delete(corId)
+		if (response.success) {
+			setModelos((prev) =>
+				prev.map((m) =>
+					m.id === modeloId
+						? { ...m, cores: m.cores.filter((c) => c.id !== corId) }
+						: m,
+				),
+			)
+		} else {
+			throw new Error(response.message)
+		}
 	}
 
-	function getCoresByModelo(modeloId: string): Cor[] {
+	function getCoresByModelo(modeloId: number): Cor[] {
 		const modelo = modelos.find((m) => m.id === modeloId)
 		return modelo?.cores || []
 	}
 
 	// Materiais
-	function addMaterial(material: Omit<Material, "id">) {
+	async function addMaterial(material: Omit<Material, "id">) {
+		// TODO: Call API when available
 		const newMaterial: Material = {
 			...material,
-			id: generateId(),
+			id: Math.floor(Math.random() * 10000), // Temporary
 		}
 		setMateriais((prev) => [...prev, newMaterial])
 	}
 
-	function updateMaterial(id: string, material: Partial<Material>) {
+	async function updateMaterial(id: number, material: Partial<Material>) {
+		// TODO: Call API
 		setMateriais((prev) =>
 			prev.map((m) => (m.id === id ? { ...m, ...material } : m)),
 		)
 	}
 
-	function deleteMaterial(id: string) {
+	async function deleteMaterial(id: number) {
+		// TODO: Call API
 		setMateriais((prev) => prev.filter((m) => m.id !== id))
 	}
 
 	// Componentes
-	function addComponente(
-		modeloId: string,
+	async function addComponente(
+		modeloId: number,
 		componente: Omit<Componente, "id" | "modeloId">,
 	) {
+		// TODO: Call API
 		const newComponente: Componente = {
 			...componente,
-			id: generateId(),
+			id: Math.floor(Math.random() * 10000), // Temporary
 			modeloId,
 		}
 		setModelos((prev) =>
@@ -148,11 +200,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		)
 	}
 
-	function updateComponente(
-		modeloId: string,
-		componenteId: string,
+	async function updateComponente(
+		modeloId: number,
+		componenteId: number,
 		componente: Partial<Componente>,
 	) {
+		// TODO: Call API
 		setModelos((prev) =>
 			prev.map((m) =>
 				m.id === modeloId
@@ -167,7 +220,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		)
 	}
 
-	function deleteComponente(modeloId: string, componenteId: string) {
+	async function deleteComponente(modeloId: number, componenteId: number) {
+		// TODO: Call API
 		setModelos((prev) =>
 			prev.map((m) =>
 				m.id === modeloId
@@ -180,7 +234,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		)
 	}
 
-	function getComponentesByModelo(modeloId: string): Componente[] {
+	function getComponentesByModelo(modeloId: number): Componente[] {
 		const modelo = modelos.find((m) => m.id === modeloId)
 		return modelo?.componentes || []
 	}
@@ -190,6 +244,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 			value={{
 				modelos,
 				materiais,
+				loadModelos,
 				addModelo,
 				updateModelo,
 				deleteModelo,

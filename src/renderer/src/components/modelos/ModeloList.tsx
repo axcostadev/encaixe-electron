@@ -18,11 +18,11 @@ import { useNavigate } from "react-router-dom"
 interface ModeloListProps {
 	modelos: Modelo[]
 	onEdit: (modelo: Modelo) => void
-	onDelete: (id: string) => void
+	onDelete: (id: number) => void
 }
 
 export function ModeloList({ modelos, onEdit, onDelete }: ModeloListProps) {
-	const [deleteId, setDeleteId] = useState<string | null>(null)
+	const [deleteId, setDeleteId] = useState<number | null>(null)
 	const navigate = useNavigate()
 
 	function handleConfirmDelete() {
