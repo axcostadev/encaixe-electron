@@ -1,5 +1,5 @@
 appId: com.electron.app
-productName: aincrad-app
+productName: "cutting room"
 directories:
   buildResources: build
 files:
@@ -12,12 +12,20 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: aincrad-app
+  executableName: cutting-room
+  icon: build/view-cutting-machine.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+  displayLanguageSelector: false
+  installerHeaderIcon: build/view-cutting-machine.ico
+  installerIcon: build/view-cutting-machine.ico
+  uninstallerIcon: build/view-cutting-machine.ico
+  include: build/installer.nsh
+  oneClick: false
+  perMachine: false
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:

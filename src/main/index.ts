@@ -1,19 +1,39 @@
 import { electronApp, is, optimizer } from "@electron-toolkit/utils"
-import { app, BrowserWindow, ipcMain, shell } from "electron"
+import { app, BrowserWindow, ipcMain, shell, nativeImage } from "electron"
 import { join } from "path"
 import icon from "../../resources/icon.png?asset"
+import { existsSync } from "fs"
 import { setupIPC } from "./ipc"
 import { setupMenu } from "./menu"
 
 function createWindow(): void {
 	// Create the browser window.
 	const mainWindow = new BrowserWindow({
+		title: "cutting room",
 		width: 900,
 		height: 670,
 		show: false,
 		// mostrar menu por padrão (não esconder com Alt)
 		autoHideMenuBar: false,
-		...(process.platform === "linux" ? { icon } : {}),
+		// set the window icon for Windows and Linux
+		...(function () {
+			if (process.platform === "win32") {
+				const icoPath = join(__dirname, "../../resources/view-cutting-machine.ico")
+				if (existsSync(icoPath)) return { icon: icoPath }
+				// fallback to packaged PNG/nativeImage if .ico not found
+				try {
+					return { icon: nativeImage.createFromDataURL(icon) }
+				} catch (_) {
+					return {}
+				}
+			}
+
+			if (process.platform === "linux") {
+				return { icon }
+			}
+
+			return {}
+		})(),
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
 			sandbox: false,
@@ -42,8 +62,12 @@ function createWindow(): void {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-	// Set app user model id for windows
-	electronApp.setAppUserModelId("com.electron")
+		// Set app user model id for windows and app name
+		electronApp.setAppUserModelId("com.aincrad.cuttingroom")
+		try {
+			// set the app name (useful on macOS/Linux)
+			app.setName("cutting room")
+		} catch (_) {}
 
 	// Setup IPC handlers
 	setupIPC()
