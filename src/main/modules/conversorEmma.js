@@ -1,111 +1,240 @@
-// Converte parsed results para estrutura simplificada para exportação Emma
+// Converte parsed results para estrutura completa de exportação Emma
 // Implementa a lógica do ConversorEmma Java com constantes
 // parsedCTF/parsedCTC: arrays de blocos { of, linhas }
-// cadastro: objeto { artigo, cor, material }
-export function converterParaQtyEmma(parsedCTF = [], parsedCTC = [], cadastro = {}) {
-  const listaQty = []
+// cadastro: objeto { artigo, cor, material, customer, id, model, pastaArtigo, componente }
+// options: objeto opcional { customer, date, id, model, mirror, pastaArtigo, componente }
 
-  // Helper: for matching CTC lines by artigo+codigoCor
-  const mapCTCByKey = new Map()
-  for (const bloco of parsedCTC) {
-    for (const l of bloco.linhas || []) {
-      const key = (l.artigo || '').toString().trim() + '|' + (l.codigoCor || l.grade || '').toString().trim()
-      if (!mapCTCByKey.has(key)) mapCTCByKey.set(key, l)
-    }
-  }
+// Caminho base fixo para modelos Emma
+const EMMA_BASE_PATH = "O:\\Lectra\\Calcado\\Modelos\\EMMA"
 
-  // If there are CTF blocks, process them (prioridade)
-  if (Array.isArray(parsedCTF) && parsedCTF.length > 0) {
-    for (const bloco of parsedCTF) {
-      for (const linha of bloco.linhas || []) {
-        let artigo = (linha.artigo || '').toString().trim()
-        let codigoCor = (linha.codigoCor || linha.grade || linha.modelo || '').toString().trim()
-        const quantidadePares = Number(linha.pares || 0)
+/**
+ * Formata a data atual no formato YYYYMMDD
+ */
+function formatDateEmma(date = new Date()) {
+	const year = date.getFullYear()
+	const month = String(date.getMonth() + 1).padStart(2, "0")
+	const day = String(date.getDate()).padStart(2, "0")
+	return `${year}${month}${day}`
+}
 
-        let materialNome = (cadastro && cadastro.material) ? String(cadastro.material) : ''
-        const key = artigo + '|' + codigoCor
-        const lctc = mapCTCByKey.get(key)
-        if (lctc && lctc.especificacaoTecnica) {
-          materialNome = (materialNome ? materialNome + ' - ' : '') + String(lctc.especificacaoTecnica).trim()
-        }
+/**
+ * Constrói o caminho completo do modelo Emma
+ * Formato: O:\Lectra\Calcado\Modelos\EMMA\{pastaArtigo}\{componente}.emp
+ * @param {string} pastaArtigo - Nome da pasta do artigo (ex: "COR3025911 - UA SPAWN 3")
+ * @param {string} componente - Nome do componente (ex: "PLACA PUXADOR TRASEIRO ENFEITE LATERAL")
+ * @returns {string} Caminho completo do modelo
+ */
+export function buildModelPath(pastaArtigo, componente) {
+	if (!pastaArtigo || !componente) return ""
 
-        if (!artigo) artigo = (cadastro && cadastro.artigo) || ''
-        if (!codigoCor) codigoCor = (cadastro && cadastro.cor) || ''
+	// Remove extensão .emp se já existir no componente
+	const nomeComponente = componente.replace(/\.emp$/i, "")
 
-        listaQty.push({
-          part_name: artigo,
-          part_size: codigoCor,
-          mirror: false,
-          parts: quantidadePares,
-          angle: 90,
-          toler: 10,
-          material_name: materialNome,
-          material_x: 1.41,
-          material_y: 10.0,
-          material_unit: 'm',
-          part_space: 1.5,
-          material_plies_up: 12,
-          material_plies_down: 0,
-          material_margin: 0
-        })
-      }
-    }
-  }
-  // else use CTC blocks
-  else if (Array.isArray(parsedCTC) && parsedCTC.length > 0) {
-    for (const bloco of parsedCTC) {
-      for (const linha of bloco.linhas || []) {
-        let artigo = (linha.artigo || '').toString().trim()
-        let codigoCor = (linha.codigoCor || linha.grade || linha.modelo || '').toString().trim()
-        const quantidadePares = Number(linha.pares || 0)
+	return `${EMMA_BASE_PATH}\\${pastaArtigo}\\${nomeComponente}.emp`
+}
 
-        let materialNome = (cadastro && cadastro.material) ? String(cadastro.material) : ''
-        if (linha.especificacaoTecnica) materialNome = (materialNome ? materialNome + ' - ' : '') + String(linha.especificacaoTecnica).trim()
+/**
+ * Cria um item qty com valores padrão
+ */
+function createQtyItem(
+	partName,
+	partSize,
+	parts,
+	materialName,
+	mirror = false,
+) {
+	return {
+		part_name: partName,
+		part_size: partSize,
+		mirror: mirror,
+		parts: parts,
+		angle: 90,
+		toler: 10,
+		material_name: materialName,
+		material_x: 1.41,
+		material_y: 10,
+		material_unit: "m",
+		part_space: 1.5,
+		material_plies_up: 12,
+		material_plies_down: 0,
+		material_margin: 0,
+	}
+}
 
-        if (!artigo) artigo = (cadastro && cadastro.artigo) || ''
-        if (!codigoCor) codigoCor = (cadastro && cadastro.cor) || ''
+/**
+ * Converte dados parseados para estrutura completa Emma
+ * @param {Array} parsedCTF - Blocos CTF parseados
+ * @param {Array} parsedCTC - Blocos CTC parseados
+ * @param {Object} cadastro - Dados de cadastro { artigo, cor, material }
+ * @param {Object} options - Opções adicionais { customer, date, id, pastaArtigo, componente, generateMirror }
+ * @returns {Array} Array com objeto(s) no formato Emma
+ */
+export function converterParaEmma(
+	parsedCTF = [],
+	parsedCTC = [],
+	cadastro = {},
+	options = {},
+) {
+	const {
+		customer = "",
+		date = formatDateEmma(),
+		id = "",
+		pastaArtigo = "", // Ex: "COR3025911 - UA SPAWN 3"
+		componente = "", // Ex: "PLACA PUXADOR TRASEIRO ENFEITE LATERAL"
+		generateMirror = false, // Se true, gera entradas duplicadas com mirror: true
+	} = options
 
-        listaQty.push({
-          part_name: artigo,
-          part_size: codigoCor,
-          mirror: false,
-          parts: quantidadePares,
-          angle: 90,
-          toler: 10,
-          material_name: materialNome,
-          material_x: 1.41,
-          material_y: 10.0,
-          material_unit: 'm',
-          part_space: 1.5,
-          material_plies_up: 12,
-          material_plies_down: 0,
-          material_margin: 0
-        })
-      }
-    }
-  }
-  // else fallback to cadastro-only
-  else {
-    const artigo = (cadastro && cadastro.artigo) || ''
-    const codigoCor = (cadastro && cadastro.cor) || ''
-    const materialNome = (cadastro && cadastro.material) || ''
-    listaQty.push({
-      part_name: artigo,
-      part_size: codigoCor,
-      mirror: false,
-      parts: 0,
-      angle: 90,
-      toler: 10,
-      material_name: materialNome,
-      material_x: 1.41,
-      material_y: 10.0,
-      material_unit: 'm',
-      part_space: 1.5,
-      material_plies_up: 12,
-      material_plies_down: 0,
-      material_margin: 0
-    })
-  }
+	const listaQty = []
 
-  return listaQty
+	// Helper: for matching CTC lines by artigo+codigoCor
+	const mapCTCByKey = new Map()
+	for (const bloco of parsedCTC) {
+		for (const l of bloco.linhas || []) {
+			const key =
+				(l.artigo || "").toString().trim() +
+				"|" +
+				(l.codigoCor || l.grade || "").toString().trim()
+			if (!mapCTCByKey.has(key)) mapCTCByKey.set(key, l)
+		}
+	}
+
+	// If there are CTF blocks, process them (prioridade)
+	if (Array.isArray(parsedCTF) && parsedCTF.length > 0) {
+		for (const bloco of parsedCTF) {
+			for (const linha of bloco.linhas || []) {
+				let artigo = (linha.artigo || "").toString().trim()
+				let codigoCor = (linha.codigoCor || linha.grade || linha.modelo || "")
+					.toString()
+					.trim()
+				const quantidadePares = Number(linha.pares || 0)
+
+				let materialNome =
+					cadastro && cadastro.material ? String(cadastro.material) : ""
+				const key = artigo + "|" + codigoCor
+				const lctc = mapCTCByKey.get(key)
+				if (lctc && lctc.especificacaoTecnica) {
+					materialNome =
+						(materialNome ? materialNome + " - " : "") +
+						String(lctc.especificacaoTecnica).trim()
+				}
+
+				if (!artigo) artigo = (cadastro && cadastro.artigo) || ""
+				if (!codigoCor) codigoCor = (cadastro && cadastro.cor) || ""
+
+				// Adiciona item normal (mirror: false)
+				listaQty.push(
+					createQtyItem(
+						artigo,
+						codigoCor,
+						quantidadePares,
+						materialNome,
+						false,
+					),
+				)
+
+				// Se generateMirror, adiciona item espelhado (mirror: true)
+				if (generateMirror) {
+					listaQty.push(
+						createQtyItem(
+							artigo,
+							codigoCor,
+							quantidadePares,
+							materialNome,
+							true,
+						),
+					)
+				}
+			}
+		}
+	}
+	// else use CTC blocks
+	else if (Array.isArray(parsedCTC) && parsedCTC.length > 0) {
+		for (const bloco of parsedCTC) {
+			for (const linha of bloco.linhas || []) {
+				let artigo = (linha.artigo || "").toString().trim()
+				let codigoCor = (linha.codigoCor || linha.grade || linha.modelo || "")
+					.toString()
+					.trim()
+				const quantidadePares = Number(linha.pares || 0)
+
+				let materialNome =
+					cadastro && cadastro.material ? String(cadastro.material) : ""
+				if (linha.especificacaoTecnica) {
+					materialNome =
+						(materialNome ? materialNome + " - " : "") +
+						String(linha.especificacaoTecnica).trim()
+				}
+
+				if (!artigo) artigo = (cadastro && cadastro.artigo) || ""
+				if (!codigoCor) codigoCor = (cadastro && cadastro.cor) || ""
+
+				// Adiciona item normal (mirror: false)
+				listaQty.push(
+					createQtyItem(
+						artigo,
+						codigoCor,
+						quantidadePares,
+						materialNome,
+						false,
+					),
+				)
+
+				// Se generateMirror, adiciona item espelhado (mirror: true)
+				if (generateMirror) {
+					listaQty.push(
+						createQtyItem(
+							artigo,
+							codigoCor,
+							quantidadePares,
+							materialNome,
+							true,
+						),
+					)
+				}
+			}
+		}
+	}
+	// else fallback to cadastro-only
+	else {
+		const artigo = (cadastro && cadastro.artigo) || ""
+		const codigoCor = (cadastro && cadastro.cor) || ""
+		const materialNome = (cadastro && cadastro.material) || ""
+
+		listaQty.push(createQtyItem(artigo, codigoCor, 0, materialNome, false))
+
+		if (generateMirror) {
+			listaQty.push(createQtyItem(artigo, codigoCor, 0, materialNome, true))
+		}
+	}
+
+	// Monta o caminho do modelo automaticamente
+	const modelPath = buildModelPath(
+		pastaArtigo || (cadastro && cadastro.pastaArtigo) || "",
+		componente || (cadastro && cadastro.componente) || "",
+	)
+
+	// Monta estrutura completa Emma
+	const emmaObject = {
+		customer: customer || (cadastro && cadastro.customer) || "",
+		date: date,
+		id: id || (cadastro && cadastro.id) || "",
+		model: modelPath,
+		qty: listaQty,
+	}
+
+	// Retorna como array (padrão Emma)
+	return [emmaObject]
+}
+
+/**
+ * Função legada - retorna apenas o array qty para compatibilidade
+ * @deprecated Use converterParaEmma para estrutura completa
+ */
+export function converterParaQtyEmma(
+	parsedCTF = [],
+	parsedCTC = [],
+	cadastro = {},
+) {
+	const result = converterParaEmma(parsedCTF, parsedCTC, cadastro, {})
+	return result[0]?.qty || []
 }

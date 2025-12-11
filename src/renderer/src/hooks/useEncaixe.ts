@@ -147,10 +147,7 @@ export function useEncaixe() {
 
 	// Converter para formato Emma
 	const converterParaEmma = useCallback(
-		async (
-			cadastro?: CadastroInfo,
-			modelPath?: string,
-		): Promise<PedidoEmma | null> => {
+		async (cadastro?: CadastroInfo): Promise<PedidoEmma | null> => {
 			setLoading(true)
 			setError(null)
 			try {
@@ -169,12 +166,22 @@ export function useEncaixe() {
 					options,
 				)
 
+				// Construir caminho do modelo Emma
+				// Formato: O:\Lectra\Calcado\Modelos\EMMA\{artigo} - {modelo}\{componente}.emp
+				const pastaArtigo =
+					cadastro?.artigo && cadastro?.modelo
+						? `${cadastro.artigo} - ${cadastro.modelo}`
+						: ""
+				const modelPath = pastaArtigo && cadastro?.componente
+					? `O:\\Lectra\\Calcado\\Modelos\\EMMA\\${pastaArtigo}\\${cadastro.componente}.emp`
+					: ""
+
 				// Criar pedido Emma
 				const pedido: PedidoEmma = {
 					customer: "VULCABRAS",
 					date: new Date().toISOString().split("T")[0].replace(/-/g, ""),
 					id: cadastro?.artigo || "433015115",
-					model: modelPath || cadastro?.modelo || "",
+					model: modelPath,
 					qty: qtyEmma,
 				}
 
