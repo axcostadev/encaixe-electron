@@ -18,16 +18,18 @@ interface ComponenteListProps {
 	componentes: Componente[]
 	materiais: Material[]
 	cores: Cor[]
+	setores?: { id: number; nome: string }[]
 	onEdit: (componente: Componente) => void
 	onDelete: (id: string) => void
 }
 
 export function ComponenteList({
 	componentes,
-	materiais,
-	cores,
-	onEdit,
-	onDelete,
+ 	materiais,
+ 	cores,
+ 	setores,
+ 	onEdit,
+ 	onDelete,
 }: ComponenteListProps) {
 	const [deleteId, setDeleteId] = useState<string | null>(null)
 
@@ -49,6 +51,17 @@ export function ComponenteList({
 			.map((c) => c!.abreviacao)
 	}
 
+	function getModeloCorAbreviacao(id?: number | null) {
+		if (!id) return "—"
+		return cores.find((c) => c.id === Number(id))?.abreviacao || String(id)
+	}
+
+	function getSetorNome(id?: number | null) {
+		if (!id) return "—"
+		if (!setores) return String(id)
+		return setores.find((s) => s.id === Number(id))?.nome || String(id)
+	}
+
 	if (componentes.length === 0) {
 		return (
 			<EmptyState
@@ -68,7 +81,9 @@ export function ComponenteList({
 							<TableRow className="table-header">
 								<TableHead className="w-[60px] text-center">Seq</TableHead>
 								<TableHead>Nome</TableHead>
+								<TableHead className="w-[120px]">Cor</TableHead>
 								<TableHead>Material</TableHead>
+								<TableHead>Setor</TableHead>
 								<TableHead className="w-[80px] text-center">Camadas</TableHead>
 								<TableHead className="w-[80px] text-center">% Perda</TableHead>
 								<TableHead>Cores</TableHead>
@@ -88,10 +103,16 @@ export function ComponenteList({
 											{componente.nome}
 										</TableCell>
 										<TableCell>
+											<Badge variant="secondary" className="text-xs">
+												{getModeloCorAbreviacao(componente.modeloCorId)}
+											</Badge>
+										</TableCell>
+										<TableCell>
 											<Badge variant="outline">
 												{getMaterialNome(componente.materialId.toString())}
 											</Badge>
 										</TableCell>
+										<TableCell>{getSetorNome(componente.setorId)}</TableCell>
 										<TableCell className="text-center">
 											{componente.camadas}
 										</TableCell>

@@ -28,6 +28,7 @@ interface ComponenteFormProps {
 	componente?: Componente | null
 	materiais: Material[]
 	coresModelo: Cor[]
+	setores?: { id: number; nome: string }[]
 }
 
 export function ComponenteForm({
@@ -37,8 +38,12 @@ export function ComponenteForm({
 	componente,
 	materiais,
 	coresModelo,
+	setores,
 }: ComponenteFormProps) {
 	const [formData, setFormData] = useState({
+		modeloCorId: "",
+		setorId: "",
+		numeroTecido: "",
 		nome: "",
 		materialId: "",
 		tipoTecido: "",
@@ -61,6 +66,9 @@ export function ComponenteForm({
 	useEffect(() => {
 		if (componente) {
 			setFormData({
+				modeloCorId: componente.modeloCorId?.toString() || "",
+				setorId: componente.setorId?.toString() || "",
+				numeroTecido: componente.numeroTecido || "",
 				nome: componente.nome,
 				materialId: componente.materialId.toString(),
 				tipoTecido: componente.tipoTecido?.toString() || "",
@@ -75,6 +83,9 @@ export function ComponenteForm({
 			})
 		} else {
 			setFormData({
+				modeloCorId: "",
+				setorId: "",
+				numeroTecido: "",
 				nome: "",
 				materialId: "",
 				tipoTecido: "",
@@ -133,6 +144,9 @@ export function ComponenteForm({
 		if (!formData.nome.trim() || !formData.materialId) return
 
 		onSubmit({
+			modeloCorId: parseInt(formData.modeloCorId) || 0,
+			setorId: parseInt(formData.setorId) || 0,
+			numeroTecido: formData.numeroTecido.trim(),
 			nome: formData.nome.trim(),
 			materialId: parseInt(formData.materialId) || 0,
 			tipoTecido: parseInt(formData.tipoTecido) || 0,
@@ -192,6 +206,15 @@ export function ComponenteForm({
 												))}
 											</SelectContent>
 										</Select>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="numeroTecido">Número Tecido</Label>
+										<Input
+											id="numeroTecido"
+											value={formData.numeroTecido}
+											onChange={(e) => handleChange("numeroTecido", e.target.value)}
+											placeholder="Número do tecido"
+										/>
 									</div>
 									<div className="space-y-2">
 										<Label htmlFor="tipoTecido">Tipo Tecido</Label>
@@ -399,6 +422,45 @@ export function ComponenteForm({
 											Adicionar
 										</Button>
 									</div>
+								</div>
+							</div>
+
+							<div className="grid grid-cols-2 gap-4">
+								<div className="space-y-2">
+									<Label htmlFor="modeloCor">Cor do Modelo</Label>
+									<Select
+										value={formData.modeloCorId}
+										onValueChange={(v) => handleChange("modeloCorId", v)}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="Selecione a cor do modelo" />
+										</SelectTrigger>
+										<SelectContent>
+											{coresModelo.map((cor) => (
+												<SelectItem key={cor.id} value={cor.id.toString()}>
+													[{cor.abreviacao}] {cor.nome}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="setor">Setor</Label>
+									<Select
+										value={formData.setorId}
+										onValueChange={(v) => handleChange("setorId", v)}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="Selecione um setor" />
+										</SelectTrigger>
+										<SelectContent>
+											{(setores || []).map((s) => (
+												<SelectItem key={s.id} value={s.id.toString()}>
+													{s.nome}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
 								</div>
 							</div>
 						</div>

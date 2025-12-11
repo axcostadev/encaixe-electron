@@ -54,52 +54,41 @@ export function initDatabase(): void {
 		)
 	`)
 
-	// Criar tabela de Componentes
 	database.run(`
 		CREATE TABLE IF NOT EXISTS componentes (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			modelo_id INTEGER NOT NULL,
 			modelo_cor_id INTEGER NOT NULL,
+			setor_id INTEGER,
 			numero_tecido TEXT NOT NULL,
 			nome TEXT NOT NULL,
-			-- Dados extras (json) para armazenar campos do formulário
-			dados TEXT,
+			material_id INTEGER,
+			tipo_tecido INTEGER,
+			conjugacao_navalha INTERGER DEFAULT 1,
+			placa_par INTEGER DEFAULT 1,
+			camadas INTEGER DEFAULT 1,
+			espacamento REAL,
+			comp_maximo REAL,
+			perc_perda REAL,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (modelo_id) REFERENCES modelos(id),
-			FOREIGN KEY (modelo_cor_id) REFERENCES modelo_cores(id)
+			FOREIGN KEY (modelo_cor_id) REFERENCES modelo_cores(id),
+			FOREIGN KEY (setor_id) REFERENCES setores(id),
+			FOREIGN KEY (material_id) REFERENCES materiais(id)
 		)
 	`)
 
-	// Garantir que a coluna `dados` exista (em bancos antigos)
-	// Usa PRAGMA table_info para checar existência da coluna antes de executar ALTER TABLE
-	database.all(
-		"PRAGMA table_info(componentes)",
-		(err: Error | null, rows?: { name: string }[]) => {
-			if (err) {
-				// se houver erro ao consultar, logamos e não tentamos alterar
-				console.error("Erro verificando estrutura de componentes:", err)
-				return
-			}
-
-			const hasDados = (rows || []).some((r) => r.name === "dados")
-			if (hasDados) return
-
-			database.run(
-				`ALTER TABLE componentes ADD COLUMN dados TEXT`,
-				(alterErr: Error | null) => {
-					if (alterErr) {
-						// Ignorar se for coluna duplicada (concorrência) ou logar outros erros
-						if (!String(alterErr.message).toLowerCase().includes("duplicate")) {
-							console.error(
-								"Erro ao adicionar coluna 'dados' na tabela componentes:",
-								alterErr,
-							)
-						}
-					}
-				},
-			)
-		},
-	)
+	// Criar tabela de cores associadas ao componente (cada cor como linha individual)
+	database.run(`
+		CREATE TABLE IF NOT EXISTS componente_cores (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			componente_id INTEGER NOT NULL,
+			modelo_cor_id INTEGER NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (componente_id) REFERENCES componentes(id),
+			FOREIGN KEY (modelo_cor_id) REFERENCES modelo_cores(id)
+		)
+	`)
 
 	// Criar tabela de Setores
 	database.run(`
@@ -134,12 +123,13 @@ export function initDatabase(): void {
 		)
 	`)
 
-	// Criar tabela de Tamanhos
+	// Criar tabela de Tamanhos (suporta intervalo com tamanho_inicial e tamanho_final)
 	database.run(`
 		CREATE TABLE IF NOT EXISTS tamanhos (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			componente_id INTEGER NOT NULL,
-			tamanho TEXT NOT NULL,
+			tamanho_inicial INTEGER,
+			tamanho_final INTEGER,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (componente_id) REFERENCES componentes(id)
 		)

@@ -70,24 +70,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 				// carregar componentes do backend
 				const componentesFromAPI = await window.api.componentes.list(m.id)
+				type ComponenteFromAPI = {
+					id: number
+					modelo_id: number
+					modelo_cor_id?: number
+					setor_id?: number
+					numero_tecido?: string
+					sequencia?: number
+					nome: string
+					materialId?: number
+					tipoTecido?: number
+					conjugacaoNavalha?: string
+					placaPar?: string
+					camadas?: number
+					espacamento?: number
+					compMaximo?: number
+					percPerda?: number
+					coresDisponiveis?: string[]
+					tamanhos?: { tamanhoInicial: number; tamanhoFinal: number }[]
+				}
+
 				const componentes: Componente[] = (componentesFromAPI || []).map(
-					(c: any, idx: number) => {
-						const dados = c.dados || {}
+					(c: ComponenteFromAPI, idx: number) => {
 						return {
 							id: c.id,
 							modeloId: c.modelo_id,
-							sequencia: (dados.sequencia as number) || idx,
+							sequencia: c.sequencia ?? idx,
 							nome: c.nome,
-							materialId: (dados.materialId as number) || 0,
-							tipoTecido: (dados.tipoTecido as number) || 0,
-							conjugacaoNavalha: (dados.conjugacaoNavalha as string) || "",
-							placaPar: (dados.placaPar as string) || "",
-							camadas: (dados.camadas as number) || 0,
-							espacamento: (dados.espacamento as number) || 0,
-							compMaximo: (dados.compMaximo as number) || 0,
-							percPerda: (dados.percPerda as number) || 0,
-							coresDisponiveis: (dados.coresDisponiveis as string[]) || [],
+							materialId: c.materialId || 0,
+							tipoTecido: c.tipoTecido || 0,
+							conjugacaoNavalha: c.conjugacaoNavalha || "",
+							placaPar: c.placaPar || "",
+							camadas: c.camadas || 0,
+							espacamento: c.espacamento || 0,
+							compMaximo: c.compMaximo || 0,
+							percPerda: c.percPerda || 0,
+							coresDisponiveis: c.coresDisponiveis || [],
 							tamanhos: c.tamanhos || [],
+							modeloCorId: (c as any).modelo_cor_id || undefined,
+							setorId: (c as any).setor_id || undefined,
+							numeroTecido: (c as any).numero_tecido || undefined,
 						}
 					},
 				)
@@ -286,6 +308,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 			compMaximo: componente.compMaximo,
 			percPerda: componente.percPerda,
 			coresDisponiveis: componente.coresDisponiveis,
+			modeloCorId: (componente as any).modeloCorId,
+			setorId: (componente as any).setorId,
+			numeroTecido: (componente as any).numeroTecido,
 		}
 
 		const res = await window.api.componentes.create(
@@ -336,6 +361,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 			compMaximo: componente.compMaximo,
 			percPerda: componente.percPerda,
 			coresDisponiveis: componente.coresDisponiveis,
+			modeloCorId: (componente as any).modeloCorId,
+			setorId: (componente as any).setorId,
+			numeroTecido: (componente as any).numeroTecido,
 		}
 
 		const res = await window.api.componentes.update(

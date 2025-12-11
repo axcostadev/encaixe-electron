@@ -36,6 +36,10 @@ export interface Componente {
 	percPerda: number
 	coresDisponiveis: string[]
 	tamanhos: { tamanhoInicial: number; tamanhoFinal: number }[]
+	// novos campos opcionais para compatibilidade com o novo esquema
+	modeloCorId?: number
+	setorId?: number
+	numeroTecido?: string
 }
 
 export type ComponentePayload = Omit<
