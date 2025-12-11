@@ -172,9 +172,10 @@ export function useEncaixe() {
 					cadastro?.artigo && cadastro?.modelo
 						? `${cadastro.artigo} - ${cadastro.modelo}`
 						: ""
-				const modelPath = pastaArtigo && cadastro?.componente
-					? `O:\\Lectra\\Calcado\\Modelos\\EMMA\\${pastaArtigo}\\${cadastro.componente}.emp`
-					: ""
+				const modelPath =
+					pastaArtigo && cadastro?.componente
+						? `O:\\Lectra\\Calcado\\Modelos\\EMMA\\${pastaArtigo}\\${cadastro.componente}.emp`
+						: ""
 
 				// Criar pedido Emma
 				const pedido: PedidoEmma = {
