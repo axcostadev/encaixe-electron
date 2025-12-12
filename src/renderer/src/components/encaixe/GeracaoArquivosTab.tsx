@@ -134,21 +134,23 @@ export function GeracaoArquivosTab() {
 		const coresUnicas = [...new Set(gradeData.map(g => g.codigoCor))]
 		
 		for (const codigoCor of coresUnicas) {
-			const gradeItem = gradeData.find(g => g.codigoCor === codigoCor)
-			const paresTotal = gradeItem?.pares || 0
+			// Pega TODOS os itens da grade para essa cor (pode ter múltiplos tamanhos)
+			const gradeItems = gradeData.filter(g => g.codigoCor === codigoCor)
 			
-			// Inicializa os pares para cada tamanho (distribuição igual ou zerada)
+			// Inicializa os pares para cada tamanho com 0
 			const pares: ParesPorTamanho = {}
 			for (const tam of tamanhosCadastrados) {
-				// Inicializa com 0, usuário vai preencher manualmente ou pode ser distribuído
 				pares[tam] = 0
 			}
 			
-			// Se a grade tiver um tamanho específico, tenta mapear
-			if (gradeItem?.grade) {
-				const gradeNum = parseInt(gradeItem.grade)
-				if (!isNaN(gradeNum) && tamanhosCadastrados.includes(gradeNum)) {
-					pares[gradeNum] = paresTotal
+			// Mapeia cada item da grade para o tamanho correspondente
+			for (const gradeItem of gradeItems) {
+				if (gradeItem.grade) {
+					const gradeNum = parseInt(gradeItem.grade)
+					if (!isNaN(gradeNum) && tamanhosCadastrados.includes(gradeNum)) {
+						// Soma os pares caso haja duplicatas do mesmo tamanho
+						pares[gradeNum] = (pares[gradeNum] || 0) + (gradeItem.pares || 0)
+					}
 				}
 			}
 			

@@ -860,14 +860,13 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 									const resultPromises = compRows.map((comp) => {
 										return new Promise<CadastroInfo>((resComp) => {
 											database.all(
-												"SELECT tamanho_inicial, tamanho_final, tamanho FROM tamanhos WHERE componente_id = ? ORDER BY id",
+												"SELECT tamanho_inicial, tamanho_final FROM tamanhos WHERE componente_id = ? ORDER BY id",
 												[comp.id],
 												(
 													tamErr: Error | null,
 													tamRows: Array<{
 														tamanho_inicial?: number
 														tamanho_final?: number
-														tamanho?: string
 													}>,
 												) => {
 													if (tamErr) {
@@ -876,6 +875,12 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 															tamErr,
 														)
 													}
+													console.log(
+														"[models] tamanhos loaded for comp",
+														comp.id,
+														":",
+														tamRows,
+													)
 
 													// load cores for this componente
 													database.all(
@@ -913,18 +918,6 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 																			n++
 																		)
 																			tamanhosArray.push(n)
-																	} else {
-																		const s = String(t.tamanho || "")
-																		if (s.includes("-")) {
-																			const [a, b] = s.split("-")
-																			const start = parseInt(a) || 0
-																			const end = parseInt(b) || start
-																			for (let n = start; n <= end; n++)
-																				tamanhosArray.push(n)
-																		} else {
-																			const v = parseInt(s) || 0
-																			if (v) tamanhosArray.push(v)
-																		}
 																	}
 																}
 																if (tamanhosArray.length > 0) {
@@ -933,6 +926,12 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 																	tamanhosStr = `${min}-${max}`
 																}
 															}
+															console.log(
+																"[models] tamanhosArray for comp",
+																comp.id,
+																":",
+																tamanhosArray,
+															)
 
 															const mat = comp.material_id
 																? matMap.get(comp.material_id)

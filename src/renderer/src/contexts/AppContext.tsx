@@ -349,6 +349,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 			setorId: 0,
 			numeroTecido: "",
 			nome: "", // será preenchido pelo componente atual
+			tamanhos: [],
 		}
 
 		// Buscar o componente atual para manter os outros valores
