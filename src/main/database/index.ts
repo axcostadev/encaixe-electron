@@ -27,6 +27,13 @@ import {
 	updateMaterial,
 	deleteMaterial,
 } from "./materiais"
+import {
+	Setor,
+	listSetores,
+	createSetor,
+	updateSetor,
+	deleteSetor,
+} from "./models"
 
 export type { Modelo, ModeloCor }
 export type { LoginResult }
@@ -34,6 +41,7 @@ export type { Material, SentidoType }
 export type { Componente }
 export type { ComponenteDados }
 export type { CadastroInfo }
+export type { Setor }
 export {
 	initDatabase,
 	closeDatabase,
@@ -55,4 +63,8 @@ export {
 	updateComponente,
 	deleteComponente,
 	getCadastroByArtigo,
+	listSetores,
+	createSetor,
+	updateSetor,
+	deleteSetor,
 }

@@ -20,6 +20,10 @@ import {
 import { Componente, ComponentePayload, Cor, Material } from "@renderer/types"
 import { Plus, Trash2 } from "lucide-react"
 import { useEffect, useState, useRef } from "react"
+import { SetoresPage } from "@renderer/pages/SetoresPage"
+import { useSetores } from "@renderer/contexts/SetoresContext"
+import { useContext } from "react"
+import { SetoresContext } from "@renderer/contexts/SetoresContext"
 
 interface ComponenteFormProps {
 	open: boolean
@@ -40,6 +44,9 @@ export function ComponenteForm({
 	coresModelo,
 	setores,
 }: ComponenteFormProps) {
+	const [openSetorDialog, setOpenSetorDialog] = useState<boolean>(false)
+	const setoresContext = useContext(SetoresContext)
+	const setoresList = setores ?? setoresContext?.setores ?? []
 	const [formData, setFormData] = useState({
 		modeloCorId: "",
 		setorId: "",
@@ -166,12 +173,28 @@ export function ComponenteForm({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-2xl max-h-[90vh] animate-scale-in">
 				<DialogHeader>
-					<DialogTitle>
-						{componente ? "Editar Componente" : "Novo Componente"}
+					<DialogTitle className="flex justify-between align-center items-center mb-4 pr-3">
+						<div>{componente ? "Editar Componente" : "Novo Componente"}</div>
+						<div className="flex flex-row gap-3">
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() => onOpenChange(false)}
+							>
+								Cancelar
+							</Button>
+							<Button type="submit" form="componente-form">
+								{componente ? "Salvar" : "Criar"}
+							</Button>
+						</div>
 					</DialogTitle>
 				</DialogHeader>
 				<ScrollArea className="max-h-[60vh] pr-4">
-					<form onSubmit={handleSubmit} className="space-y-6">
+					<form
+						id="componente-form"
+						onSubmit={handleSubmit}
+						className="space-y-6"
+					>
 						<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
 							<div className="md:col-span-3 col-span-1 space-y-6">
 								<div className="space-y-2">
@@ -212,9 +235,42 @@ export function ComponenteForm({
 										<Input
 											id="numeroTecido"
 											value={formData.numeroTecido}
-											onChange={(e) => handleChange("numeroTecido", e.target.value)}
+											onChange={(e) =>
+												handleChange("numeroTecido", e.target.value)
+											}
 											placeholder="Número do tecido"
 										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="setor">Setor</Label>
+										<div className="flex items-center gap-2">
+											<div className="flex-1">
+												<Select
+													value={formData.setorId}
+													onValueChange={(v) => handleChange("setorId", v)}
+												>
+													<SelectTrigger>
+														<SelectValue placeholder="Selecione um setor" />
+													</SelectTrigger>
+													<SelectContent>
+														{setoresList.map((s) => (
+															<SelectItem key={s.id} value={s.id.toString()}>
+																{s.nome}
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
+											</div>
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												onClick={() => setOpenSetorDialog(true)}
+												aria-label="Adicionar setor"
+											>
+												<Plus className="h-3 w-3" />
+											</Button>
+										</div>
 									</div>
 									<div className="space-y-2">
 										<Label htmlFor="tipoTecido">Tipo Tecido</Label>
@@ -425,44 +481,7 @@ export function ComponenteForm({
 								</div>
 							</div>
 
-							<div className="grid grid-cols-2 gap-4">
-								<div className="space-y-2">
-									<Label htmlFor="modeloCor">Cor do Modelo</Label>
-									<Select
-										value={formData.modeloCorId}
-										onValueChange={(v) => handleChange("modeloCorId", v)}
-									>
-										<SelectTrigger>
-											<SelectValue placeholder="Selecione a cor do modelo" />
-										</SelectTrigger>
-										<SelectContent>
-											{coresModelo.map((cor) => (
-												<SelectItem key={cor.id} value={cor.id.toString()}>
-													[{cor.abreviacao}] {cor.nome}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="setor">Setor</Label>
-									<Select
-										value={formData.setorId}
-										onValueChange={(v) => handleChange("setorId", v)}
-									>
-										<SelectTrigger>
-											<SelectValue placeholder="Selecione um setor" />
-										</SelectTrigger>
-										<SelectContent>
-											{(setores || []).map((s) => (
-												<SelectItem key={s.id} value={s.id.toString()}>
-													{s.nome}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-							</div>
+							<div className="grid grid-cols-2 gap-4"></div>
 						</div>
 
 						<DialogFooter>
@@ -470,6 +489,7 @@ export function ComponenteForm({
 								type="button"
 								variant="outline"
 								onClick={() => onOpenChange(false)}
+								className="mb-2"
 							>
 								Cancelar
 							</Button>
@@ -478,6 +498,14 @@ export function ComponenteForm({
 					</form>
 				</ScrollArea>
 			</DialogContent>
+
+			{openSetorDialog && (
+				<Dialog open={openSetorDialog} onOpenChange={setOpenSetorDialog}>
+					<DialogContent className="sm:max-w-lg max-h-[90vh]">
+						<SetoresPage onBack={() => setOpenSetorDialog(false)} asDialog />
+					</DialogContent>
+				</Dialog>
+			)}
 		</Dialog>
 	)
 }

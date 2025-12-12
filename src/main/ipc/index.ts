@@ -20,6 +20,10 @@ import {
 	updateComponente,
 	deleteComponente,
 	getCadastroByArtigo,
+	listSetores,
+	createSetor,
+	updateSetor,
+	deleteSetor,
 } from "../database"
 import type { ComponenteDados } from "../database"
 import * as parser from "../modules/arquivoParser.js"
@@ -312,6 +316,24 @@ export function setupIPC(): void {
 
 	ipcMain.handle("materiais:delete", async (_event, id: number) => {
 		return await deleteMaterial(id)
+	})
+
+	// ==================== SETORES ====================
+
+	ipcMain.handle("setores:list", async () => {
+		return await listSetores()
+	})
+
+	ipcMain.handle("setores:create", async (_event, nome: string) => {
+		return await createSetor(nome)
+	})
+
+	ipcMain.handle("setores:update", async (_event, id: number, nome: string) => {
+		return await updateSetor(id, nome)
+	})
+
+	ipcMain.handle("setores:delete", async (_event, id: number) => {
+		return await deleteSetor(id)
 	})
 
 	// ==================== HANDLERS DO ELECTRON-APP ====================

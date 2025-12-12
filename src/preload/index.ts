@@ -42,6 +42,13 @@ const api = {
 			ipcRenderer.invoke("materiais:update", id, artigo, largura, obs, sentido),
 		delete: (id: number) => ipcRenderer.invoke("materiais:delete", id),
 	},
+	setores: {
+		list: () => ipcRenderer.invoke("setores:list"),
+		create: (nome: string) => ipcRenderer.invoke("setores:create", nome),
+		update: (id: number, nome: string) =>
+			ipcRenderer.invoke("setores:update", id, nome),
+		delete: (id: number) => ipcRenderer.invoke("setores:delete", id),
+	},
 	componentes: {
 		list: (modelo_id: number) =>
 			ipcRenderer.invoke("componentes:list", modelo_id),

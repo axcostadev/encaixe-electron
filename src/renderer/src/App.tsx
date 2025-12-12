@@ -4,6 +4,7 @@ import { Toaster } from "@renderer/components/ui/toaster"
 import { TooltipProvider } from "@renderer/components/ui/tooltip"
 import { AppProvider } from "@renderer/contexts/AppContext"
 import { AuthProvider, useAuth } from "@renderer/contexts/AuthContext"
+import { SetoresProvider } from "@renderer/contexts/SetoresContext"
 import { ComponentesPage } from "@renderer/pages/ComponentesPage"
 import { CoresPage } from "@renderer/pages/CoresPage"
 import { Dashboard } from "@renderer/pages/Dashboard"
@@ -46,13 +47,15 @@ function App() {
 			<QueryClientProvider client={queryClient}>
 				<AuthProvider>
 					<AppProvider>
-						<TooltipProvider>
-							<Toaster />
-							<Sonner />
-							<BrowserRouter>
-								<AuthenticatedApp />
-							</BrowserRouter>
-						</TooltipProvider>
+						<SetoresProvider>
+							<TooltipProvider>
+								<Toaster />
+								<Sonner />
+								<BrowserRouter>
+									<AuthenticatedApp />
+								</BrowserRouter>
+							</TooltipProvider>
+						</SetoresProvider>
 					</AppProvider>
 				</AuthProvider>
 			</QueryClientProvider>

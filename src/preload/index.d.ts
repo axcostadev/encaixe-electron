@@ -141,6 +141,24 @@ interface MateriaisAPI {
 	delete: (id: number) => Promise<OperationResponse>
 }
 
+interface Setor {
+	id: number
+	nome: string
+}
+
+interface SetorCreateResponse {
+	success: boolean
+	message: string
+	setor?: Setor
+}
+
+interface SetoresAPI {
+	list: () => Promise<Setor[]>
+	create: (nome: string) => Promise<SetorCreateResponse>
+	update: (id: number, nome: string) => Promise<OperationResponse>
+	delete: (id: number) => Promise<OperationResponse>
+}
+
 declare global {
 	interface Window {
 		electron: ElectronAPI
@@ -148,6 +166,7 @@ declare global {
 			auth: AuthAPI
 			modelos: ModelosAPI
 			materiais: MateriaisAPI
+			setores: SetoresAPI
 			componentes: ComponentesAPI
 			electronAPI: {
 				selectFile: () => Promise<string | null>

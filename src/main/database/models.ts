@@ -21,10 +21,10 @@ type ModeloRow = {
 }
 
 type ModeloCorRow = {
-  id: number
-  modelo_id: number
-  cor_abreviada: string
-  cor_completa: string
+	id: number
+	modelo_id: number
+	cor_abreviada: string
+	cor_completa: string
 }
 
 export function listModelos(): Promise<Modelo[]> {
@@ -50,7 +50,10 @@ export function listModelos(): Promise<Modelo[]> {
 	})
 }
 
-export function createModelo(artigo: string, nome: string): Promise<{ success: boolean; message: string; modelo?: Modelo }> {
+export function createModelo(
+	artigo: string,
+	nome: string,
+): Promise<{ success: boolean; message: string; modelo?: Modelo }> {
 	return new Promise((resolve) => {
 		try {
 			const database = getDatabase()
@@ -62,11 +65,18 @@ export function createModelo(artigo: string, nome: string): Promise<{ success: b
 						resolve({ success: false, message: "Erro ao criar modelo" })
 						return
 					}
-					resolve({ success: true, message: "Modelo criado", modelo: { id: this.lastID as number, artigo, nome } })
+					resolve({
+						success: true,
+						message: "Modelo criado",
+						modelo: { id: this.lastID as number, artigo, nome },
+					})
 				},
 			)
 		} catch (error) {
-			resolve({ success: false, message: "Erro ao criar modelo" + (error as Error).toString() })
+			resolve({
+				success: false,
+				message: "Erro ao criar modelo" + (error as Error).toString(),
+			})
 		}
 	})
 }
@@ -105,23 +115,70 @@ export function deleteModelo(
 	return new Promise((resolve) => {
 		try {
 			const database = getDatabase()
-			// primeiro deletar cores relacionadas (integridade)
+			// primeiro deletar tamanhos dos componentes
 			database.run(
-				"DELETE FROM modelo_cores WHERE modelo_id = ?",
+				"DELETE FROM tamanhos WHERE componente_id IN (SELECT id FROM componentes WHERE modelo_id = ?)",
 				[id],
 				(err) => {
 					if (err) {
-						console.error(err)
+						console.error("Erro ao deletar tamanhos:", err)
 					}
+					// deletar componente_cores
 					database.run(
-						"DELETE FROM modelos WHERE id = ?",
+						"DELETE FROM componente_cores WHERE componente_id IN (SELECT id FROM componentes WHERE modelo_id = ?)",
 						[id],
-						function (err2: Error | null) {
+						(err2) => {
 							if (err2) {
-								resolve({ success: false, message: "Erro ao deletar modelo" })
-								return
+								console.error("Erro ao deletar componente_cores:", err2)
 							}
-							resolve({ success: true, message: "Modelo deletado" })
+							// deletar componente_materiais
+							database.run(
+								"DELETE FROM componente_materiais WHERE componente_id IN (SELECT id FROM componentes WHERE modelo_id = ?)",
+								[id],
+								(err3) => {
+									if (err3) {
+										console.error("Erro ao deletar componente_materiais:", err3)
+									}
+									// deletar componentes
+									database.run(
+										"DELETE FROM componentes WHERE modelo_id = ?",
+										[id],
+										(err4) => {
+											if (err4) {
+												console.error("Erro ao deletar componentes:", err4)
+											}
+											// deletar cores relacionadas
+											database.run(
+												"DELETE FROM modelo_cores WHERE modelo_id = ?",
+												[id],
+												(err5) => {
+													if (err5) {
+														console.error("Erro ao deletar modelo_cores:", err5)
+													}
+													// finalmente deletar o modelo
+													database.run(
+														"DELETE FROM modelos WHERE id = ?",
+														[id],
+														function (err6: Error | null) {
+															if (err6) {
+																resolve({
+																	success: false,
+																	message: "Erro ao deletar modelo",
+																})
+																return
+															}
+															resolve({
+																success: true,
+																message: "Modelo deletado",
+															})
+														},
+													)
+												},
+											)
+										},
+									)
+								},
+							)
 						},
 					)
 				},
@@ -289,72 +346,92 @@ export function listComponentes(modelo_id: number): Promise<Componente[]> {
 						return
 					}
 
-					const componentesPromises: Promise<Componente>[] = (rows || []).map((r) => {
-						return new Promise<Componente>((resComp) => {
-							const comp: Componente = {
-								id: r.id,
-								modelo_id: r.modelo_id,
-								modelo_cor_id: r.modelo_cor_id,
-								setor_id: r.setor_id,
-								numero_tecido: r.numero_tecido || "",
-								nome: r.nome,
-								materialId: r.material_id || 0,
-								tipoTecido: r.tipo_tecido || 0,
-								conjugacaoNavalha: r.conjugacao_navalha || "",
-								placaPar: r.placa_par || "",
-								camadas: r.camadas || 0,
-								espacamento: r.espacamento || 0,
-								compMaximo: r.comp_maximo || 0,
-								percPerda: r.perc_perda || 0,
-								coresDisponiveis: [],
-								tamanhos: [],
-							}
+					const componentesPromises: Promise<Componente>[] = (rows || []).map(
+						(r) => {
+							return new Promise<Componente>((resComp) => {
+								const comp: Componente = {
+									id: r.id,
+									modelo_id: r.modelo_id,
+									modelo_cor_id: r.modelo_cor_id,
+									setor_id: r.setor_id,
+									numero_tecido: r.numero_tecido || "",
+									nome: r.nome,
+									materialId: r.material_id || 0,
+									tipoTecido: r.tipo_tecido || 0,
+									conjugacaoNavalha: r.conjugacao_navalha || "",
+									placaPar: r.placa_par || "",
+									camadas: r.camadas || 0,
+									espacamento: r.espacamento || 0,
+									compMaximo: r.comp_maximo || 0,
+									percPerda: r.perc_perda || 0,
+									coresDisponiveis: [],
+									tamanhos: [],
+								}
 
-							// carregar cores associadas (componente_cores)
-							database.all(
-								"SELECT modelo_cor_id FROM componente_cores WHERE componente_id = ? ORDER BY id",
-								[r.id],
-								(coreErr: Error | null, crowRows: Array<{ modelo_cor_id: number }>) => {
-									if (coreErr) {
-										comp.coresDisponiveis = []
-									} else {
-										comp.coresDisponiveis = (crowRows || []).map((cr) => String(cr.modelo_cor_id))
-									}
+								// carregar cores associadas (componente_cores)
+								database.all(
+									"SELECT modelo_cor_id FROM componente_cores WHERE componente_id = ? ORDER BY id",
+									[r.id],
+									(
+										coreErr: Error | null,
+										crowRows: Array<{ modelo_cor_id: number }>,
+									) => {
+										if (coreErr) {
+											comp.coresDisponiveis = []
+										} else {
+											comp.coresDisponiveis = (crowRows || []).map((cr) =>
+												String(cr.modelo_cor_id),
+											)
+										}
 
-									// carregar tamanhos (suporta colunas tamanho_inicial/tamanho_final)
-									database.all(
-										"SELECT tamanho_inicial, tamanho_final, tamanho FROM tamanhos WHERE componente_id = ? ORDER BY id",
-										[r.id],
-										(
-											tamErr: Error | null,
-											trows: Array<{ tamanho_inicial?: number; tamanho_final?: number; tamanho?: string }>,
-										) => {
-											if (tamErr) {
-												comp.tamanhos = []
-											} else {
-												const tamanhosRows = trows || []
-												comp.tamanhos = tamanhosRows.map((t) => {
-													if (typeof t.tamanho_inicial === "number" && typeof t.tamanho_final === "number") {
-														return { tamanhoInicial: t.tamanho_inicial, tamanhoFinal: t.tamanho_final }
-													}
-													const s = String(t.tamanho || "")
-													if (s.includes("-")) {
-														const parts = s.split("-")
-														const inicio = parseInt(parts[0]) || 0
-														const fim = parseInt(parts[1]) || inicio
-														return { tamanhoInicial: inicio, tamanhoFinal: fim }
-													}
-													const v = parseInt(s) || 0
-													return { tamanhoInicial: v, tamanhoFinal: v }
-												})
-											}
-											resComp(comp)
-										},
-									)
-								},
-							)
-						})
-					})
+										// carregar tamanhos (suporta colunas tamanho_inicial/tamanho_final)
+										database.all(
+											"SELECT tamanho_inicial, tamanho_final, tamanho FROM tamanhos WHERE componente_id = ? ORDER BY id",
+											[r.id],
+											(
+												tamErr: Error | null,
+												trows: Array<{
+													tamanho_inicial?: number
+													tamanho_final?: number
+													tamanho?: string
+												}>,
+											) => {
+												if (tamErr) {
+													comp.tamanhos = []
+												} else {
+													const tamanhosRows = trows || []
+													comp.tamanhos = tamanhosRows.map((t) => {
+														if (
+															typeof t.tamanho_inicial === "number" &&
+															typeof t.tamanho_final === "number"
+														) {
+															return {
+																tamanhoInicial: t.tamanho_inicial,
+																tamanhoFinal: t.tamanho_final,
+															}
+														}
+														const s = String(t.tamanho || "")
+														if (s.includes("-")) {
+															const parts = s.split("-")
+															const inicio = parseInt(parts[0]) || 0
+															const fim = parseInt(parts[1]) || inicio
+															return {
+																tamanhoInicial: inicio,
+																tamanhoFinal: fim,
+															}
+														}
+														const v = parseInt(s) || 0
+														return { tamanhoInicial: v, tamanhoFinal: v }
+													})
+												}
+												resComp(comp)
+											},
+										)
+									},
+								)
+							})
+						},
+					)
 
 					Promise.all(componentesPromises)
 						.then((componentes) => resolve(componentes))
@@ -381,23 +458,37 @@ export function addComponente(
 		try {
 			const database = getDatabase()
 			// Extrair campos individuais de `dados` (compatível com front-end atual)
-				// Extrair campos individuais de `dados` (compatível com front-end atual)
-				const material_id = dados?.materialId || null
-				const tipo_tecido = dados?.tipoTecido || null
-				const conjugacao_navalha = dados?.conjugacaoNavalha || null
-				const placa_par = dados?.placaPar || null
-				const camadas = dados?.camadas || null
-				const espacamento = dados?.espacamento || null
-				const comp_maximo = dados?.compMaximo || null
-				const perc_perda = dados?.percPerda || null
-				const modelo_cor_id = dados?.modeloCorId || null
-				const setor_id = dados?.setorId || null
-				const numero_tecido = dados?.numeroTecido || ""
+			// Extrair campos individuais de `dados` (compatível com front-end atual)
+			const material_id = dados?.materialId || null
+			const tipo_tecido = dados?.tipoTecido || null
+			const conjugacao_navalha = dados?.conjugacaoNavalha || null
+			const placa_par = dados?.placaPar || null
+			const camadas = dados?.camadas || null
+			const espacamento = dados?.espacamento || null
+			const comp_maximo = dados?.compMaximo || null
+			const perc_perda = dados?.percPerda || null
+			const modelo_cor_id = dados?.modeloCorId || null
+			const setor_id = dados?.setorId || null
+			const numero_tecido = dados?.numeroTecido || ""
 
-				database.run(
-					`INSERT INTO componentes (modelo_id, modelo_cor_id, setor_id, numero_tecido, nome, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda)
+			database.run(
+				`INSERT INTO componentes (modelo_id, modelo_cor_id, setor_id, numero_tecido, nome, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda)
 					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-					[modelo_id, modelo_cor_id, setor_id, numero_tecido, nome, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda],
+				[
+					modelo_id,
+					modelo_cor_id,
+					setor_id,
+					numero_tecido,
+					nome,
+					material_id,
+					tipo_tecido,
+					conjugacao_navalha,
+					placa_par,
+					camadas,
+					espacamento,
+					comp_maximo,
+					perc_perda,
+				],
 				function (err: Error | null) {
 					if (err) {
 						resolve({ success: false, message: "Erro ao criar componente" })
@@ -464,9 +555,9 @@ export function updateComponente(
 				`UPDATE componentes SET nome = ?, modelo_cor_id = ?, setor_id = ?, numero_tecido = ?, material_id = ?, tipo_tecido = ?, conjugacao_navalha = ?, placa_par = ?, camadas = ?, espacamento = ?, comp_maximo = ?, perc_perda = ? WHERE id = ? AND modelo_id = ?`,
 				[
 					nome,
-					(dados as any)?.modeloCorId || null,
-					(dados as any)?.setorId || null,
-					(dados as any)?.numeroTecido || "",
+					dados?.modeloCorId || null,
+					dados?.setorId || null,
+					dados?.numeroTecido || "",
 					material_id,
 					tipo_tecido,
 					conjugacao_navalha,
@@ -508,7 +599,10 @@ export function updateComponente(
 								[componente_id],
 								(ccErr) => {
 									if (ccErr) console.error(ccErr)
-									if (dados?.coresDisponiveis && dados.coresDisponiveis.length > 0) {
+									if (
+										dados?.coresDisponiveis &&
+										dados.coresDisponiveis.length > 0
+									) {
 										const stmtC = database.prepare(
 											"INSERT INTO componente_cores (componente_id, modelo_cor_id) VALUES (?, ?)",
 										)
@@ -730,7 +824,11 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 												[comp.id],
 												(
 													tamErr: Error | null,
-													tamRows: Array<{ tamanho_inicial?: number; tamanho_final?: number; tamanho?: string }>,
+													tamRows: Array<{
+														tamanho_inicial?: number
+														tamanho_final?: number
+														tamanho?: string
+													}>,
 												) => {
 													if (tamErr) {
 														console.log(
@@ -743,11 +841,19 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 													database.all(
 														"SELECT modelo_cor_id FROM componente_cores WHERE componente_id = ?",
 														[comp.id],
-														(ccErr: Error | null, ccRows: Array<{ modelo_cor_id: number }>) => {
+														(
+															ccErr: Error | null,
+															ccRows: Array<{ modelo_cor_id: number }>,
+														) => {
 															if (ccErr) {
-																console.log("[models] error loading componente_cores:", ccErr)
+																console.log(
+																	"[models] error loading componente_cores:",
+																	ccErr,
+																)
 															}
-															const corIds = (ccRows || []).map((c) => String(c.modelo_cor_id))
+															const corIds = (ccRows || []).map((c) =>
+																String(c.modelo_cor_id),
+															)
 															const corNames = corIds
 																.map((cid) => corMap.get(Number(cid)) || cid)
 																.join(",")
@@ -757,15 +863,24 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 															if (tamRows && tamRows.length > 0) {
 																const nums: number[] = []
 																for (const t of tamRows) {
-																	if (typeof t.tamanho_inicial === "number" && typeof t.tamanho_final === "number") {
-																		for (let n = t.tamanho_inicial; n <= t.tamanho_final; n++) nums.push(n)
+																	if (
+																		typeof t.tamanho_inicial === "number" &&
+																		typeof t.tamanho_final === "number"
+																	) {
+																		for (
+																			let n = t.tamanho_inicial;
+																			n <= t.tamanho_final;
+																			n++
+																		)
+																			nums.push(n)
 																	} else {
 																		const s = String(t.tamanho || "")
 																		if (s.includes("-")) {
 																			const [a, b] = s.split("-")
 																			const start = parseInt(a) || 0
 																			const end = parseInt(b) || start
-																			for (let n = start; n <= end; n++) nums.push(n)
+																			for (let n = start; n <= end; n++)
+																				nums.push(n)
 																		} else {
 																			const v = parseInt(s) || 0
 																			if (v) nums.push(v)
@@ -777,10 +892,11 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 																	const max = Math.max(...nums)
 																	tamanhosStr = `${min}-${max}`
 																}
-
 															}
 
-															const mat = comp.material_id ? matMap.get(comp.material_id) : null
+															const mat = comp.material_id
+																? matMap.get(comp.material_id)
+																: null
 															const info: CadastroInfo = {
 																artigo: modelo.artigo,
 																modelo: modelo.nome,
@@ -800,8 +916,8 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 															resComp(info)
 														},
 													)
-													},
-												)
+												},
+											)
 										})
 									})
 
@@ -827,5 +943,123 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 		}
 
 		tryNextVariant()
+	})
+}
+
+// ==================== Setores ====================
+
+export interface Setor {
+	id: number
+	nome: string
+}
+
+type SetorRow = {
+	id: number
+	nome: string
+}
+
+export function listSetores(): Promise<Setor[]> {
+	return new Promise((resolve) => {
+		try {
+			const database = getDatabase()
+			database.all(
+				"SELECT id, nome FROM setores ORDER BY nome",
+				[],
+				(err: Error | null, rows: SetorRow[]) => {
+					if (err) {
+						console.error("Erro listando setores:", err)
+						resolve([])
+						return
+					}
+					resolve((rows || []) as Setor[])
+				},
+			)
+		} catch (error) {
+			console.error(error)
+			resolve([])
+		}
+	})
+}
+
+export function createSetor(
+	nome: string,
+): Promise<{ success: boolean; message: string; setor?: Setor }> {
+	return new Promise((resolve) => {
+		try {
+			const database = getDatabase()
+			database.run(
+				"INSERT INTO setores (nome) VALUES (?)",
+				[nome],
+				function (err: Error | null) {
+					if (err) {
+						resolve({ success: false, message: "Erro ao criar setor" })
+						return
+					}
+					resolve({
+						success: true,
+						message: "Setor criado",
+						setor: { id: this.lastID as number, nome },
+					})
+				},
+			)
+		} catch (error) {
+			resolve({
+				success: false,
+				message: "Erro ao criar setor" + (error as Error).toString(),
+			})
+		}
+	})
+}
+
+export function updateSetor(
+	id: number,
+	nome: string,
+): Promise<{ success: boolean; message: string }> {
+	return new Promise((resolve) => {
+		try {
+			const database = getDatabase()
+			database.run(
+				"UPDATE setores SET nome = ? WHERE id = ?",
+				[nome, id],
+				function (err: Error | null) {
+					if (err) {
+						resolve({ success: false, message: "Erro ao atualizar setor" })
+						return
+					}
+					resolve({ success: true, message: "Setor atualizado" })
+				},
+			)
+		} catch (error) {
+			resolve({
+				success: false,
+				message: "Erro ao atualizar setor" + error?.toString(),
+			})
+		}
+	})
+}
+
+export function deleteSetor(
+	id: number,
+): Promise<{ success: boolean; message: string }> {
+	return new Promise((resolve) => {
+		try {
+			const database = getDatabase()
+			database.run(
+				"DELETE FROM setores WHERE id = ?",
+				[id],
+				function (err: Error | null) {
+					if (err) {
+						resolve({ success: false, message: "Erro ao deletar setor" })
+						return
+					}
+					resolve({ success: true, message: "Setor deletado" })
+				},
+			)
+		} catch (error) {
+			resolve({
+				success: false,
+				message: "Erro ao deletar setor" + error?.toString(),
+			})
+		}
 	})
 }

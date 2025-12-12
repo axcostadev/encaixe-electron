@@ -5,7 +5,13 @@ import {
 	Material,
 	Modelo,
 } from "@renderer/types"
-import { createContext, ReactNode, useContext, useState } from "react"
+import {
+	createContext,
+	ReactNode,
+	useContext,
+	useEffect,
+	useState,
+} from "react"
 
 interface AppContextType {
 	modelos: Modelo[]
@@ -55,6 +61,11 @@ const AppContext = createContext<AppContextType | undefined>(undefined)
 export function AppProvider({ children }: { children: ReactNode }) {
 	const [modelos, setModelos] = useState<Modelo[]>([])
 	const [materiais, setMateriais] = useState<Material[]>([])
+
+	useEffect(() => {
+		loadModelos()
+		loadMateriais()
+	}, [])
 
 	async function loadModelos() {
 		const modelosFromAPI = await window.api.modelos.list()
@@ -107,9 +118,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 							percPerda: c.percPerda || 0,
 							coresDisponiveis: c.coresDisponiveis || [],
 							tamanhos: c.tamanhos || [],
-							modeloCorId: (c as any).modelo_cor_id || undefined,
-							setorId: (c as any).setor_id || undefined,
-							numeroTecido: (c as any).numero_tecido || undefined,
+							modeloCorId: c.modelo_cor_id || undefined,
+							setorId: c.setor_id || undefined,
+							numeroTecido: c.numero_tecido || undefined,
 						}
 					},
 				)
@@ -308,9 +319,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 			compMaximo: componente.compMaximo,
 			percPerda: componente.percPerda,
 			coresDisponiveis: componente.coresDisponiveis,
-			modeloCorId: (componente as any).modeloCorId,
-			setorId: (componente as any).setorId,
-			numeroTecido: (componente as any).numeroTecido,
+			modeloCorId: componente.modeloCorId,
+			setorId: componente.setorId,
+			numeroTecido: componente.numeroTecido,
 		}
 
 		const res = await window.api.componentes.create(
@@ -361,9 +372,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 			compMaximo: componente.compMaximo,
 			percPerda: componente.percPerda,
 			coresDisponiveis: componente.coresDisponiveis,
-			modeloCorId: (componente as any).modeloCorId,
-			setorId: (componente as any).setorId,
-			numeroTecido: (componente as any).numeroTecido,
+			modeloCorId: componente.modeloCorId,
+			setorId: componente.setorId,
+			numeroTecido: componente.numeroTecido,
 		}
 
 		const res = await window.api.componentes.update(
