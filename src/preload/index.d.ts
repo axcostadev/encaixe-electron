@@ -1,5 +1,78 @@
 import { ElectronAPI } from "@electron-toolkit/preload"
 
+// Define types locally
+interface PedidoComelz {
+	id?: string
+	date?: string
+	note?: string
+	customer?: string
+	split_materials?: boolean
+	model: string
+	qty: QtyRuleComelz[]
+}
+
+interface QtyRuleComelz {
+	part_name?: string
+	part_size?: string
+	fitting?: string
+	mirror?: boolean
+	parts?: number
+	material?: string
+	items?: number
+}
+
+interface PedidoEmma {
+	customer: string
+	date: string
+	id: string
+	model: string
+	qty: QtyEmma[]
+}
+
+interface QtyEmma {
+	part_name: string
+	part_size: string
+	mirror: boolean
+	parts: number
+	angle: number
+	toler: number
+	material_name: string
+	material_x: number
+	material_y: number
+	material_unit: string
+}
+
+interface ComponenteDados {
+	materialId: number
+	tipoTecido?: number
+	conjugacaoNavalha?: string
+	placaPar?: string
+	camadas?: number
+	espacamento?: number
+	compMaximo?: number
+	percPerda?: number
+	coresDisponiveis?: string[]
+	modeloCorId?: number
+	setorId?: number
+	numeroTecido?: string
+}
+
+interface CadastroInfo {
+	artigo: string
+	modelo: string
+	componente: string
+	material: string
+	cor: string
+	largura: string
+	tipoTecido: number
+	paresCriac: string
+	conjugNavalha: string
+	placaPorPar: string
+	camada: string
+	espacamento: string
+	comprimentoMax: string
+}
+
 interface User {
 	id: number
 	username: string
@@ -85,14 +158,14 @@ interface ComponentesAPI {
 	create: (
 		modelo_id: number,
 		nome: string,
-		dados: Record<string, unknown> | null,
+		dados: ComponenteDados | null,
 		tamanhos: Array<{ tamanhoInicial: number; tamanhoFinal: number }>,
 	) => Promise<ComponenteCreateResponse>
 	update: (
 		modelo_id: number,
 		componente_id: number,
 		nome: string,
-		dados: Record<string, unknown> | null,
+		dados: ComponenteDados | null,
 		tamanhos: Array<{ tamanhoInicial: number; tamanhoFinal: number }>,
 	) => Promise<OperationResponse>
 	delete: (
@@ -170,15 +243,15 @@ declare global {
 			componentes: ComponentesAPI
 			electronAPI: {
 				selectFile: () => Promise<string | null>
-				parseCTF: (filePath: string) => Promise<any>
-				parseCTC: (filePath: string) => Promise<any>
-				saveCTF: (lines: any) => Promise<any>
-				saveCTC: (lines: any) => Promise<any>
-				buscarOF: (of: string) => Promise<any[]>
+				parseCTF: (filePath: string) => Promise<unknown>
+				parseCTC: (filePath: string) => Promise<unknown>
+				saveCTF: (lines: string[]) => Promise<unknown>
+				saveCTC: (lines: string[]) => Promise<unknown>
+				buscarOF: (of: string) => Promise<unknown[]>
 			}
 			dbAPI: {
-				getAllLines: () => Promise<any[]>
-				getLinesByOf: (of: string) => Promise<any[]>
+				getAllLines: () => Promise<unknown[]>
+				getLinesByOf: (of: string) => Promise<unknown[]>
 				clearLines: () => Promise<{ deleted: number }>
 			}
 			apelidosAPI: {
@@ -193,34 +266,51 @@ declare global {
 				remove: (comp: string) => Promise<boolean>
 			}
 			exportAPI: {
-				showSaveDialog: (opts: any) => Promise<string | null>
+				showSaveDialog: (opts: unknown) => Promise<string | null>
 				exportComelz: (
-					pedidoObj: any,
+					pedidoObj: PedidoComelz,
 					caminho: string,
 				) => Promise<{ path: string }>
 			}
 			exportAPI2: {
 				exportEmma: (
-					pedidoObj: any,
+					pedidoObj: PedidoEmma,
 					caminho: string,
 				) => Promise<{ path: string }>
 				exportLectra: (
-					modelos: any,
+					modelos: unknown,
 					caminho: string,
 					markerName: string,
 				) => Promise<{ path: string }>
 			}
 			conversorAPI: {
-				toComelz: (parsedCTF: any, parsedCTC: any, options: any) => Promise<any>
-				toEmma: (parsedCTF: any, parsedCTC: any, options: any) => Promise<any>
-				toLectra: (parsedCTF: any, parsedCTC: any, options: any) => Promise<any>
+				toComelz: (
+					parsedCTF: unknown,
+					parsedCTC: unknown,
+					options: unknown,
+				) => Promise<unknown>
+				toEmma: (
+					parsedCTF: unknown,
+					parsedCTC: unknown,
+					options: unknown,
+				) => Promise<unknown>
+				toLectra: (
+					parsedCTF: unknown,
+					parsedCTC: unknown,
+					options: unknown,
+				) => Promise<unknown>
 			}
 			cadastroAPI: {
 				openFile: () => Promise<string | null>
-				save: (cadastroObj: any) => Promise<{ id: number; error?: string }>
-				getByArtigo: (artigo: string) => Promise<any>
-				find: (artigo: string, componente: string) => Promise<any>
-				list: (limit: number) => Promise<any[]>
+				save: (
+					cadastroObj: CadastroInfo[],
+				) => Promise<{ id: number; error?: string }>
+				getByArtigo: (artigo: string) => Promise<CadastroInfo[]>
+				find: (
+					artigo: string,
+					componente: string,
+				) => Promise<CadastroInfo | null>
+				list: (limit: number) => Promise<CadastroInfo[]>
 				delete: (id: number) => Promise<boolean>
 			}
 			cadastroImportAPI: {

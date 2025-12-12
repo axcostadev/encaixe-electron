@@ -1,6 +1,79 @@
 import { electronAPI } from "@electron-toolkit/preload"
 import { contextBridge, ipcRenderer } from "electron"
 
+// Define types locally to avoid import issues
+interface PedidoComelz {
+	id?: string
+	date?: string
+	note?: string
+	customer?: string
+	split_materials?: boolean
+	model: string
+	qty: QtyRuleComelz[]
+}
+
+interface QtyRuleComelz {
+	part_name?: string
+	part_size?: string
+	fitting?: string
+	mirror?: boolean
+	parts?: number
+	material?: string
+	items?: number
+}
+
+interface PedidoEmma {
+	customer: string
+	date: string
+	id: string
+	model: string
+	qty: QtyEmma[]
+}
+
+interface QtyEmma {
+	part_name: string
+	part_size: string
+	mirror: boolean
+	parts: number
+	angle: number
+	toler: number
+	material_name: string
+	material_x: number
+	material_y: number
+	material_unit: string
+}
+
+interface ComponenteDados {
+	materialId: number
+	tipoTecido?: number
+	conjugacaoNavalha?: string
+	placaPar?: string
+	camadas?: number
+	espacamento?: number
+	compMaximo?: number
+	percPerda?: number
+	coresDisponiveis?: string[]
+	modeloCorId?: number
+	setorId?: number
+	numeroTecido?: string
+}
+
+interface CadastroInfo {
+	artigo: string
+	modelo: string
+	componente: string
+	material: string
+	cor: string
+	largura: string
+	tipoTecido: number
+	paresCriac: string
+	conjugNavalha: string
+	placaPorPar: string
+	camada: string
+	espacamento: string
+	comprimentoMax: string
+}
+
 // Custom APIs for renderer
 const api = {
 	auth: {
@@ -55,7 +128,7 @@ const api = {
 		create: (
 			modelo_id: number,
 			nome: string,
-			dados: unknown,
+			dados: ComponenteDados,
 			tamanhos: Array<{ tamanhoInicial: number; tamanhoFinal: number }>,
 		) =>
 			ipcRenderer.invoke(
@@ -69,7 +142,7 @@ const api = {
 			modelo_id: number,
 			componente_id: number,
 			nome: string,
-			dados: unknown,
+			dados: ComponenteDados,
 			tamanhos: Array<{ tamanhoInicial: number; tamanhoFinal: number }>,
 		) =>
 			ipcRenderer.invoke(
@@ -88,8 +161,8 @@ const api = {
 		selectFile: () => ipcRenderer.invoke("select-file"),
 		parseCTF: (filePath: string) => ipcRenderer.invoke("parse-ctf", filePath),
 		parseCTC: (filePath: string) => ipcRenderer.invoke("parse-ctc", filePath),
-		saveCTF: (lines: any) => ipcRenderer.invoke("save-ctf", lines),
-		saveCTC: (lines: any) => ipcRenderer.invoke("save-ctc", lines),
+		saveCTF: (lines: string[]) => ipcRenderer.invoke("save-ctf", lines),
+		saveCTC: (lines: string[]) => ipcRenderer.invoke("save-ctc", lines),
 		buscarOF: (of: string) => ipcRenderer.invoke("buscar-of", of),
 	},
 	dbAPI: {
@@ -111,27 +184,28 @@ const api = {
 		remove: (comp: string) => ipcRenderer.invoke("abreviacoes-remove", comp),
 	},
 	exportAPI: {
-		showSaveDialog: (opts: any) => ipcRenderer.invoke("show-save-dialog", opts),
-		exportComelz: (pedidoObj: any, caminho: string) =>
+		showSaveDialog: (opts: unknown) =>
+			ipcRenderer.invoke("show-save-dialog", opts),
+		exportComelz: (pedidoObj: PedidoComelz, caminho: string) =>
 			ipcRenderer.invoke("export-comelz", pedidoObj, caminho),
 	},
 	exportAPI2: {
-		exportEmma: (pedidoObj: any, caminho: string) =>
+		exportEmma: (pedidoObj: PedidoEmma, caminho: string) =>
 			ipcRenderer.invoke("export-emma", pedidoObj, caminho),
-		exportLectra: (modelos: any, caminho: string, markerName: string) =>
+		exportLectra: (modelos: unknown, caminho: string, markerName: string) =>
 			ipcRenderer.invoke("export-lectra", modelos, caminho, markerName),
 	},
 	conversorAPI: {
-		toComelz: (parsedCTF: any, parsedCTC: any, options: any) =>
+		toComelz: (parsedCTF: unknown, parsedCTC: unknown, options: unknown) =>
 			ipcRenderer.invoke("conversor-comelz", parsedCTF, parsedCTC, options),
-		toEmma: (parsedCTF: any, parsedCTC: any, options: any) =>
+		toEmma: (parsedCTF: unknown, parsedCTC: unknown, options: unknown) =>
 			ipcRenderer.invoke("conversor-emma", parsedCTF, parsedCTC, options),
-		toLectra: (parsedCTF: any, parsedCTC: any, options: any) =>
+		toLectra: (parsedCTF: unknown, parsedCTC: unknown, options: unknown) =>
 			ipcRenderer.invoke("conversor-lectra", parsedCTF, parsedCTC, options),
 	},
 	cadastroAPI: {
 		openFile: () => ipcRenderer.invoke("cadastro-open-file"),
-		save: (cadastroObj: any) =>
+		save: (cadastroObj: CadastroInfo[]) =>
 			ipcRenderer.invoke("cadastro-save", cadastroObj),
 		getByArtigo: (artigo: string) =>
 			ipcRenderer.invoke("cadastro-get-by-artigo", artigo),

@@ -21,7 +21,6 @@ import { Componente, ComponentePayload, Cor, Material } from "@renderer/types"
 import { Plus, Trash2 } from "lucide-react"
 import { useEffect, useState, useRef } from "react"
 import { SetoresPage } from "@renderer/pages/SetoresPage"
-import { useSetores } from "@renderer/contexts/SetoresContext"
 import { useContext } from "react"
 import { SetoresContext } from "@renderer/contexts/SetoresContext"
 

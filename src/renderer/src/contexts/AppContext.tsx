@@ -41,6 +41,12 @@ interface AppContextType {
 	addMaterial: (material: Omit<Material, "id">) => Promise<void>
 	updateMaterial: (id: number, material: Partial<Material>) => Promise<void>
 	deleteMaterial: (id: number) => Promise<void>
+	getComponentesCountByMaterial: (materialId: number) => number
+	getComponentesByMaterial: (materialId: number) => Componente[]
+	unlinkMaterialFromComponente: (
+		componenteId: number,
+		modeloId: number,
+	) => Promise<void>
 
 	// Componentes
 	addComponente: (
@@ -303,6 +309,73 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		}
 	}
 
+	function getComponentesCountByMaterial(materialId: number): number {
+		return modelos.reduce((count, modelo) => {
+			return (
+				count +
+				modelo.componentes.filter((c) => c.materialId === materialId).length
+			)
+		}, 0)
+	}
+
+	function getComponentesByMaterial(materialId: number): Componente[] {
+		const componentes: Componente[] = []
+		modelos.forEach((modelo) => {
+			modelo.componentes.forEach((componente) => {
+				if (componente.materialId === materialId) {
+					componentes.push(componente)
+				}
+			})
+		})
+		return componentes
+	}
+
+	async function unlinkMaterialFromComponente(
+		componenteId: number,
+		modeloId: number,
+	) {
+		// Criar payload com materialId = 0 para desvincular
+		const componentePayload: ComponentePayload = {
+			materialId: 0,
+			tipoTecido: 0,
+			conjugacaoNavalha: "",
+			placaPar: "",
+			camadas: 1,
+			espacamento: 0,
+			compMaximo: 0,
+			percPerda: 0,
+			coresDisponiveis: [],
+			modeloCorId: 0,
+			setorId: 0,
+			numeroTecido: "",
+			nome: "", // será preenchido pelo componente atual
+			tamanhos: [],
+		}
+
+		// Buscar o componente atual para manter os outros valores
+		const modelo = modelos.find((m) => m.id === modeloId)
+		const componenteAtual = modelo?.componentes.find(
+			(c) => c.id === componenteId,
+		)
+
+		if (componenteAtual) {
+			componentePayload.nome = componenteAtual.nome
+			componentePayload.tipoTecido = componenteAtual.tipoTecido
+			componentePayload.conjugacaoNavalha = componenteAtual.conjugacaoNavalha
+			componentePayload.placaPar = componenteAtual.placaPar
+			componentePayload.camadas = componenteAtual.camadas
+			componentePayload.espacamento = componenteAtual.espacamento
+			componentePayload.compMaximo = componenteAtual.compMaximo
+			componentePayload.percPerda = componenteAtual.percPerda
+			componentePayload.coresDisponiveis = componenteAtual.coresDisponiveis
+			componentePayload.modeloCorId = componenteAtual.modeloCorId ?? 0
+			componentePayload.setorId = componenteAtual.setorId ?? 0
+			componentePayload.numeroTecido = componenteAtual.numeroTecido ?? ""
+		}
+
+		await updateComponente(modeloId, componenteId, componentePayload)
+	}
+
 	// Componentes
 	async function addComponente(
 		modeloId: number,
@@ -361,27 +434,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		componenteId: number,
 		componente: Partial<ComponentePayload>,
 	) {
-		// Persistir no backend
-		const dados = {
-			materialId: componente.materialId,
-			tipoTecido: componente.tipoTecido,
-			conjugacaoNavalha: componente.conjugacaoNavalha,
-			placaPar: componente.placaPar,
-			camadas: componente.camadas,
-			espacamento: componente.espacamento,
-			compMaximo: componente.compMaximo,
-			percPerda: componente.percPerda,
-			coresDisponiveis: componente.coresDisponiveis,
-			modeloCorId: componente.modeloCorId,
-			setorId: componente.setorId,
-			numeroTecido: componente.numeroTecido,
-		}
-
+		// Persistir no backend - passar parâmetros individuais em vez de objeto "dados"
 		const res = await window.api.componentes.update(
 			modeloId,
 			componenteId,
 			componente.nome || "",
-			dados,
+			{
+				materialId: componente.materialId ?? 0,
+				tipoTecido: componente.tipoTecido ?? 0,
+				conjugacaoNavalha: componente.conjugacaoNavalha ?? "",
+				placaPar: componente.placaPar ?? "",
+				camadas: componente.camadas ?? 1,
+				espacamento: componente.espacamento ?? 0,
+				compMaximo: componente.compMaximo ?? 0,
+				percPerda: componente.percPerda ?? 0,
+				coresDisponiveis: componente.coresDisponiveis ?? [],
+				modeloCorId: componente.modeloCorId ?? 0,
+				setorId: componente.setorId ?? 0,
+				numeroTecido: componente.numeroTecido ?? "",
+			},
 			componente.tamanhos || [],
 		)
 
@@ -443,6 +514,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 				addMaterial,
 				updateMaterial,
 				deleteMaterial,
+				getComponentesCountByMaterial,
+				getComponentesByMaterial,
+				unlinkMaterialFromComponente,
 				addComponente,
 				updateComponente,
 				deleteComponente,
