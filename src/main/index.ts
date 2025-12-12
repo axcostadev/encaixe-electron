@@ -18,7 +18,10 @@ function createWindow(): void {
 		// set the window icon for Windows and Linux
 		...(function () {
 			if (process.platform === "win32") {
-				const icoPath = join(__dirname, "../../resources/view-cutting-machine.ico")
+				const icoPath = join(
+					__dirname,
+					"../../resources/view-cutting-machine.ico",
+				)
 				if (existsSync(icoPath)) return { icon: icoPath }
 				// fallback to packaged PNG/nativeImage if .ico not found
 				try {
@@ -41,6 +44,12 @@ function createWindow(): void {
 	})
 
 	mainWindow.on("ready-to-show", () => {
+		// abrir a janela maximizada antes de mostrá-la
+		try {
+			mainWindow.maximize()
+		} catch (_) {
+			console.log("Failed to maximize window on ready-to-show")
+		}
 		mainWindow.show()
 	})
 
@@ -62,12 +71,14 @@ function createWindow(): void {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-		// Set app user model id for windows and app name
-		electronApp.setAppUserModelId("com.aincrad.cuttingroom")
-		try {
-			// set the app name (useful on macOS/Linux)
-			app.setName("cutting room")
-		} catch (_) {}
+	// Set app user model id for windows and app name
+	electronApp.setAppUserModelId("com.aincrad.cuttingroom")
+	try {
+		// set the app name (useful on macOS/Linux)
+		app.setName("cutting room")
+	} catch (_) {
+		console.log("Failed to set app name")
+	}
 
 	// Setup IPC handlers
 	setupIPC()
