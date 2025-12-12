@@ -41,7 +41,7 @@ export function ComponentesPage() {
 	const componentes = useMemo(() => {
 		if (!selectedModeloIdNum) return []
 		return getComponentesByModelo(selectedModeloIdNum)
-	}, [selectedModeloIdNum, getComponentesByModelo])
+	}, [selectedModeloIdNum, modelos])
 
 	const coresModelo = useMemo(() => {
 		if (!selectedModeloIdNum) return []
@@ -54,10 +54,14 @@ export function ComponentesPage() {
 		setSearchParams({ modelo: value })
 	}
 
-	function handleCreate(data: ComponentePayload) {
+	async function handleCreate(data: ComponentePayload) {
 		if (!selectedModeloIdNum) return
-		addComponente(selectedModeloIdNum, data)
-		toast.success("Componente criado com sucesso!")
+		try {
+			await addComponente(selectedModeloIdNum, data)
+			toast.success("Componente criado com sucesso!")
+		} catch (error) {
+			toast.error("Erro ao criar componente:" + error)
+		}
 	}
 
 	function handleEdit(componente: Componente) {
@@ -65,17 +69,25 @@ export function ComponentesPage() {
 		setFormOpen(true)
 	}
 
-	function handleUpdate(data: ComponentePayload) {
+	async function handleUpdate(data: ComponentePayload) {
 		if (editingComponente && selectedModeloIdNum) {
-			updateComponente(selectedModeloIdNum, editingComponente.id, data)
-			toast.success("Componente atualizado com sucesso!")
+			try {
+				await updateComponente(selectedModeloIdNum, editingComponente.id, data)
+				toast.success("Componente atualizado com sucesso!")
+			} catch (error) {
+				toast.error("Erro ao atualizar componente" + error)
+			}
 		}
 	}
 
-	function handleDelete(id: string) {
+	async function handleDelete(id: string) {
 		if (!selectedModeloIdNum) return
-		deleteComponente(selectedModeloIdNum, parseInt(id, 10))
-		toast.success("Componente excluído com sucesso!")
+		try {
+			await deleteComponente(selectedModeloIdNum, parseInt(id, 10))
+			toast.success("Componente excluído com sucesso!")
+		} catch (error) {
+			toast.error("Erro ao excluir componente: " + error)
+		}
 	}
 
 	function handleFormSubmit(data: ComponentePayload) {

@@ -1,6 +1,15 @@
 import { Button } from "@renderer/components/ui/button"
 import { Input } from "@renderer/components/ui/input"
 import { Label } from "@renderer/components/ui/label"
+import { Card, CardContent } from "@renderer/components/ui/card"
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@renderer/components/ui/table"
 import { Plus } from "lucide-react"
 import { useSetores } from "@renderer/contexts/SetoresContext"
 import { useState } from "react"
@@ -51,10 +60,8 @@ export function SetoresPage({
 		}
 	}
 
-	const wrapperClass = asDialog ? "w-full" : "min-h-screen bg-gray-100 p-8"
-	const cardClass = asDialog
-		? "bg-white rounded-lg shadow-sm p-4 max-h-[70vh] overflow-auto"
-		: "bg-white rounded-lg shadow-lg p-6"
+	const wrapperClass = asDialog ? "w-full" : "min-h-screen p-8"
+	const cardClass = asDialog ? "max-h-[70vh] overflow-auto" : ""
 
 	if (loading) {
 		return (
@@ -82,77 +89,73 @@ export function SetoresPage({
 					)}
 				</div>
 
-				<div className={cardClass}>
-					<div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
-						<div className="md:col-span-3 col-span-1">
-							<Label htmlFor="nome">Nome do Setor *</Label>
-							<Input
-								id="nome"
-								value={nome}
-								onChange={(e) => setNome(e.target.value)}
-								placeholder="Ex: Ponte, Lectra, Comelz..."
-							/>
+				<Card className={cardClass}>
+					<CardContent>
+						<div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
+							<div className="md:col-span-3 col-span-1">
+								<Label htmlFor="nome">Nome do Setor *</Label>
+								<Input
+									id="nome"
+									value={nome}
+									onChange={(e) => setNome(e.target.value)}
+									placeholder="Ex: Ponte, Lectra, Comelz..."
+								/>
+							</div>
+							<div className="flex items-end gap-2">
+								<Button variant="outline" onClick={() => setNome("")}>
+									Cancelar
+								</Button>
+								<Button onClick={handleAdicionar}>
+									<Plus className="h-4 w-4 mr-2" />
+									Salvar Setor
+								</Button>
+							</div>
 						</div>
-						<div className="flex items-end gap-2">
-							<Button variant="outline" onClick={() => setNome("")}>
-								Cancelar
-							</Button>
-							<Button onClick={handleAdicionar}>
-								<Plus className="h-4 w-4 mr-2" />
-								Salvar Setor
-							</Button>
-						</div>
-					</div>
 
-					<div className="mt-2">
-						<table className="w-full text-sm">
-							<thead className="bg-gray-50">
-								<tr>
-									<th className="px-4 py-3 text-left font-semibold text-gray-800">
-										Nome do Setor
-									</th>
-									<th className="px-4 py-3 text-left font-semibold text-gray-800">
-										Ações
-									</th>
-								</tr>
-							</thead>
-							<tbody>
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>Nome do Setor</TableHead>
+									<TableHead>Ações</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
 								{setores.map((s) => (
-									<tr
-										key={s.id}
-										className="border-t border-gray-200 hover:bg-gray-50"
-									>
-										<td className="px-4 py-3 text-gray-700">{s.nome}</td>
-										<td className="px-4 py-3">
-											<button
-												className="text-blue-600 hover:text-blue-800 mr-4"
+									<TableRow key={s.id}>
+										<TableCell>{s.nome}</TableCell>
+										<TableCell>
+											<Button
+												variant="ghost"
+												size="sm"
 												onClick={() => handleEditar(s.id)}
 											>
 												Editar
-											</button>
-											<button
-												className="text-red-600 hover:text-red-800"
+											</Button>
+											<Button
+												variant="ghost"
+												size="sm"
+												className="text-destructive"
 												onClick={() => handleRemover(s.id)}
 											>
 												Deletar
-											</button>
-										</td>
-									</tr>
+											</Button>
+										</TableCell>
+									</TableRow>
 								))}
 								{setores.length === 0 && (
-									<tr>
-										<td
+									<TableRow>
+										<TableCell
 											colSpan={2}
-											className="px-4 py-6 text-center text-muted-foreground"
+											className="text-center text-muted-foreground"
 										>
 											Nenhum setor cadastrado.
-										</td>
-									</tr>
+										</TableCell>
+									</TableRow>
 								)}
-							</tbody>
-						</table>
-					</div>
-				</div>
+							</TableBody>
+						</Table>
+					</CardContent>
+				</Card>
 			</div>
 		</div>
 	)

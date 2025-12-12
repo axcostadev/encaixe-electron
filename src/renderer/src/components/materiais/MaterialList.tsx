@@ -72,7 +72,7 @@ export function MaterialList({
 					<TableHeader>
 						<TableRow className="table-header">
 							<TableHead className="w-[150px]">Artigo</TableHead>
-							<TableHead className="w-[100px] text-center">Largura</TableHead>
+							<TableHead className="w-[140px] text-center">Largura</TableHead>
 							<TableHead className="w-[100px] text-center">Sentido</TableHead>
 							<TableHead className="w-[120px] text-center">
 								Componentes
@@ -92,7 +92,9 @@ export function MaterialList({
 										{material.artigo}
 									</TableCell>
 									<TableCell className="text-center">
-										<Badge variant="outline">{material.largura} cm</Badge>
+										<Badge variant="outline">
+											{material.largura.toFixed(2)} metros
+										</Badge>
 									</TableCell>
 									<TableCell className="text-center">
 										<Badge variant="secondary">

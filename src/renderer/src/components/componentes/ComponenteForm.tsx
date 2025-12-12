@@ -53,8 +53,8 @@ export function ComponenteForm({
 		nome: "",
 		materialId: "",
 		tipoTecido: "",
-		conjugacaoNavalha: "",
-		placaPar: "",
+		conjugacaoNavalha: 0,
+		placaPar: 0,
 		camadas: "1",
 		espacamento: "",
 		compMaximo: "",
@@ -78,8 +78,8 @@ export function ComponenteForm({
 				nome: componente.nome,
 				materialId: componente.materialId.toString(),
 				tipoTecido: componente.tipoTecido?.toString() || "",
-				conjugacaoNavalha: componente.conjugacaoNavalha,
-				placaPar: componente.placaPar,
+				conjugacaoNavalha: parseInt(componente.conjugacaoNavalha) || 0,
+				placaPar: parseInt(componente.placaPar) || 0,
 				camadas: componente.camadas.toString(),
 				espacamento: componente.espacamento.toString(),
 				compMaximo: componente.compMaximo.toString(),
@@ -95,8 +95,8 @@ export function ComponenteForm({
 				nome: "",
 				materialId: "",
 				tipoTecido: "",
-				conjugacaoNavalha: "",
-				placaPar: "",
+				conjugacaoNavalha: 0,
+				placaPar: 0,
 				camadas: "",
 				espacamento: "",
 				compMaximo: "",
@@ -109,7 +109,11 @@ export function ComponenteForm({
 	}, [componente])
 
 	function handleChange(field: string, value: string) {
-		setFormData((prev) => ({ ...prev, [field]: value }))
+		if (field === "conjugacaoNavalha" || field === "placaPar") {
+			setFormData((prev) => ({ ...prev, [field]: parseInt(value) || 0 }))
+		} else {
+			setFormData((prev) => ({ ...prev, [field]: value }))
+		}
 	}
 
 	function handleCorToggle(corId: string, checked: boolean) {
@@ -147,7 +151,12 @@ export function ComponenteForm({
 
 	function handleSubmit(e: React.FormEvent) {
 		e.preventDefault()
-		if (!formData.nome.trim() || !formData.materialId) return
+		if (
+			!formData.nome.trim() ||
+			!formData.materialId ||
+			!formData.modeloCorId.trim()
+		)
+			return
 
 		onSubmit({
 			modeloCorId: parseInt(formData.modeloCorId) || 0,
@@ -156,8 +165,8 @@ export function ComponenteForm({
 			nome: formData.nome.trim(),
 			materialId: parseInt(formData.materialId) || 0,
 			tipoTecido: parseInt(formData.tipoTecido) || 0,
-			conjugacaoNavalha: formData.conjugacaoNavalha.trim(),
-			placaPar: formData.placaPar.trim(),
+			conjugacaoNavalha: formData.conjugacaoNavalha.toString(),
+			placaPar: formData.placaPar.toString(),
 			camadas: parseInt(formData.camadas) || 0,
 			espacamento: parseFloat(formData.espacamento) || 0,
 			compMaximo: parseFloat(formData.compMaximo) || 0,
@@ -172,20 +181,8 @@ export function ComponenteForm({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-2xl max-h-[90vh] animate-scale-in">
 				<DialogHeader>
-					<DialogTitle className="flex justify-between align-center items-center mb-4 pr-3">
-						<div>{componente ? "Editar Componente" : "Novo Componente"}</div>
-						<div className="flex flex-row gap-3">
-							<Button
-								type="button"
-								variant="outline"
-								onClick={() => onOpenChange(false)}
-							>
-								Cancelar
-							</Button>
-							<Button type="submit" form="componente-form">
-								{componente ? "Salvar" : "Criar"}
-							</Button>
-						</div>
+					<DialogTitle>
+						{componente ? "Editar Componente" : "Novo Componente"}
 					</DialogTitle>
 				</DialogHeader>
 				<ScrollArea className="max-h-[60vh] pr-4">
@@ -251,7 +248,7 @@ export function ComponenteForm({
 													<SelectTrigger>
 														<SelectValue placeholder="Selecione um setor" />
 													</SelectTrigger>
-													<SelectContent>
+													<SelectContent className="bg-background text-foreground">
 														{setoresList.map((s) => (
 															<SelectItem key={s.id} value={s.id.toString()}>
 																{s.nome}
@@ -272,16 +269,22 @@ export function ComponenteForm({
 										</div>
 									</div>
 									<div className="space-y-2">
-										<Label htmlFor="tipoTecido">Tipo Tecido</Label>
-										<Input
-											id="tipoTecido"
-											type="number"
-											value={formData.tipoTecido}
-											onChange={(e) =>
-												handleChange("tipoTecido", e.target.value)
-											}
-											placeholder="0"
-										/>
+										<Label htmlFor="modeloCor">Cor *</Label>
+										<Select
+											value={formData.modeloCorId}
+											onValueChange={(v) => handleChange("modeloCorId", v)}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="Selecione uma cor" />
+											</SelectTrigger>
+											<SelectContent>
+												{coresModelo.map((cor) => (
+													<SelectItem key={cor.id} value={cor.id.toString()}>
+														{cor.abreviacao} - {cor.nome}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 									</div>
 								</div>
 
@@ -292,7 +295,10 @@ export function ComponenteForm({
 										</Label>
 										<Input
 											id="conjugacaoNavalha"
-											value={formData.conjugacaoNavalha}
+											value={formData.conjugacaoNavalha.toString()}
+											type="number"
+											step="1"
+											min={1}
 											onChange={(e) =>
 												handleChange("conjugacaoNavalha", e.target.value)
 											}
@@ -303,7 +309,10 @@ export function ComponenteForm({
 										<Label htmlFor="placaPar">Placa Par</Label>
 										<Input
 											id="placaPar"
-											value={formData.placaPar}
+											value={formData.placaPar.toString()}
+											type="number"
+											step="1"
+											min={1}
 											onChange={(e) => handleChange("placaPar", e.target.value)}
 											placeholder="Digite a placa"
 										/>
