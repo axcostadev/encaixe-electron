@@ -91,7 +91,9 @@ export function GeracaoArquivosTab() {
 	const [componenteParaApelido, setComponenteParaApelido] = useState("")
 
 	// Estado para gerenciar pares por tamanho e cor
-	const [paresPorCorTamanho, setParesPorCorTamanho] = useState<ParesPorCor[]>([])
+	const [paresPorCorTamanho, setParesPorCorTamanho] = useState<ParesPorCor[]>(
+		[],
+	)
 
 	const {
 		loading,
@@ -120,7 +122,7 @@ export function GeracaoArquivosTab() {
 	// Função para inicializar os pares por tamanho baseado na grade da OF e tamanhos cadastrados
 	function inicializarParesPorTamanho(
 		gradeData: GradePar[],
-		tamanhosCadastrados: number[]
+		tamanhosCadastrados: number[],
 	) {
 		if (!tamanhosCadastrados || tamanhosCadastrados.length === 0) {
 			setParesPorCorTamanho([])
@@ -129,20 +131,20 @@ export function GeracaoArquivosTab() {
 
 		// Agrupa os pares da OF por código de cor
 		const paresPorCor: ParesPorCor[] = []
-		
+
 		// Pega todas as cores únicas da grade
-		const coresUnicas = [...new Set(gradeData.map(g => g.codigoCor))]
-		
+		const coresUnicas = [...new Set(gradeData.map((g) => g.codigoCor))]
+
 		for (const codigoCor of coresUnicas) {
 			// Pega TODOS os itens da grade para essa cor (pode ter múltiplos tamanhos)
-			const gradeItems = gradeData.filter(g => g.codigoCor === codigoCor)
-			
+			const gradeItems = gradeData.filter((g) => g.codigoCor === codigoCor)
+
 			// Inicializa os pares para cada tamanho com 0
 			const pares: ParesPorTamanho = {}
 			for (const tam of tamanhosCadastrados) {
 				pares[tam] = 0
 			}
-			
+
 			// Mapeia cada item da grade para o tamanho correspondente
 			for (const gradeItem of gradeItems) {
 				if (gradeItem.grade) {
@@ -153,10 +155,10 @@ export function GeracaoArquivosTab() {
 					}
 				}
 			}
-			
+
 			paresPorCor.push({ codigoCor, pares })
 		}
-		
+
 		setParesPorCorTamanho(paresPorCor)
 	}
 
@@ -205,7 +207,7 @@ export function GeracaoArquivosTab() {
 	function selecionarComponente(nomeComponente: string) {
 		setComponenteSelecionado(nomeComponente)
 		// Encontra o cadastro do componente selecionado
-		const cadastro = cadastrosInfo.find(c => c.componente === nomeComponente)
+		const cadastro = cadastrosInfo.find((c) => c.componente === nomeComponente)
 		if (cadastro?.tamanhos && cadastro.tamanhos.length > 0) {
 			inicializarParesPorTamanho(gradePares, cadastro.tamanhos)
 		}
@@ -213,19 +215,19 @@ export function GeracaoArquivosTab() {
 
 	// Função para atualizar os pares de um tamanho específico para uma cor
 	function atualizarPares(codigoCor: string, tamanho: number, valor: number) {
-		setParesPorCorTamanho(prev => 
-			prev.map(item => {
+		setParesPorCorTamanho((prev) =>
+			prev.map((item) => {
 				if (item.codigoCor === codigoCor) {
 					return {
 						...item,
 						pares: {
 							...item.pares,
-							[tamanho]: valor
-						}
+							[tamanho]: valor,
+						},
 					}
 				}
 				return item
-			})
+			}),
 		)
 	}
 
@@ -302,7 +304,7 @@ export function GeracaoArquivosTab() {
 				if (paresPorCorTamanho.length > 0) {
 					const tamanhos = cadastroSelecionado.tamanhos || []
 					const qtyItems: any[] = []
-					
+
 					for (const corData of paresPorCorTamanho) {
 						for (const tam of tamanhos) {
 							const pares = corData.pares[tam] || 0
@@ -318,7 +320,8 @@ export function GeracaoArquivosTab() {
 									material_x: 1.41,
 									material_y: parseFloat(cadastroSelecionado.largura) || 10,
 									material_unit: "m",
-									part_space: parseFloat(cadastroSelecionado.espacamento) || 1.5,
+									part_space:
+										parseFloat(cadastroSelecionado.espacamento) || 1.5,
 									material_plies_up: parseInt(cadastroSelecionado.camada) || 12,
 									material_plies_down: 0,
 									material_margin: 0,
@@ -537,10 +540,10 @@ export function GeracaoArquivosTab() {
 					<CardContent>
 						{(() => {
 							const cadastroSel = cadastrosInfo.find(
-								c => c.componente === componenteSelecionado
+								(c) => c.componente === componenteSelecionado,
 							)
 							const tamanhos = cadastroSel?.tamanhos || []
-							
+
 							if (tamanhos.length === 0) {
 								return (
 									<p className="text-muted-foreground">
@@ -557,8 +560,11 @@ export function GeracaoArquivosTab() {
 												<TableHead className="sticky left-0 bg-background">
 													Cor
 												</TableHead>
-												{tamanhos.map(tam => (
-													<TableHead key={tam} className="text-center min-w-[80px]">
+												{tamanhos.map((tam) => (
+													<TableHead
+														key={tam}
+														className="text-center min-w-[80px]"
+													>
 														{tam}
 													</TableHead>
 												))}
@@ -569,25 +575,25 @@ export function GeracaoArquivosTab() {
 											{paresPorCorTamanho.map((item, idx) => {
 												const totalPares = Object.values(item.pares).reduce(
 													(sum, val) => sum + val,
-													0
+													0,
 												)
 												return (
 													<TableRow key={idx}>
 														<TableCell className="sticky left-0 bg-background font-medium">
 															{item.codigoCor}
 														</TableCell>
-														{tamanhos.map(tam => (
+														{tamanhos.map((tam) => (
 															<TableCell key={tam} className="p-1">
 																<Input
 																	type="number"
 																	min="0"
 																	className="w-20 text-center"
 																	value={item.pares[tam] || 0}
-																	onChange={(e) => 
+																	onChange={(e) =>
 																		atualizarPares(
 																			item.codigoCor,
 																			tam,
-																			parseInt(e.target.value) || 0
+																			parseInt(e.target.value) || 0,
 																		)
 																	}
 																/>
@@ -604,10 +610,10 @@ export function GeracaoArquivosTab() {
 												<TableCell className="sticky left-0 bg-muted/50">
 													Total
 												</TableCell>
-												{tamanhos.map(tam => {
+												{tamanhos.map((tam) => {
 													const totalTam = paresPorCorTamanho.reduce(
 														(sum, item) => sum + (item.pares[tam] || 0),
-														0
+														0,
 													)
 													return (
 														<TableCell key={tam} className="text-center">
@@ -617,9 +623,13 @@ export function GeracaoArquivosTab() {
 												})}
 												<TableCell className="text-center">
 													{paresPorCorTamanho.reduce(
-														(sum, item) => 
-															sum + Object.values(item.pares).reduce((s, v) => s + v, 0),
-														0
+														(sum, item) =>
+															sum +
+															Object.values(item.pares).reduce(
+																(s, v) => s + v,
+																0,
+															),
+														0,
 													)}
 												</TableCell>
 											</TableRow>
