@@ -349,7 +349,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 			setorId: 0,
 			numeroTecido: "",
 			nome: "", // será preenchido pelo componente atual
-			tamanhos: [],
 		}
 
 		// Buscar o componente atual para manter os outros valores
@@ -371,6 +370,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 			componentePayload.modeloCorId = componenteAtual.modeloCorId ?? 0
 			componentePayload.setorId = componenteAtual.setorId ?? 0
 			componentePayload.numeroTecido = componenteAtual.numeroTecido ?? ""
+			componentePayload.tamanhos = componenteAtual.tamanhos
 		}
 
 		await updateComponente(modeloId, componenteId, componentePayload)

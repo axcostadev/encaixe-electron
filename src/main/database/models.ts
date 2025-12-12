@@ -335,92 +335,120 @@ export function listComponentes(modelo_id: number): Promise<Componente[]> {
 	return new Promise((resolve) => {
 		try {
 			const database = getDatabase()
-			database.all(
-				`SELECT id, modelo_id, modelo_cor_id, setor_id, numero_tecido, nome, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda
-				 FROM componentes WHERE modelo_id = ? ORDER BY id`,
-				[modelo_id],
-				(err: Error | null, rows: ComponenteRow[]) => {
-					if (err) {
-						console.error("Erro listando componentes:", err)
-						resolve([])
-						return
+
+			const loadComponentes = new Promise<ComponenteRow[]>((res, rej) => {
+				database.all(
+					`SELECT id, modelo_id, modelo_cor_id, setor_id, numero_tecido, nome, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda
+					 FROM componentes WHERE modelo_id = ? ORDER BY id`,
+					[modelo_id],
+					(err: Error | null, rows: ComponenteRow[]) => {
+						if (err) {
+							console.error("Erro listando componentes:", err)
+							rej(err)
+						} else {
+							res(rows || [])
+						}
+					},
+				)
+			})
+
+			const loadComponenteCores = new Promise<
+				Array<{ componente_id: number; modelo_cor_id: number }>
+			>((res, rej) => {
+				database.all(
+					"SELECT componente_id, modelo_cor_id FROM componente_cores WHERE componente_id IN (SELECT id FROM componentes WHERE modelo_id = ?) ORDER BY componente_id, id",
+					[modelo_id],
+					(
+						err: Error | null,
+						rows: Array<{ componente_id: number; modelo_cor_id: number }>,
+					) => {
+						if (err) {
+							console.error("Erro carregando componente_cores:", err)
+							rej(err)
+						} else {
+							res(rows || [])
+						}
+					},
+				)
+			})
+
+			const loadTamanhos = new Promise<
+				Array<{
+					componente_id: number
+					tamanho_inicial: number
+					tamanho_final: number
+				}>
+			>((res, rej) => {
+				database.all(
+					"SELECT componente_id, tamanho_inicial, tamanho_final FROM tamanhos WHERE componente_id IN (SELECT id FROM componentes WHERE modelo_id = ?) ORDER BY componente_id, id",
+					[modelo_id],
+					(
+						err: Error | null,
+						rows: Array<{
+							componente_id: number
+							tamanho_inicial: number
+							tamanho_final: number
+						}>,
+					) => {
+						if (err) {
+							console.error("Erro carregando tamanhos:", err)
+							rej(err)
+						} else {
+							res(rows || [])
+						}
+					},
+				)
+			})
+
+			Promise.all([loadComponentes, loadComponenteCores, loadTamanhos])
+				.then(([compRows, ccRows, tamRows]) => {
+					const ccMap = new Map<number, number[]>()
+					for (const cc of ccRows) {
+						if (!ccMap.has(cc.componente_id)) ccMap.set(cc.componente_id, [])
+						ccMap.get(cc.componente_id)!.push(cc.modelo_cor_id)
 					}
 
-					const componentesPromises: Promise<Componente>[] = (rows || []).map(
-						(r) => {
-							return new Promise<Componente>((resComp) => {
-								const comp: Componente = {
-									id: r.id,
-									modelo_id: r.modelo_id,
-									modelo_cor_id: r.modelo_cor_id,
-									setor_id: r.setor_id,
-									numero_tecido: r.numero_tecido || "",
-									nome: r.nome,
-									materialId: r.material_id || 0,
-									tipoTecido: r.tipo_tecido || 0,
-									conjugacaoNavalha: r.conjugacao_navalha || "",
-									placaPar: r.placa_par || "",
-									camadas: r.camadas || 0,
-									espacamento: r.espacamento || 0,
-									compMaximo: r.comp_maximo || 0,
-									percPerda: r.perc_perda || 0,
-									coresDisponiveis: [],
-									tamanhos: [],
-								}
-
-								// carregar cores associadas (componente_cores)
-								database.all(
-									"SELECT modelo_cor_id FROM componente_cores WHERE componente_id = ? ORDER BY id",
-									[r.id],
-									(
-										coreErr: Error | null,
-										crowRows: Array<{ modelo_cor_id: number }>,
-									) => {
-										if (coreErr) {
-											comp.coresDisponiveis = []
-										} else {
-											comp.coresDisponiveis = (crowRows || []).map((cr) =>
-												String(cr.modelo_cor_id),
-											)
-										}
-
-										// carregar tamanhos (suporta colunas tamanho_inicial/tamanho_final)
-										database.all(
-											"SELECT tamanho_inicial, tamanho_final FROM tamanhos WHERE componente_id = ? ORDER BY id",
-											[r.id],
-											(
-												tamErr: Error | null,
-												trows: Array<{
-													tamanho_inicial: number
-													tamanho_final: number
-												}>,
-											) => {
-												if (tamErr) {
-													comp.tamanhos = []
-												} else {
-													const tamanhosRows = trows || []
-													comp.tamanhos = tamanhosRows.map((t) => ({
-														tamanhoInicial: t.tamanho_inicial,
-														tamanhoFinal: t.tamanho_final,
-													}))
-												}
-												resComp(comp)
-											},
-										)
-									},
-								)
+					const tamMap = new Map<
+						number,
+						{ tamanhoInicial: number; tamanhoFinal: number }[]
+					>()
+					for (const t of tamRows) {
+						if (!tamMap.has(t.componente_id)) tamMap.set(t.componente_id, [])
+						tamMap
+							.get(t.componente_id)!
+							.push({
+								tamanhoInicial: t.tamanho_inicial,
+								tamanhoFinal: t.tamanho_final,
 							})
-						},
-					)
+					}
 
-					Promise.all(componentesPromises)
-						.then((componentes) => resolve(componentes))
-						.catch((err) => {
-							console.error("Erro processando componentes:", err)
-							resolve([])
-						})
-				},
-			)
+					const componentes: Componente[] = compRows.map((r) => {
+						const comp: Componente = {
+							id: r.id,
+							modelo_id: r.modelo_id,
+							modelo_cor_id: r.modelo_cor_id,
+							setor_id: r.setor_id,
+							numero_tecido: r.numero_tecido || "",
+							nome: r.nome,
+							materialId: r.material_id || 0,
+							tipoTecido: r.tipo_tecido || 0,
+							conjugacaoNavalha: r.conjugacao_navalha || "",
+							placaPar: r.placa_par || "",
+							camadas: r.camadas || 0,
+							espacamento: r.espacamento || 0,
+							compMaximo: r.comp_maximo || 0,
+							percPerda: r.perc_perda || 0,
+							coresDisponiveis: (ccMap.get(r.id) || []).map((id) => String(id)),
+							tamanhos: tamMap.get(r.id) || [],
+						}
+						return comp
+					})
+					resolve(componentes)
+				})
+				.catch((err) => {
+					console.error("Erro carregando dados:", err)
+					resolve([])
+				})
 		} catch (error) {
 			console.error(error)
 			resolve([])
@@ -555,25 +583,38 @@ export function updateComponente(
 						return
 					}
 
-					// atualizar tamanhos: remover os antigos e inserir novos (usando colunas tamanho_inicial/tamanho_final)
-					database.run(
-						"DELETE FROM tamanhos WHERE componente_id = ?",
-						[componente_id],
-						(e) => {
-							if (e) {
-								console.error(e)
-							}
-							if (tamanhos && tamanhos.length > 0) {
-								const stmt = database.prepare(
-									"INSERT INTO tamanhos (componente_id, tamanho_inicial, tamanho_final) VALUES (?, ?, ?)",
-								)
-								for (const t of tamanhos) {
-									stmt.run([componente_id, t.tamanhoInicial, t.tamanhoFinal])
-								}
-								stmt.finalize()
-							}
+					const updateTamanhos = () => {
+						if (tamanhos !== undefined) {
+							database.run(
+								"DELETE FROM tamanhos WHERE componente_id = ?",
+								[componente_id],
+								(e) => {
+									if (e) {
+										console.error(e)
+									}
+									if (tamanhos && tamanhos.length > 0) {
+										const stmt = database.prepare(
+											"INSERT INTO tamanhos (componente_id, tamanho_inicial, tamanho_final) VALUES (?, ?, ?)",
+										)
+										for (const t of tamanhos) {
+											stmt.run([
+												componente_id,
+												t.tamanhoInicial,
+												t.tamanhoFinal,
+											])
+										}
+										stmt.finalize()
+									}
+									updateCores()
+								},
+							)
+						} else {
+							updateCores()
+						}
+					}
 
-							// atualizar cores: remover antigas e inserir novas
+					const updateCores = () => {
+						if (dados?.coresDisponiveis !== undefined) {
 							database.run(
 								"DELETE FROM componente_cores WHERE componente_id = ?",
 								[componente_id],
@@ -595,8 +636,12 @@ export function updateComponente(
 									resolve({ success: true, message: "Componente atualizado" })
 								},
 							)
-						},
-					)
+						} else {
+							resolve({ success: true, message: "Componente atualizado" })
+						}
+					}
+
+					updateTamanhos()
 				},
 			)
 		} catch (error) {

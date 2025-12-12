@@ -192,7 +192,7 @@ export function ComponenteForm({
 						className="space-y-6"
 					>
 						<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-							<div className="md:col-span-3 col-span-1 space-y-6">
+							<div className="md:col-span-3 col-span-1 space-y-4">
 								<div className="space-y-2">
 									<Label htmlFor="nome">Nome do Componente *</Label>
 									<Input
@@ -237,6 +237,9 @@ export function ComponenteForm({
 											placeholder="Número do tecido"
 										/>
 									</div>
+								</div>
+
+								<div className="grid grid-cols-1 gap-4">
 									<div className="space-y-2">
 										<Label htmlFor="setor">Setor</Label>
 										<div className="flex items-center gap-2">
@@ -267,24 +270,6 @@ export function ComponenteForm({
 												<Plus className="h-3 w-3" />
 											</Button>
 										</div>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor="modeloCor">Cor *</Label>
-										<Select
-											value={formData.modeloCorId}
-											onValueChange={(v) => handleChange("modeloCorId", v)}
-										>
-											<SelectTrigger>
-												<SelectValue placeholder="Selecione uma cor" />
-											</SelectTrigger>
-											<SelectContent>
-												{coresModelo.map((cor) => (
-													<SelectItem key={cor.id} value={cor.id.toString()}>
-														{cor.abreviacao} - {cor.nome}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
 									</div>
 								</div>
 
