@@ -690,6 +690,7 @@ export interface CadastroInfo {
 	camada: string
 	espacamento: string
 	comprimentoMax: string
+	tamanhos?: number[] // lista de tamanhos individuais cadastrados
 }
 
 /**
@@ -858,10 +859,10 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 																.map((cid) => corMap.get(Number(cid)) || cid)
 																.join(",")
 
-															// Build tamanhos string
+															// Build tamanhos array and string
 															let tamanhosStr = ""
+															const tamanhosArray: number[] = []
 															if (tamRows && tamRows.length > 0) {
-																const nums: number[] = []
 																for (const t of tamRows) {
 																	if (
 																		typeof t.tamanho_inicial === "number" &&
@@ -872,7 +873,7 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 																			n <= t.tamanho_final;
 																			n++
 																		)
-																			nums.push(n)
+																			tamanhosArray.push(n)
 																	} else {
 																		const s = String(t.tamanho || "")
 																		if (s.includes("-")) {
@@ -880,16 +881,16 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 																			const start = parseInt(a) || 0
 																			const end = parseInt(b) || start
 																			for (let n = start; n <= end; n++)
-																				nums.push(n)
+																				tamanhosArray.push(n)
 																		} else {
 																			const v = parseInt(s) || 0
-																			if (v) nums.push(v)
+																			if (v) tamanhosArray.push(v)
 																		}
 																	}
 																}
-																if (nums.length > 0) {
-																	const min = Math.min(...nums)
-																	const max = Math.max(...nums)
+																if (tamanhosArray.length > 0) {
+																	const min = Math.min(...tamanhosArray)
+																	const max = Math.max(...tamanhosArray)
 																	tamanhosStr = `${min}-${max}`
 																}
 															}
@@ -911,6 +912,7 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 																camada: String(comp.camadas || "0"),
 																espacamento: String(comp.espacamento || ""),
 																comprimentoMax: String(comp.comp_maximo || ""),
+																tamanhos: tamanhosArray.sort((a, b) => a - b),
 															}
 
 															resComp(info)
