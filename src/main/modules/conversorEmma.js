@@ -42,20 +42,28 @@ function createQtyItem(
 	parts,
 	materialName,
 	mirror = false,
+	materialY = 10,
+	materialPliesUp = 12,
 ) {
+	const partSizeFormatted = (() => {
+		const n = Number(partSize)
+		if (!isNaN(n)) return n.toFixed(2)
+		return String(partSize)
+	})()
+
 	return {
 		part_name: partName,
-		part_size: partSize,
+		part_size: partSizeFormatted,
 		mirror: mirror,
 		parts: parts,
 		angle: 90,
 		toler: 10,
 		material_name: materialName,
 		material_x: 1.41,
-		material_y: 10,
+		material_y: materialY,
 		material_unit: "m",
 		part_space: 1.5,
-		material_plies_up: 12,
+		material_plies_up: materialPliesUp,
 		material_plies_down: 0,
 		material_margin: 0,
 	}
@@ -85,6 +93,15 @@ export function converterParaEmma(
 	} = options
 
 	const listaQty = []
+
+	// Nome do componente para usar no part_name
+	const nomeComponente = componente || (cadastro && cadastro.componente) || ""
+	console.log("[conversorEmma] options.componente:", componente)
+	console.log(
+		"[conversorEmma] cadastro.componente:",
+		cadastro && cadastro.componente,
+	)
+	console.log("[conversorEmma] nomeComponente final:", nomeComponente)
 
 	// Helper: for matching CTC lines by artigo+codigoCor
 	const mapCTCByKey = new Map()
@@ -121,10 +138,13 @@ export function converterParaEmma(
 				if (!artigo) artigo = (cadastro && cadastro.artigo) || ""
 				if (!codigoCor) codigoCor = (cadastro && cadastro.cor) || ""
 
+				// Usa o nome do componente como part_name
+				const partName = nomeComponente || artigo
+
 				// Adiciona item normal (mirror: false)
 				listaQty.push(
 					createQtyItem(
-						artigo,
+						partName,
 						codigoCor,
 						quantidadePares,
 						materialNome,
@@ -136,7 +156,7 @@ export function converterParaEmma(
 				if (generateMirror) {
 					listaQty.push(
 						createQtyItem(
-							artigo,
+							partName,
 							codigoCor,
 							quantidadePares,
 							materialNome,
@@ -168,10 +188,13 @@ export function converterParaEmma(
 				if (!artigo) artigo = (cadastro && cadastro.artigo) || ""
 				if (!codigoCor) codigoCor = (cadastro && cadastro.cor) || ""
 
+				// Usa o nome do componente como part_name
+				const partName = nomeComponente || artigo
+
 				// Adiciona item normal (mirror: false)
 				listaQty.push(
 					createQtyItem(
-						artigo,
+						partName,
 						codigoCor,
 						quantidadePares,
 						materialNome,
@@ -183,7 +206,7 @@ export function converterParaEmma(
 				if (generateMirror) {
 					listaQty.push(
 						createQtyItem(
-							artigo,
+							partName,
 							codigoCor,
 							quantidadePares,
 							materialNome,
@@ -199,11 +222,12 @@ export function converterParaEmma(
 		const artigo = (cadastro && cadastro.artigo) || ""
 		const codigoCor = (cadastro && cadastro.cor) || ""
 		const materialNome = (cadastro && cadastro.material) || ""
+		const partName = nomeComponente || artigo
 
-		listaQty.push(createQtyItem(artigo, codigoCor, 0, materialNome, false))
+		listaQty.push(createQtyItem(partName, codigoCor, 0, materialNome, false))
 
 		if (generateMirror) {
-			listaQty.push(createQtyItem(artigo, codigoCor, 0, materialNome, true))
+			listaQty.push(createQtyItem(partName, codigoCor, 0, materialNome, true))
 		}
 	}
 
@@ -234,7 +258,8 @@ export function converterParaQtyEmma(
 	parsedCTF = [],
 	parsedCTC = [],
 	cadastro = {},
+	options = {},
 ) {
-	const result = converterParaEmma(parsedCTF, parsedCTC, cadastro, {})
+	const result = converterParaEmma(parsedCTF, parsedCTC, cadastro, options)
 	return result[0]?.qty || []
 }

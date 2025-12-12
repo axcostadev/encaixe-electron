@@ -580,10 +580,26 @@ export function setupIPC(): void {
 			} catch (err) {
 				console.error("Erro buscando cadastro para conversor Emma:", err)
 			}
+			// Se cadastro for array, pega o primeiro item
+			const cadastroObj = Array.isArray(cadastro) ? cadastro[0] : cadastro
+			// Passa o componente nas options para o conversor usar como part_name
+			const emmaOptions = {
+				componente: options?.componente || cadastroObj?.componente || "",
+			}
+			console.log(
+				"[IPC] conversor-emma options.componente:",
+				options?.componente,
+			)
+			console.log(
+				"[IPC] conversor-emma cadastroObj?.componente:",
+				cadastroObj?.componente,
+			)
+			console.log("[IPC] conversor-emma emmaOptions:", emmaOptions)
 			return conversorEmma.converterParaQtyEmma(
 				parsedCTF,
 				parsedCTC,
-				cadastro || options,
+				cadastroObj || options,
+				emmaOptions,
 			)
 		},
 	)

@@ -72,6 +72,23 @@ type ParesPorCor = {
 	pares: ParesPorTamanho
 }
 
+type QtyItem = {
+	part_name: string
+	part_size: string
+	mirror: boolean
+	parts: number
+	angle: number
+	toler: number
+	material_name: string
+	material_x: number
+	material_y: number
+	material_unit: string
+	part_space: number
+	material_plies_up: number
+	material_plies_down: number
+	material_margin: number
+}
+
 export function GeracaoArquivosTab() {
 	const [ofSearch, setOfSearch] = useState("")
 	const [artigoSearch, setArtigoSearch] = useState("")
@@ -110,7 +127,9 @@ export function GeracaoArquivosTab() {
 	useEffect(() => {
 		async function carregarApelidos() {
 			try {
-				const apelidos = await (window as any).api.apelidosAPI.getAll()
+				const apelidos: Record<string, string> = await (
+					window as unknown as Window
+				).api.apelidosAPI.getAll()
 				setApelidosMap(apelidos || {})
 			} catch (err) {
 				console.error("Erro ao carregar apelidos:", err)
@@ -303,15 +322,17 @@ export function GeracaoArquivosTab() {
 				// Gerar JSON Emma usando os pares por tamanho preenchidos
 				if (paresPorCorTamanho.length > 0) {
 					const tamanhos = cadastroSelecionado.tamanhos || []
-					const qtyItems: any[] = []
+					const qtyItems: QtyItem[] = []
 
 					for (const corData of paresPorCorTamanho) {
 						for (const tam of tamanhos) {
 							const pares = corData.pares[tam] || 0
 							if (pares > 0) {
 								qtyItems.push({
-									part_name: cadastroSelecionado.artigo,
-									part_size: String(tam),
+									part_name:
+										cadastroSelecionado.componente ||
+										cadastroSelecionado.artigo,
+									part_size: String(Number(tam).toFixed(2)),
 									mirror: false,
 									parts: pares,
 									angle: 90,
