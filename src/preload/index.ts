@@ -81,7 +81,8 @@ const api = {
 			ipcRenderer.invoke("auth:login", username, password),
 		register: (username: string, password: string, email: string) =>
 			ipcRenderer.invoke("auth:register", username, password, email),
-		resetAdmin: (password: string) => ipcRenderer.invoke("auth:reset-admin", password),
+		resetAdmin: (password: string) =>
+			ipcRenderer.invoke("auth:reset-admin", password),
 	},
 	modelos: {
 		list: () => ipcRenderer.invoke("modelos:list"),

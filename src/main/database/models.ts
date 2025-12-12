@@ -414,12 +414,10 @@ export function listComponentes(modelo_id: number): Promise<Componente[]> {
 					>()
 					for (const t of tamRows) {
 						if (!tamMap.has(t.componente_id)) tamMap.set(t.componente_id, [])
-						tamMap
-							.get(t.componente_id)!
-							.push({
-								tamanhoInicial: t.tamanho_inicial,
-								tamanhoFinal: t.tamanho_final,
-							})
+						tamMap.get(t.componente_id)!.push({
+							tamanhoInicial: t.tamanho_inicial,
+							tamanhoFinal: t.tamanho_final,
+						})
 					}
 
 					const componentes: Componente[] = compRows.map((r) => {
@@ -477,9 +475,14 @@ export function addComponente(
 			const perc_perda = dados?.percPerda || null
 			// Se modelo_cor_id não informado, usar primeira cor de coresDisponiveis
 			let modelo_cor_id = dados?.modeloCorId || null
-			if (!modelo_cor_id && dados?.coresDisponiveis && dados.coresDisponiveis.length > 0) {
+			if (
+				!modelo_cor_id &&
+				dados?.coresDisponiveis &&
+				dados.coresDisponiveis.length > 0
+			) {
 				const firstCor = dados.coresDisponiveis[0]
-				modelo_cor_id = typeof firstCor === 'string' ? parseInt(firstCor) : firstCor
+				modelo_cor_id =
+					typeof firstCor === "string" ? parseInt(firstCor) : firstCor
 			}
 			const setor_id = dados?.setorId || null
 			const numero_tecido = dados?.numeroTecido || ""
@@ -507,7 +510,9 @@ export function addComponente(
 						console.error("Erro ao criar componente (SQL):", err)
 						resolve({
 							success: false,
-							message: "Erro ao criar componente: " + (err && err.message ? err.message : String(err)),
+							message:
+								"Erro ao criar componente: " +
+								(err && err.message ? err.message : String(err)),
 						})
 						return
 					}

@@ -118,30 +118,45 @@ export function resetAdminPassword(password: string): Promise<LoginResult> {
 				[password],
 				function (err: Error | null) {
 					if (err) {
-						resolve({ success: false, message: 'Erro ao resetar senha do admin' })
+						resolve({
+							success: false,
+							message: "Erro ao resetar senha do admin",
+						})
 						return
 					}
 
 					if ((this as any).changes && (this as any).changes > 0) {
-						resolve({ success: true, message: 'Senha do admin atualizada com sucesso' })
+						resolve({
+							success: true,
+							message: "Senha do admin atualizada com sucesso",
+						})
 					} else {
 						// admin não existe, criar
 						database.run(
 							"INSERT INTO users (username, password, email) VALUES (?, ?, ?)",
-							['admin', password, 'admin@example.com'],
+							["admin", password, "admin@example.com"],
 							function (err2: Error | null) {
 								if (err2) {
-									resolve({ success: false, message: 'Erro ao criar usuário admin' })
+									resolve({
+										success: false,
+										message: "Erro ao criar usuário admin",
+									})
 									return
 								}
-								resolve({ success: true, message: 'Usuário admin criado com sucesso' })
+								resolve({
+									success: true,
+									message: "Usuário admin criado com sucesso",
+								})
 							},
 						)
 					}
 				},
 			)
 		} catch (error) {
-			resolve({ success: false, message: 'Erro ao resetar senha do admin: ' + String(error) })
+			resolve({
+				success: false,
+				message: "Erro ao resetar senha do admin: " + String(error),
+			})
 		}
 	})
 }

@@ -397,7 +397,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 			numeroTecido: componente.numeroTecido,
 		}
 
-		console.debug("addComponente: payload:", { modeloId, nome: componente.nome, dados, tamanhos: componente.tamanhos || [] })
+		console.debug("addComponente: payload:", {
+			modeloId,
+			nome: componente.nome,
+			dados,
+			tamanhos: componente.tamanhos || [],
+		})
 		let res: any
 		try {
 			res = await window.api.componentes.create(
