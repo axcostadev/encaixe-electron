@@ -151,12 +151,7 @@ export function ComponenteForm({
 
 	function handleSubmit(e: React.FormEvent) {
 		e.preventDefault()
-		if (
-			!formData.nome.trim() ||
-			!formData.materialId ||
-			!formData.modeloCorId.trim()
-		)
-			return
+		if (!formData.nome.trim() || !formData.materialId) return
 
 		onSubmit({
 			modeloCorId: parseInt(formData.modeloCorId) || 0,

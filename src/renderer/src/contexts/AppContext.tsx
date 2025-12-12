@@ -397,12 +397,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
 			numeroTecido: componente.numeroTecido,
 		}
 
-		const res = await window.api.componentes.create(
-			modeloId,
-			componente.nome,
-			dados,
-			componente.tamanhos || [],
-		)
+		console.debug("addComponente: payload:", { modeloId, nome: componente.nome, dados, tamanhos: componente.tamanhos || [] })
+		let res: any
+		try {
+			res = await window.api.componentes.create(
+				modeloId,
+				componente.nome,
+				dados,
+				componente.tamanhos || [],
+			)
+		} catch (err) {
+			console.error("addComponente: exceção ao chamar API:", err)
+			throw err
+		}
+		console.debug("addComponente: resposta backend:", JSON.stringify(res))
 
 		if (res && res.success) {
 			const componenteId: number =
@@ -425,6 +433,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 				),
 			)
 		} else {
+			console.error("Falha ao criar componente:", res)
 			throw new Error(res?.message || "Erro ao criar componente")
 		}
 	}

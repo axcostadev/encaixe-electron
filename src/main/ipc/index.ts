@@ -182,6 +182,18 @@ export function setupIPC(): void {
 		},
 	)
 
+	// IPC para resetar senha do admin (uso de diagnóstico/recuperação)
+	ipcMain.handle("auth:reset-admin", async (_event, password: string) => {
+		try {
+			// eslint-disable-next-line @typescript-eslint/no-var-requires
+			const users = require("../database/users")
+			return await users.resetAdminPassword(password)
+		} catch (err) {
+			console.error("Erro no auth:reset-admin:", err)
+			return { success: false, message: String(err) }
+		}
+	})
+
 	// IPC para registrar novo usuário
 	ipcMain.handle(
 		"auth:register",

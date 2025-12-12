@@ -475,7 +475,12 @@ export function addComponente(
 			const espacamento = dados?.espacamento || null
 			const comp_maximo = dados?.compMaximo || null
 			const perc_perda = dados?.percPerda || null
-			const modelo_cor_id = dados?.modeloCorId || null
+			// Se modelo_cor_id não informado, usar primeira cor de coresDisponiveis
+			let modelo_cor_id = dados?.modeloCorId || null
+			if (!modelo_cor_id && dados?.coresDisponiveis && dados.coresDisponiveis.length > 0) {
+				const firstCor = dados.coresDisponiveis[0]
+				modelo_cor_id = typeof firstCor === 'string' ? parseInt(firstCor) : firstCor
+			}
 			const setor_id = dados?.setorId || null
 			const numero_tecido = dados?.numeroTecido || ""
 
@@ -499,7 +504,11 @@ export function addComponente(
 				],
 				function (err: Error | null) {
 					if (err) {
-						resolve({ success: false, message: "Erro ao criar componente" })
+						console.error("Erro ao criar componente (SQL):", err)
+						resolve({
+							success: false,
+							message: "Erro ao criar componente: " + (err && err.message ? err.message : String(err)),
+						})
 						return
 					}
 					const componenteId = this.lastID as number

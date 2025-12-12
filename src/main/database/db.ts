@@ -58,9 +58,9 @@ export function initDatabase(): void {
 		CREATE TABLE IF NOT EXISTS componentes (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			modelo_id INTEGER NOT NULL,
-			modelo_cor_id INTEGER NOT NULL,
+			modelo_cor_id INTEGER,
 			setor_id INTEGER,
-			numero_tecido TEXT NOT NULL,
+			numero_tecido TEXT DEFAULT '',
 			nome TEXT NOT NULL,
 			material_id INTEGER,
 			tipo_tecido INTEGER,
