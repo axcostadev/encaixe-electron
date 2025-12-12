@@ -386,43 +386,23 @@ export function listComponentes(modelo_id: number): Promise<Componente[]> {
 
 										// carregar tamanhos (suporta colunas tamanho_inicial/tamanho_final)
 										database.all(
-											"SELECT tamanho_inicial, tamanho_final, tamanho FROM tamanhos WHERE componente_id = ? ORDER BY id",
+											"SELECT tamanho_inicial, tamanho_final FROM tamanhos WHERE componente_id = ? ORDER BY id",
 											[r.id],
 											(
 												tamErr: Error | null,
 												trows: Array<{
-													tamanho_inicial?: number
-													tamanho_final?: number
-													tamanho?: string
+													tamanho_inicial: number
+													tamanho_final: number
 												}>,
 											) => {
 												if (tamErr) {
 													comp.tamanhos = []
 												} else {
 													const tamanhosRows = trows || []
-													comp.tamanhos = tamanhosRows.map((t) => {
-														if (
-															typeof t.tamanho_inicial === "number" &&
-															typeof t.tamanho_final === "number"
-														) {
-															return {
-																tamanhoInicial: t.tamanho_inicial,
-																tamanhoFinal: t.tamanho_final,
-															}
-														}
-														const s = String(t.tamanho || "")
-														if (s.includes("-")) {
-															const parts = s.split("-")
-															const inicio = parseInt(parts[0]) || 0
-															const fim = parseInt(parts[1]) || inicio
-															return {
-																tamanhoInicial: inicio,
-																tamanhoFinal: fim,
-															}
-														}
-														const v = parseInt(s) || 0
-														return { tamanhoInicial: v, tamanhoFinal: v }
-													})
+													comp.tamanhos = tamanhosRows.map((t) => ({
+														tamanhoInicial: t.tamanho_inicial,
+														tamanhoFinal: t.tamanho_final,
+													}))
 												}
 												resComp(comp)
 											},

@@ -5,6 +5,7 @@ import icon from "../../resources/icon.png?asset"
 import { existsSync } from "fs"
 import { setupIPC } from "./ipc"
 import { setupMenu } from "./menu"
+import { closeDatabase } from "./database"
 
 function createWindow(): void {
 	// Create the browser window.
@@ -112,6 +113,10 @@ app.on("window-all-closed", () => {
 	if (process.platform !== "darwin") {
 		app.quit()
 	}
+})
+
+app.on("before-quit", () => {
+	closeDatabase()
 })
 
 // In this file you can include the rest of your app's specific main process

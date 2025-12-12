@@ -3,7 +3,7 @@ import { Modelo } from "./Modelo"
 import { Componentes } from "./Componentes"
 import { Tamanho } from "./Tamanho"
 import { Material } from "./Material"
-import { Setor } from "./Setor_"
+import { Setor } from "./Setor"
 
 interface User {
 	id: number
