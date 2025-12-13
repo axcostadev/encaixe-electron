@@ -59,6 +59,36 @@ function createWindow(): void {
 		return { action: "deny" }
 	})
 
+	// Diagnostics: forward renderer console messages and log load failures/crashes
+	mainWindow.webContents.on(
+		"console-message",
+		(_event, level, message, line, sourceId) => {
+			console.log(
+				`Renderer console (${level}) ${sourceId}:${line} - ${message}`,
+			)
+		},
+	)
+
+	mainWindow.webContents.on(
+		"did-fail-load",
+		(_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+			console.error("did-fail-load", {
+				errorCode,
+				errorDescription,
+				validatedURL,
+				isMainFrame,
+			})
+		},
+	)
+
+	mainWindow.webContents.on("render-process-gone", (_event, details) => {
+		console.error("Renderer process gone", details)
+	})
+
+	mainWindow.webContents.on("did-finish-load", () => {
+		console.log("Renderer finished load")
+	})
+
 	// HMR for renderer base on electron-vite cli.
 	// Load the remote URL for development or the local html file for production.
 	if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
