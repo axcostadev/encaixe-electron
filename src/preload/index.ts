@@ -79,6 +79,11 @@ const api = {
 	auth: {
 		login: (username: string, password: string) =>
 			ipcRenderer.invoke("auth:login", username, password),
+		getWindowsUsername: () => ipcRenderer.invoke("auth:whoami"),
+		findUser: (username: string) =>
+			ipcRenderer.invoke("auth:find-user", username),
+		loginAsWindowsUser: (username: string) =>
+			ipcRenderer.invoke("auth:login-windows", username),
 		register: (username: string, password: string, email: string) =>
 			ipcRenderer.invoke("auth:register", username, password, email),
 		resetAdmin: (password: string) =>

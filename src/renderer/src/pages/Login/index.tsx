@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useEffect } from "react"
 
 interface User {
 	id: number
@@ -32,6 +33,54 @@ export function Login({ onLoginSuccess }: LoginProps): React.JSX.Element {
 			}
 		} catch {
 			setError("Erro ao conectar ao servidor")
+		} finally {
+			setLoading(false)
+		}
+	}
+
+	// Windows auto-detect
+	const [windowsUser, setWindowsUser] = useState<string | null>(null)
+	const [canWindowsLogin, setCanWindowsLogin] = useState(false)
+
+	useEffect(() => {
+		let mounted = true
+		;(async () => {
+			try {
+				const who = await window.api.auth.getWindowsUsername?.()
+				if (!mounted) return
+				if (who && who.success && who.username) {
+					setWindowsUser(who.username)
+					const found = await window.api.auth.findUser?.(who.username)
+					if (found && found.success && found.user) {
+						setCanWindowsLogin(true)
+					}
+				}
+			} catch (err) {
+				console.log(err)
+				// ignore
+			}
+		})()
+		return () => {
+			mounted = false
+		}
+	}, [])
+
+	const handleWindowsLogin = async () => {
+		if (!windowsUser) return
+		setLoading(true)
+		try {
+			const res = await window.api.auth.loginAsWindowsUser?.(windowsUser)
+			if (!res) {
+				setError("Login por usuário do Windows não disponível")
+				return
+			}
+			if (res.success && res.user) {
+				onLoginSuccess(res.user)
+			} else {
+				setError(res.message || "Erro no login do Windows")
+			}
+		} catch (err) {
+			setError("Erro ao logar com usuário do Windows:" + String(err))
 		} finally {
 			setLoading(false)
 		}
@@ -153,6 +202,18 @@ export function Login({ onLoginSuccess }: LoginProps): React.JSX.Element {
 						{loading ? "Carregando..." : isLogin ? "Entrar" : "Criar Conta"}
 					</button>
 				</form>
+
+				{canWindowsLogin && windowsUser && (
+					<div className="mt-4 text-center">
+						<button
+							onClick={handleWindowsLogin}
+							disabled={loading}
+							className="px-4 py-2 bg-gray-800 text-white rounded-md"
+						>
+							Entrar como {windowsUser}
+						</button>
+					</div>
+				)}
 
 				<div className="text-center mt-5 text-gray-600 text-sm">
 					{isLogin ? (

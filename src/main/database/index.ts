@@ -5,6 +5,7 @@ import {
 	createUser,
 	resetAdminPassword,
 } from "./users"
+import { getUserByUsername } from "./users"
 import {
 	Modelo,
 	ModeloCor,
@@ -73,4 +74,5 @@ export {
 	createSetor,
 	updateSetor,
 	deleteSetor,
+	getUserByUsername,
 }

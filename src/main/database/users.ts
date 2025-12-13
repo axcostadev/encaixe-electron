@@ -160,3 +160,43 @@ export function resetAdminPassword(password: string): Promise<LoginResult> {
 		}
 	})
 }
+
+export function getUserByUsername(username: string): Promise<LoginResult> {
+	return new Promise((resolve) => {
+		try {
+			const database = getDatabase()
+			database.get(
+				"SELECT id, username, email FROM users WHERE username = ?",
+				[username],
+				(err: Error | null, user: User | undefined) => {
+					if (err) {
+						resolve({
+							success: false,
+							message: "Erro ao conectar ao banco de dados",
+						})
+						return
+					}
+
+					if (user) {
+						resolve({
+							success: true,
+							message: "Usuário encontrado",
+							user: {
+								id: user.id,
+								username: user.username,
+								email: user.email,
+							},
+						})
+					} else {
+						resolve({ success: false, message: "Usuário não encontrado" })
+					}
+				},
+			)
+		} catch (error) {
+			resolve({
+				success: false,
+				message: "Erro ao buscar usuário: " + String(error),
+			})
+		}
+	})
+}

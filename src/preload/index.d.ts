@@ -85,6 +85,12 @@ interface AuthResponse {
 	user?: User
 }
 
+interface WhoamiResponse {
+	success: boolean
+	username?: string
+	message?: string
+}
+
 interface AuthAPI {
 	login: (username: string, password: string) => Promise<AuthResponse>
 	register: (
@@ -92,6 +98,9 @@ interface AuthAPI {
 		password: string,
 		email: string,
 	) => Promise<AuthResponse>
+	getWindowsUsername?: () => Promise<WhoamiResponse>
+	findUser?: (username: string) => Promise<AuthResponse>
+	loginAsWindowsUser?: (username: string) => Promise<AuthResponse>
 }
 
 interface Modelo {

@@ -2,6 +2,7 @@ import { dialog, ipcMain } from "electron"
 import {
 	authenticateUser,
 	resetAdminPassword,
+	getUserByUsername,
 	closeDatabase,
 	createUser,
 	initDatabase,
@@ -37,6 +38,7 @@ import * as exportadorLectra from "../modules/exportadorLectra.js"
 import * as conversorComelz from "../modules/conversorComelz.js"
 import * as conversorEmma from "../modules/conversorEmma.js"
 import * as conversorLectra from "../modules/conversorLectra.js"
+import * as os from "os"
 
 // Type definitions
 interface LinhaCTF {
@@ -182,6 +184,42 @@ export function setupIPC(): void {
 			return await authenticateUser(username, password)
 		},
 	)
+
+	// Retornar usuário do SO (nome de usuário)
+	ipcMain.handle("auth:whoami", async () => {
+		try {
+			const info = os.userInfo()
+			return { success: true, username: info.username }
+		} catch (err) {
+			return { success: false, message: String(err) }
+		}
+	})
+
+	// Verificar se usuário existe no banco por username
+	ipcMain.handle("auth:find-user", async (_event, username: string) => {
+		try {
+			return await getUserByUsername(username)
+		} catch (err) {
+			return { success: false, message: String(err) }
+		}
+	})
+
+	// Login por username (sem senha) — usado para autenticação via usuário do Windows
+	ipcMain.handle("auth:login-windows", async (_event, username: string) => {
+		try {
+			const res = await getUserByUsername(username)
+			if (res.success && res.user) {
+				return {
+					success: true,
+					message: "Login por usuário do Windows bem-sucedido",
+					user: res.user,
+				}
+			}
+			return { success: false, message: "Usuário não encontrado" }
+		} catch (err) {
+			return { success: false, message: String(err) }
+		}
+	})
 
 	// IPC para resetar senha do admin (uso de diagnóstico/recuperação)
 	ipcMain.handle("auth:reset-admin", async (_event, password: string) => {
