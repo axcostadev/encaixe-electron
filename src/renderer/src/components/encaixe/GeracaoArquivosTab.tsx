@@ -36,6 +36,8 @@ import {
 	DialogTitle,
 } from "@renderer/components/ui/dialog"
 import { ScrollArea } from "@renderer/components/ui/scroll-area"
+import { ListaAutomaticoItem } from "@renderer/pages/EncaixePage"
+import { ListPlus } from "lucide-react"
 
 type GradePar = {
 	artigo: string
@@ -89,7 +91,7 @@ type QtyItem = {
 	material_margin: number
 }
 
-export function GeracaoArquivosTab() {
+export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (item: ListaAutomaticoItem) => void }) {
 	const [ofSearch, setOfSearch] = useState("")
 	const [artigoSearch, setArtigoSearch] = useState("")
 	const [gradePares, setGradePares] = useState<GradePar[]>([])
@@ -284,6 +286,105 @@ export function GeracaoArquivosTab() {
 			setNovoApelido("")
 		} else {
 			setMessage("Erro ao cadastrar apelido")
+		}
+	}
+
+	// Função para adicionar item à lista automático
+	async function adicionarNaListaAutomatico() {
+		if (!componenteSelecionado) {
+			setMessage("Selecione um componente primeiro")
+			return
+		}
+
+		if (!ofSearch) {
+			setMessage("Busque uma OF primeiro")
+			return
+		}
+
+		if (!apelidoSelecionado) {
+			setMessage("Selecione um apelido para o nome do arquivo")
+			return
+		}
+
+		const cadastroSelecionado = cadastrosInfo.find(
+			(c) => c.componente === componenteSelecionado,
+		)
+
+		if (!cadastroSelecionado) {
+			setMessage("Cadastro não encontrado para o componente selecionado")
+			return
+		}
+
+		try {
+			let dados: PedidoComelz | PedidoEmma | ModelDataLectra[] | null = null
+
+			// Converter de acordo com a máquina selecionada
+			if (maquinaSelecionada === "Emma") {
+				if (paresPorCorTamanho.length > 0) {
+					const tamanhos = cadastroSelecionado.tamanhos || []
+					const qtyItems: QtyItem[] = []
+
+					for (const corData of paresPorCorTamanho) {
+						for (const tam of tamanhos) {
+							const pares = corData.pares[tam] || 0
+							if (pares > 0) {
+								qtyItems.push({
+									part_name: cadastroSelecionado.componente || cadastroSelecionado.artigo,
+									part_size: String(Number(tam).toFixed(2)),
+									mirror: false,
+									parts: pares,
+									angle: 90,
+									toler: 10,
+									material_name: cadastroSelecionado.material || "",
+									material_x: 1.41,
+									material_y: parseFloat(cadastroSelecionado.largura) || 10,
+									material_unit: "m",
+									part_space: parseFloat(cadastroSelecionado.espacamento) || 1.5,
+									material_plies_up: parseInt(cadastroSelecionado.camada) || 12,
+									material_plies_down: 0,
+									material_margin: 0,
+								})
+							}
+						}
+					}
+
+					const pastaArtigo = `${cadastroSelecionado.artigo} - ${cadastroSelecionado.modelo}`
+					const modelPath = `O:\\Lectra\\Calcado\\Modelos\\EMMA\\${pastaArtigo}\\${cadastroSelecionado.componente}.emp`
+
+					dados = {
+						customer: "VULCABRAS",
+						date: new Date().toISOString().split("T")[0].replace(/-/g, ""),
+						id: ofSearch,
+						model: modelPath,
+						qty: qtyItems,
+					} as PedidoEmma
+				} else {
+					dados = await converterParaEmma(cadastroSelecionado)
+				}
+			} else if (maquinaSelecionada === "Comelz") {
+				dados = await converterParaComelz(cadastroSelecionado)
+			} else if (maquinaSelecionada === "Lectra") {
+				dados = await converterParaLectra(cadastroSelecionado)
+			}
+
+			if (!dados) {
+				setMessage("Erro ao converter dados")
+				return
+			}
+
+			// Adicionar à lista
+			onAdicionarLista({
+				of: ofSearch,
+				componente: componenteSelecionado,
+				apelido: apelidoSelecionado,
+				maquina: maquinaSelecionada,
+				dados: dados,
+			})
+
+			setMessage(`Item adicionado à lista: ${ofSearch}-${apelidoSelecionado}`)
+		} catch (err) {
+			console.error("Erro ao preparar dados:", err)
+			setMessage("Erro ao preparar dados: " + String(err))
 		}
 	}
 
@@ -718,6 +819,16 @@ export function GeracaoArquivosTab() {
 							}
 						>
 							Gerar Arquivo
+						</Button>
+						<Button
+							onClick={adicionarNaListaAutomatico}
+							variant="secondary"
+							disabled={
+								loading || !componenteSelecionado || !apelidoSelecionado || !ofSearch
+							}
+						>
+							<ListPlus className="w-4 h-4 mr-2" />
+							Adicionar à Lista
 						</Button>
 						<Button
 							onClick={abrirDialogApelido}

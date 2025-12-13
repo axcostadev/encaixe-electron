@@ -4,127 +4,172 @@ import { Alert, AlertDescription } from "@renderer/components/ui/alert"
 import { useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@renderer/components/ui/table"
 import { useEncaixe } from "@renderer/hooks/useEncaixe"
+import { ListaAutomaticoItem } from "@renderer/pages/EncaixePage"
+import { Trash2, Play, ListX } from "lucide-react"
 
-export function ProcessamentoArquivosTab() {
-	const [ctfPath, setCtfPath] = useState<string | null>(null)
-	const [ctcPath, setCtcPath] = useState<string | null>(null)
+interface ProcessamentoArquivosTabProps {
+	lista: ListaAutomaticoItem[]
+	onRemover: (index: number) => void
+	onLimpar: () => void
+}
+
+export function ProcessamentoArquivosTab({ lista, onRemover, onLimpar }: ProcessamentoArquivosTabProps) {
 	const [message, setMessage] = useState('')
-	const [processedData, setProcessedData] = useState<{
-		ctf: any[]
-		ctc: any[]
-	} | null>(null)
+	const [processando, setProcessando] = useState(false)
+	const [progresso, setProgresso] = useState(0)
 
-	const { loading, parseArquivos } = useEncaixe()
+	const { exportarArquivo } = useEncaixe()
 
-	async function selecionarCTF() {
-		const result = await (window as any).api.electronAPI.selectFile()
-		if (result) {
-			setCtfPath(result)
-			setMessage(`Arquivo CTF selecionado: ${result}`)
-		}
-	}
-
-	async function selecionarCTC() {
-		const result = await (window as any).api.electronAPI.selectFile()
-		if (result) {
-			setCtcPath(result)
-			setMessage(`Arquivo CTC selecionado: ${result}`)
-		}
-	}
-
-	async function processarArquivos() {
-		if (!ctfPath && !ctcPath) {
-			setMessage('Selecione pelo menos um arquivo para processar')
+	async function gerarTodosArquivos() {
+		if (lista.length === 0) {
+			setMessage('Nenhum item na lista para processar')
 			return
 		}
 
-		setMessage('Processando arquivos...')
-		
-		try {
-			const { ctfData, ctcData } = await parseArquivos(ctfPath || undefined, ctcPath || undefined)
-			
-			setProcessedData({
-				ctf: ctfData,
-				ctc: ctcData
-			})
+		setProcessando(true)
+		setProgresso(0)
+		setMessage('Iniciando geração dos arquivos...')
 
-			setMessage(`Processamento concluído! CTF: ${ctfData.length} OFs, CTC: ${ctcData.length} OFs`)
-		} catch (err) {
-			console.error('Erro ao processar arquivos:', err)
-			setMessage('Erro ao processar arquivos: ' + String(err))
-		}
-	}
+		let sucessos = 0
+		let erros = 0
 
-	async function salvarNoBanco() {
-		if (!processedData) {
-			setMessage('Processe os arquivos primeiro')
-			return
-		}
+		for (let i = 0; i < lista.length; i++) {
+			const item = lista[i]
+			try {
+				const nomeArquivo = `${item.of}-${item.apelido}`
+				const savePath = await exportarArquivo(
+					item.maquina.toLowerCase() as "comelz" | "emma" | "lectra",
+					item.dados,
+					nomeArquivo,
+				)
 
-		setMessage('Salvando no banco de dados...')
-		
-		try {
-			if (processedData.ctf.length > 0) {
-				await (window as any).api.electronAPI.saveCTF(processedData.ctf)
-			}
-			if (processedData.ctc.length > 0) {
-				await (window as any).api.electronAPI.saveCTC(processedData.ctc)
+				if (savePath) {
+					sucessos++
+				}
+			} catch (err) {
+				console.error(`Erro ao gerar arquivo ${item.of}-${item.apelido}:`, err)
+				erros++
 			}
 
-			setMessage('Dados salvos no banco com sucesso!')
-		} catch (err) {
-			console.error('Erro ao salvar no banco:', err)
-			setMessage('Erro ao salvar no banco: ' + String(err))
+			setProgresso(Math.round(((i + 1) / lista.length) * 100))
 		}
+
+		setProcessando(false)
+		setMessage(`Processamento concluído! ${sucessos} arquivo(s) gerado(s)${erros > 0 ? `, ${erros} erro(s)` : ''}`)
 	}
 
 	return (
 		<div className="space-y-6">
 			<Card>
 				<CardHeader>
-					<CardTitle>Processar Arquivos CTF e CTC</CardTitle>
+					<CardTitle className="flex items-center justify-between">
+						<span>Lista de Arquivos Automático</span>
+						{lista.length > 0 && (
+							<span className="text-sm font-normal text-muted-foreground">
+								{lista.length} item(s) na lista
+							</span>
+						)}
+					</CardTitle>
 					<CardDescription>
-						Selecione os arquivos para carregar e processar os dados
+						Arquivos adicionados para geração em lote
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-						<div className="space-y-2">
-							<Button onClick={selecionarCTF} className="w-full" variant="outline">
-								{ctfPath ? '✓ CTF Selecionado' : 'Selecionar Arquivo CTF'}
-							</Button>
-							{ctfPath && (
-								<p className="text-xs text-muted-foreground truncate">{ctfPath}</p>
-							)}
+					{lista.length === 0 ? (
+						<div className="text-center py-12 border-2 border-dashed rounded-lg">
+							<ListX className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+							<p className="text-muted-foreground">Lista vazia</p>
+							<p className="text-sm text-muted-foreground mt-1">
+								Adicione itens na aba "Geração de Arquivos" usando o botão "Adicionar à Lista"
+							</p>
 						</div>
+					) : (
+						<>
+							<div className="border rounded-lg">
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead className="w-10">#</TableHead>
+											<TableHead>OF</TableHead>
+											<TableHead>Componente</TableHead>
+											<TableHead>Apelido</TableHead>
+											<TableHead>Máquina</TableHead>
+											<TableHead>Nome Arquivo</TableHead>
+											<TableHead className="w-10"></TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{lista.map((item, idx) => (
+											<TableRow key={idx}>
+												<TableCell className="font-mono text-muted-foreground">
+													{idx + 1}
+												</TableCell>
+												<TableCell className="font-mono font-medium">
+													{item.of}
+												</TableCell>
+												<TableCell>{item.componente}</TableCell>
+												<TableCell className="font-semibold text-primary">
+													{item.apelido}
+												</TableCell>
+												<TableCell>
+													<span className="px-2 py-1 bg-muted rounded text-xs">
+														{item.maquina}
+													</span>
+												</TableCell>
+												<TableCell className="text-sm text-muted-foreground">
+													{item.of}-{item.apelido}.json
+												</TableCell>
+												<TableCell>
+													<Button
+														variant="ghost"
+														size="icon"
+														onClick={() => onRemover(idx)}
+														className="text-destructive hover:text-destructive hover:bg-destructive/10"
+													>
+														<Trash2 className="w-4 h-4" />
+													</Button>
+												</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</div>
 
-						<div className="space-y-2">
-							<Button onClick={selecionarCTC} className="w-full" variant="outline">
-								{ctcPath ? '✓ CTC Selecionado' : 'Selecionar Arquivo CTC'}
-							</Button>
-							{ctcPath && (
-								<p className="text-xs text-muted-foreground truncate">{ctcPath}</p>
+							{processando && (
+								<div className="space-y-2">
+									<div className="w-full bg-muted rounded-full h-2">
+										<div 
+											className="bg-primary h-2 rounded-full transition-all duration-300"
+											style={{ width: `${progresso}%` }}
+										/>
+									</div>
+									<p className="text-sm text-center text-muted-foreground">
+										Processando... {progresso}%
+									</p>
+								</div>
 							)}
-						</div>
-					</div>
 
-					<div className="flex gap-2">
-						<Button 
-							onClick={processarArquivos} 
-							disabled={loading || (!ctfPath && !ctcPath)}
-							className="flex-1"
-						>
-							{loading ? 'Processando...' : 'Processar Arquivos'}
-						</Button>
-						
-						<Button 
-							onClick={salvarNoBanco} 
-							disabled={loading || !processedData}
-							variant="secondary"
-						>
-							Salvar no Banco
-						</Button>
-					</div>
+							<div className="flex gap-2">
+								<Button 
+									onClick={gerarTodosArquivos} 
+									disabled={processando || lista.length === 0}
+									className="flex-1"
+								>
+									<Play className="w-4 h-4 mr-2" />
+									{processando ? 'Processando...' : `Gerar Todos os Arquivos (${lista.length})`}
+								</Button>
+								
+								<Button 
+									onClick={onLimpar} 
+									disabled={processando || lista.length === 0}
+									variant="destructive"
+								>
+									<Trash2 className="w-4 h-4 mr-2" />
+									Limpar Lista
+								</Button>
+							</div>
+						</>
+					)}
 
 					{message && (
 						<Alert>
@@ -133,96 +178,6 @@ export function ProcessamentoArquivosTab() {
 					)}
 				</CardContent>
 			</Card>
-
-			{processedData && (
-				<Card>
-					<CardHeader>
-						<CardTitle>Dados Processados</CardTitle>
-						<CardDescription>
-							Visualização dos dados carregados dos arquivos
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						{processedData.ctf.length > 0 && (
-							<div>
-								<h4 className="font-semibold mb-2">CTF ({processedData.ctf.length} OFs)</h4>
-								<div className="border rounded-lg max-h-64 overflow-auto">
-									<Table>
-										<TableHeader>
-											<TableRow>
-												<TableHead>OF</TableHead>
-												<TableHead>Artigo</TableHead>
-												<TableHead>Modelo</TableHead>
-												<TableHead>Cor</TableHead>
-												<TableHead>Grade</TableHead>
-												<TableHead>Pares</TableHead>
-											</TableRow>
-										</TableHeader>
-										<TableBody>
-											{processedData.ctf.slice(0, 10).map((bloco, idx) => (
-												bloco.linhas?.slice(0, 3).map((linha: any, lIdx: number) => (
-													<TableRow key={`${idx}-${lIdx}`}>
-														<TableCell className="font-mono text-xs">{linha.of}</TableCell>
-														<TableCell className="text-xs">{linha.artigo}</TableCell>
-														<TableCell className="text-xs">{linha.modelo}</TableCell>
-														<TableCell className="text-xs">{linha.codigoCor}</TableCell>
-														<TableCell className="text-xs">{linha.grade}</TableCell>
-														<TableCell className="text-xs">{linha.pares}</TableCell>
-													</TableRow>
-												))
-											))}
-										</TableBody>
-									</Table>
-								</div>
-								<p className="text-xs text-muted-foreground mt-2">
-									Mostrando primeiras linhas. Total: {processedData.ctf.reduce((acc, b) => acc + (b.linhas?.length || 0), 0)} linhas
-								</p>
-							</div>
-						)}
-
-						{processedData.ctc.length > 0 && (
-							<div>
-								<h4 className="font-semibold mb-2">CTC ({processedData.ctc.length} OFs)</h4>
-								<div className="border rounded-lg max-h-64 overflow-auto">
-									<Table>
-										<TableHeader>
-											<TableRow>
-												<TableHead>OF</TableHead>
-												<TableHead>Artigo</TableHead>
-												<TableHead>Modelo</TableHead>
-												<TableHead>Cor</TableHead>
-												<TableHead>Grade</TableHead>
-												<TableHead>Pares</TableHead>
-												<TableHead>Especificação</TableHead>
-											</TableRow>
-										</TableHeader>
-										<TableBody>
-											{processedData.ctc.slice(0, 10).map((bloco, idx) => (
-												bloco.linhas?.slice(0, 3).map((linha: any, lIdx: number) => (
-													<TableRow key={`${idx}-${lIdx}`}>
-														<TableCell className="font-mono text-xs">{linha.of}</TableCell>
-														<TableCell className="text-xs">{linha.artigo}</TableCell>
-														<TableCell className="text-xs">{linha.modelo}</TableCell>
-														<TableCell className="text-xs">{linha.codigoCor}</TableCell>
-														<TableCell className="text-xs">{linha.grade}</TableCell>
-														<TableCell className="text-xs">{linha.pares}</TableCell>
-														<TableCell className="text-xs truncate max-w-[150px]">
-															{linha.especificacaoTecnica}
-														</TableCell>
-													</TableRow>
-												))
-											))}
-										</TableBody>
-									</Table>
-								</div>
-								<p className="text-xs text-muted-foreground mt-2">
-									Mostrando primeiras linhas. Total: {processedData.ctc.reduce((acc, b) => acc + (b.linhas?.length || 0), 0)} linhas
-								</p>
-							</div>
-						)}
-					</CardContent>
-				</Card>
-			)}
 		</div>
 	)
 }
