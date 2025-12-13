@@ -95,7 +95,8 @@ export function initDB() {
 														"[DB] error creating index idx_cadastros_artigo_digits:",
 														idxErr,
 													)
-												return resolve()
+												// Ensure users table exists for legacy DBs
+												createUsersTable().then(resolve).catch(resolve)
 											},
 										)
 									}
@@ -105,6 +106,38 @@ export function initDB() {
 					},
 				)
 			})
+		})
+	})
+}
+
+// Helper function to create users table if not exists
+function createUsersTable() {
+	return new Promise((resolve) => {
+		db.run(`
+			CREATE TABLE IF NOT EXISTS users (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				username TEXT UNIQUE NOT NULL,
+				password TEXT NOT NULL,
+				email TEXT,
+				role TEXT DEFAULT 'viewer',
+				active INTEGER DEFAULT 1,
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			)
+		`, (usersErr) => {
+			if (usersErr) {
+				console.log('[DB] error ensuring users table:', usersErr)
+			}
+			// Try to insert default admin if not exists
+			db.run(
+				"INSERT INTO users (username, password, email, role, active) VALUES (?, ?, ?, ?, ?)",
+				["admin", "123456", "admin@example.com", "admin", 1],
+				(errInsert) => {
+					if (errInsert && !errInsert.message.includes("UNIQUE constraint failed")) {
+						console.error('[DB] Erro ao criar usuário padrão no encaixe.db:', errInsert)
+					}
+					resolve()
+				},
+			)
 		})
 	})
 }

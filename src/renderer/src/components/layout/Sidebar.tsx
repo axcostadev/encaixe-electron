@@ -1,4 +1,5 @@
 import { cn } from "@renderer/lib/utils"
+import { useAuth, UserPermissions } from "@renderer/contexts/AuthContext"
 import {
 	Book,
 	Box,
@@ -9,17 +10,28 @@ import {
 	Zap,
 	Menu,
 	X,
+	Settings,
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
 
-const menuItems = [
-	{ path: "/", label: "Dashboard", icon: LayoutDashboard },
-	{ path: "/modelos", label: "Modelos", icon: Box },
-	{ path: "/cores", label: "Cores", icon: Palette },
-	{ path: "/materiais", label: "Materiais", icon: Layers },
-	{ path: "/componentes", label: "Componentes", icon: Package },
-	{ path: "/encaixe", label: "Encaixe", icon: Zap },
-	{ path: "/manual", label: "Manual", icon: Book },
+type PermissionKey = keyof UserPermissions
+
+interface MenuItem {
+	path: string
+	label: string
+	icon: typeof LayoutDashboard
+	permission?: PermissionKey
+}
+
+const menuItems: MenuItem[] = [
+	{ path: "/", label: "Dashboard", icon: LayoutDashboard, permission: "canViewDashboard" },
+	{ path: "/modelos", label: "Modelos", icon: Box, permission: "canViewModelos" },
+	{ path: "/cores", label: "Cores", icon: Palette, permission: "canViewCores" },
+	{ path: "/materiais", label: "Materiais", icon: Layers, permission: "canViewMateriais" },
+	{ path: "/componentes", label: "Componentes", icon: Package, permission: "canViewComponentes" },
+	{ path: "/encaixe", label: "Encaixe", icon: Zap, permission: "canViewEncaixe" },
+	{ path: "/manual", label: "Manual", icon: Book, permission: "canViewManual" },
+	{ path: "/setup", label: "Configurações", icon: Settings, permission: "canAccessSetup" },
 ]
 
 export function Sidebar({
@@ -29,6 +41,16 @@ export function Sidebar({
 	collapsed: boolean
 	setCollapsed: (v: boolean) => void
 }) {
+	const { hasPermission, user } = useAuth()
+
+	// Filtrar itens de menu baseado nas permissões do usuário
+	const visibleMenuItems = menuItems.filter((item) => {
+		// Se não tem permissão definida, mostrar sempre
+		if (!item.permission) return true
+		// Verificar se o usuário tem a permissão necessária
+		return hasPermission(item.permission)
+	})
+
 	return (
 		<aside
 			className={cn(
@@ -66,7 +88,7 @@ export function Sidebar({
 
 				{/* Navigation */}
 				<nav className="flex-1 space-y-1 p-2">
-					{menuItems.map((item) => (
+					{visibleMenuItems.map((item) => (
 						<NavLink
 							key={item.path}
 							to={item.path}
@@ -89,8 +111,20 @@ export function Sidebar({
 					))}
 				</nav>
 
-				{/* Footer */}
+				{/* User Info + Footer */}
 				<div className="border-t border-sidebar-border p-4">
+					{user && !collapsed && (
+						<div className="mb-2 px-2">
+							<p className="text-sm font-medium text-sidebar-foreground truncate">
+								{user.username}
+							</p>
+							<p className="text-xs text-sidebar-foreground/50 capitalize">
+								{user.role === "admin" && "Administrador"}
+								{user.role === "editor" && "Editor"}
+								{user.role === "viewer" && "Visualizador"}
+							</p>
+						</div>
+					)}
 					<p
 						className={cn(
 							"text-xs text-sidebar-foreground/50 text-center",

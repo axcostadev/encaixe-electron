@@ -1,8 +1,13 @@
-import { initDatabase, closeDatabase } from "./db"
+import { initDatabase, closeDatabase, ROLE_PERMISSIONS } from "./db"
+import type { UserRole, UserPermissions } from "./db"
 import {
 	LoginResult,
+	UserListResult,
 	authenticateUser,
 	createUser,
+	updateUser,
+	deleteUser,
+	listUsers,
 	resetAdminPassword,
 } from "./users"
 import { getUserByUsername } from "./users"
@@ -42,18 +47,23 @@ import {
 } from "./models"
 
 export type { Modelo, ModeloCor }
-export type { LoginResult }
+export type { LoginResult, UserListResult }
 export type { Material, SentidoType }
 export type { Componente }
 export type { ComponenteDados }
 export type { CadastroInfo }
 export type { Setor }
+export type { UserRole, UserPermissions }
 export {
 	initDatabase,
 	closeDatabase,
 	authenticateUser,
 	createUser,
+	updateUser,
+	deleteUser,
+	listUsers,
 	resetAdminPassword,
+	ROLE_PERMISSIONS,
 	listModelos,
 	createModelo,
 	updateModelo,

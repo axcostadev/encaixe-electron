@@ -12,6 +12,82 @@ if (!fs.existsSync(DB_PATH)) {
 
 let db: sqlite3.Database | undefined
 
+// Tipos de permissões do sistema
+export type UserRole = "admin" | "editor" | "viewer"
+
+export interface UserPermissions {
+	canViewDashboard: boolean
+	canViewModelos: boolean
+	canEditModelos: boolean
+	canViewCores: boolean
+	canEditCores: boolean
+	canViewMateriais: boolean
+	canEditMateriais: boolean
+	canViewComponentes: boolean
+	canEditComponentes: boolean
+	canViewEncaixe: boolean
+	canCreateEncaixe: boolean
+	canViewManual: boolean
+	canEditManual: boolean
+	canAccessSetup: boolean
+	canManageUsers: boolean
+}
+
+// Permissões por role
+export const ROLE_PERMISSIONS: Record<UserRole, UserPermissions> = {
+	admin: {
+		canViewDashboard: true,
+		canViewModelos: true,
+		canEditModelos: true,
+		canViewCores: true,
+		canEditCores: true,
+		canViewMateriais: true,
+		canEditMateriais: true,
+		canViewComponentes: true,
+		canEditComponentes: true,
+		canViewEncaixe: true,
+		canCreateEncaixe: true,
+		canViewManual: true,
+		canEditManual: true,
+		canAccessSetup: true,
+		canManageUsers: true,
+	},
+	editor: {
+		canViewDashboard: true,
+		canViewModelos: true,
+		canEditModelos: true,
+		canViewCores: true,
+		canEditCores: true,
+		canViewMateriais: true,
+		canEditMateriais: true,
+		canViewComponentes: true,
+		canEditComponentes: true,
+		canViewEncaixe: true,
+		canCreateEncaixe: false,
+		canViewManual: true,
+		canEditManual: true,
+		canAccessSetup: false,
+		canManageUsers: false,
+	},
+	viewer: {
+		canViewDashboard: false,
+		canViewModelos: false,
+		canEditModelos: false,
+		canViewCores: false,
+		canEditCores: false,
+		canViewMateriais: false,
+		canEditMateriais: false,
+		canViewComponentes: false,
+		canEditComponentes: false,
+		canViewEncaixe: false,
+		canCreateEncaixe: false,
+		canViewManual: true,
+		canEditManual: false,
+		canAccessSetup: false,
+		canManageUsers: false,
+	},
+}
+
 export function initDatabase(): void {
 	db = new sqlite3.Database(DB_FILE, (err) => {
 		if (err) {
@@ -21,16 +97,32 @@ export function initDatabase(): void {
 
 	const database = db!
 
-	// Criar tabela de usuários
+	// Criar tabela de usuários com role
 	database.run(`
 		CREATE TABLE IF NOT EXISTS users (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			username TEXT UNIQUE NOT NULL,
 			password TEXT NOT NULL,
 			email TEXT,
+			role TEXT DEFAULT 'viewer',
+			active INTEGER DEFAULT 1,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)
 	`)
+
+	// Adicionar coluna role se não existir (migração)
+	database.run(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'viewer'`, (err) => {
+		if (err && !err.message.includes("duplicate column")) {
+			// Ignora erro se coluna já existe
+		}
+	})
+
+	// Adicionar coluna active se não existir (migração)
+	database.run(`ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1`, (err) => {
+		if (err && !err.message.includes("duplicate column")) {
+			// Ignora erro se coluna já existe
+		}
+	})
 
 	// Criar tabela de Modelos
 	database.run(`
@@ -135,15 +227,20 @@ export function initDatabase(): void {
 		)
 	`)
 
-	// Criar usuário padrão se não existir
+	// Criar usuário padrão se não existir (admin com todas permissões)
 	database.run(
-		"INSERT INTO users (username, password, email) VALUES (?, ?, ?)",
-		["admin", "123456", "admin@example.com"],
+		"INSERT INTO users (username, password, email, role, active) VALUES (?, ?, ?, ?, ?)",
+		["admin", "123456", "admin@example.com", "admin", 1],
 		(err) => {
 			if (err && !err.message.includes("UNIQUE constraint failed")) {
 				console.error("Erro ao criar usuário padrão:", err)
 			}
 		},
+	)
+
+	// Atualizar admin existente para ter role admin
+	database.run(
+		"UPDATE users SET role = 'admin' WHERE username = 'admin' AND (role IS NULL OR role = '')",
 	)
 }
 

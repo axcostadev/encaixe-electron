@@ -89,6 +89,25 @@ const api = {
 		resetAdmin: (password: string) =>
 			ipcRenderer.invoke("auth:reset-admin", password),
 	},
+	// Gerenciamento de usuários (Setup)
+	users: {
+		list: () => ipcRenderer.invoke("users:list"),
+		create: (username: string, password: string, email: string, role: string) =>
+			ipcRenderer.invoke("users:create", username, password, email, role),
+		update: (
+			id: number,
+			data: {
+				username?: string
+				email?: string
+				password?: string
+				role?: string
+				active?: boolean
+			},
+		) => ipcRenderer.invoke("users:update", id, data),
+		delete: (id: number) => ipcRenderer.invoke("users:delete", id),
+		getPermissions: (role: string) =>
+			ipcRenderer.invoke("users:get-permissions", role),
+	},
 	modelos: {
 		list: () => ipcRenderer.invoke("modelos:list"),
 		create: (artigo: string, nome: string) =>

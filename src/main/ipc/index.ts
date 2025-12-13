@@ -5,7 +5,11 @@ import {
 	getUserByUsername,
 	closeDatabase,
 	createUser,
+	updateUser,
+	deleteUser,
+	listUsers,
 	initDatabase,
+	ROLE_PERMISSIONS,
 	listModelos,
 	createModelo,
 	updateModelo,
@@ -238,6 +242,67 @@ export function setupIPC(): void {
 			return await createUser(username, password, email)
 		},
 	)
+
+	// ============================================
+	// GERENCIAMENTO DE USUÁRIOS (SETUP)
+	// ============================================
+
+	// Listar todos os usuários
+	ipcMain.handle("users:list", async () => {
+		return await listUsers()
+	})
+
+	// Criar novo usuário com role
+	ipcMain.handle(
+		"users:create",
+		async (
+			_event,
+			username: string,
+			password: string,
+			email: string,
+			role: string,
+		) => {
+			return await createUser(username, password, email, role as "admin" | "editor" | "viewer")
+		},
+	)
+
+	// Atualizar usuário
+	ipcMain.handle(
+		"users:update",
+		async (
+			_event,
+			id: number,
+			data: {
+				username?: string
+				email?: string
+				password?: string
+				role?: string
+				active?: boolean
+			},
+		) => {
+			return await updateUser(id, {
+				username: data.username,
+				email: data.email,
+				password: data.password,
+				role: data.role as "admin" | "editor" | "viewer" | undefined,
+				active: data.active !== undefined ? (data.active ? 1 : 0) : undefined,
+			})
+		},
+	)
+
+	// Deletar usuário
+	ipcMain.handle("users:delete", async (_event, id: number) => {
+		return await deleteUser(id)
+	})
+
+	// Obter permissões por role
+	ipcMain.handle("users:get-permissions", async (_event, role: string) => {
+		const permissions = ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS]
+		if (permissions) {
+			return { success: true, permissions }
+		}
+		return { success: false, message: "Role não encontrada" }
+	})
 
 	// IPC para fechar banco de dados
 	ipcMain.handle("app:close", async () => {

@@ -77,6 +77,54 @@ interface User {
 	id: number
 	username: string
 	email: string
+	role?: "admin" | "editor" | "viewer"
+	active?: boolean
+	created_at?: string
+}
+
+interface UserPermissions {
+	canViewDashboard: boolean
+	canViewModelos: boolean
+	canEditModelos: boolean
+	canDeleteModelos: boolean
+	canViewMateriais: boolean
+	canEditMateriais: boolean
+	canDeleteMateriais: boolean
+	canViewComponentes: boolean
+	canEditComponentes: boolean
+	canDeleteComponentes: boolean
+	canViewCores: boolean
+	canEditCores: boolean
+	canDeleteCores: boolean
+	canViewSetores: boolean
+	canEditSetores: boolean
+	canDeleteSetores: boolean
+	canViewEncaixe: boolean
+	canCreateEncaixe: boolean
+	canViewManual: boolean
+	canEditManual: boolean
+	canAccessSetup: boolean
+	canManageUsers: boolean
+}
+
+interface UserListResponse {
+	success: boolean
+	users?: User[]
+	message?: string
+}
+
+interface UserUpdateData {
+	username?: string
+	email?: string
+	password?: string
+	role?: string
+	active?: boolean
+}
+
+interface PermissionsResponse {
+	success: boolean
+	permissions?: UserPermissions
+	message?: string
 }
 
 interface AuthResponse {
@@ -101,6 +149,20 @@ interface AuthAPI {
 	getWindowsUsername?: () => Promise<WhoamiResponse>
 	findUser?: (username: string) => Promise<AuthResponse>
 	loginAsWindowsUser?: (username: string) => Promise<AuthResponse>
+	resetAdmin?: (password: string) => Promise<OperationResponse>
+}
+
+interface UsersAPI {
+	list: () => Promise<UserListResponse>
+	create: (
+		username: string,
+		password: string,
+		email: string,
+		role: string,
+	) => Promise<AuthResponse>
+	update: (id: number, data: UserUpdateData) => Promise<OperationResponse>
+	delete: (id: number) => Promise<OperationResponse>
+	getPermissions: (role: string) => Promise<PermissionsResponse>
 }
 
 interface Modelo {
@@ -246,6 +308,7 @@ declare global {
 		electron: ElectronAPI
 		api: {
 			auth: AuthAPI
+			users: UsersAPI
 			modelos: ModelosAPI
 			materiais: MateriaisAPI
 			setores: SetoresAPI
