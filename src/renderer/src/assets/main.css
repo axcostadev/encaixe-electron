@@ -4,8 +4,10 @@
 
 @font-face {
 	font-family: "Inter";
-	/* use relative path so it resolves when loaded via file:// in production */
-	src: url("../../inter.ttf") format("truetype");
+	/* Use absolute path so Vite doesn't try to resolve at build-time.
+		 Place `inter.ttf` in the app's public root (e.g. `src/renderer/public/inter.ttf`)
+		 or bundle it into the installer assets so it's available at runtime. */
+	src: url("/inter.ttf") format("truetype");
 	font-weight: 100 900;
 	font-style: normal;
 	font-display: swap;
