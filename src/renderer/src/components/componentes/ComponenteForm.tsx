@@ -16,6 +16,7 @@ import {
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
+	SelectSearch,
 } from "@renderer/components/ui/select"
 import { Componente, ComponentePayload, Cor, Material } from "@renderer/types"
 import { Plus, Trash2 } from "lucide-react"
@@ -202,24 +203,15 @@ export function ComponenteForm({
 								<div className="grid grid-cols-2 gap-4">
 									<div className="space-y-2">
 										<Label htmlFor="material">Material *</Label>
-										<Select
+										<SelectSearch
 											value={formData.materialId}
 											onValueChange={(v) => handleChange("materialId", v)}
-										>
-											<SelectTrigger>
-												<SelectValue placeholder="Selecione um material" />
-											</SelectTrigger>
-											<SelectContent>
-												{materiais.map((material) => (
-													<SelectItem
-														key={material.id}
-														value={material.id.toString()}
-													>
-														{material.artigo} ({material.largura}cm)
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
+											placeholder="Selecione um material"
+											options={materiais.map((material) => ({
+												value: material.id.toString(),
+												label: `${material.artigo} (${material.largura}cm)`,
+											}))}
+										/>
 									</div>
 									<div className="space-y-2">
 										<Label htmlFor="numeroTecido">Número Tecido</Label>

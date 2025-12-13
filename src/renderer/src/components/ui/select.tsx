@@ -155,3 +155,86 @@ export {
 	SelectScrollUpButton,
 	SelectScrollDownButton,
 }
+
+type SelectSearchOption = { value: string; label: React.ReactNode }
+
+interface SelectSearchProps {
+	value?: string
+	onValueChange?: (val: string) => void
+	options: SelectSearchOption[]
+	placeholder?: string
+}
+
+export function SelectSearch({
+	value,
+	onValueChange,
+	options,
+	placeholder = "",
+}: SelectSearchProps) {
+	const [query, setQuery] = React.useState("")
+	const inputRef = React.useRef<HTMLInputElement | null>(null)
+	const [open, setOpen] = React.useState(false)
+
+	React.useEffect(() => {
+		if (!open) setQuery("")
+		if (open) inputRef.current?.focus()
+	}, [open])
+
+	const filtered = React.useMemo(() => {
+		const q = query.trim().toLowerCase()
+		if (!q) return options
+		return options.filter(
+			(opt) =>
+				String(opt.label).toLowerCase().includes(q) ||
+				String(opt.value).toLowerCase().includes(q),
+		)
+	}, [options, query])
+
+	return (
+		<SelectPrimitive.Root
+			value={value}
+			onValueChange={onValueChange}
+			onOpenChange={setOpen}
+		>
+			<SelectPrimitive.Trigger
+				className={cn(
+					"flex h-10 w-full items-center justify-between rounded-md ml-1 border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+				)}
+			>
+				<SelectPrimitive.Value placeholder={placeholder} />
+				<SelectPrimitive.Icon asChild>
+					<ChevronDown className="h-4 w-4 opacity-50" />
+				</SelectPrimitive.Icon>
+			</SelectPrimitive.Trigger>
+
+			<SelectPrimitive.Portal>
+				<SelectPrimitive.Content
+					className={cn(
+						"relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md",
+					)}
+					position="popper"
+				>
+					<SelectScrollUpButton />
+					<SelectPrimitive.Viewport className="p-1 h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]">
+						<div className="px-2 pb-2">
+							<input
+								ref={inputRef}
+								value={query}
+								onChange={(e) => setQuery(e.target.value)}
+								placeholder="Pesquisar..."
+								className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm outline-none"
+							/>
+						</div>
+
+						{filtered.map((opt) => (
+							<SelectItem key={opt.value} value={opt.value}>
+								{opt.label}
+							</SelectItem>
+						))}
+					</SelectPrimitive.Viewport>
+					<SelectScrollDownButton />
+				</SelectPrimitive.Content>
+			</SelectPrimitive.Portal>
+		</SelectPrimitive.Root>
+	)
+}

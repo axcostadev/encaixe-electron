@@ -14,7 +14,7 @@ import EncaixePage from "@renderer/pages/EncaixePage"
 import ManualPage from "@renderer/pages/ManualPage"
 import NotFound from "@renderer/pages/NotFound"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom"
+import { HashRouter, Route, Routes, Navigate } from "react-router-dom"
 import { Login } from "./pages/Login"
 
 const queryClient = new QueryClient()
@@ -53,9 +53,9 @@ function App() {
 							<TooltipProvider>
 								<Toaster />
 								<Sonner />
-								<BrowserRouter>
+								<HashRouter>
 									<AuthenticatedApp />
-								</BrowserRouter>
+								</HashRouter>
 							</TooltipProvider>
 						</SetoresProvider>
 					</AppProvider>

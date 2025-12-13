@@ -1,10 +1,10 @@
 {
 	"name": "cutting-room",
-	"version": "0.1.0",
-	"description": "An Electron application with React and TypeScript",
+	"version": "0.0.2",
+	"description": "A aplicação para adminstrar os cadastro de modelos e componentes.",
 	"main": "./out/main/index.js",
-	"author": "example.com",
-	"homepage": "https://electron-vite.org",
+	"author": "Alyson - Alex",
+	"homepage": "https://aincrad.dev.br/",
 	"scripts": {
 		"biome": "biome check src",
 		"biome:format": "biome format src",

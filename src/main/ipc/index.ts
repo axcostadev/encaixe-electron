@@ -1,6 +1,7 @@
 import { dialog, ipcMain } from "electron"
 import {
 	authenticateUser,
+	resetAdminPassword,
 	closeDatabase,
 	createUser,
 	initDatabase,
@@ -25,7 +26,7 @@ import {
 	updateSetor,
 	deleteSetor,
 } from "../database"
-import type { ComponenteDados } from "../database"
+import type { ComponenteDados, CadastroInfo } from "../database"
 import * as parser from "../modules/arquivoParser.js"
 import * as db from "../modules/db.js"
 import * as gerenciadorApelidos from "../modules/gerenciadorApelidos.js"
@@ -185,9 +186,7 @@ export function setupIPC(): void {
 	// IPC para resetar senha do admin (uso de diagnóstico/recuperação)
 	ipcMain.handle("auth:reset-admin", async (_event, password: string) => {
 		try {
-			// eslint-disable-next-line @typescript-eslint/no-var-requires
-			const users = require("../database/users")
-			return await users.resetAdminPassword(password)
+			return await resetAdminPassword(password)
 		} catch (err) {
 			console.error("Erro no auth:reset-admin:", err)
 			return { success: false, message: String(err) }
@@ -544,7 +543,7 @@ export function setupIPC(): void {
 			parsedCTC: DadosCTC,
 			options: ConversorOptions,
 		) => {
-			let cadastro = null
+			let cadastro: CadastroInfo[] | CadastroInfo | null = null
 			try {
 				if (options && options.artigo) {
 					cadastro = options.componente
@@ -570,7 +569,7 @@ export function setupIPC(): void {
 			parsedCTC: DadosCTC,
 			options: ConversorOptions,
 		) => {
-			let cadastro = null
+			let cadastro: CadastroInfo[] | CadastroInfo | null = null
 			try {
 				if (options && options.artigo) {
 					cadastro = options.componente
@@ -612,7 +611,7 @@ export function setupIPC(): void {
 			parsedCTC: DadosCTC,
 			options: ConversorOptions,
 		) => {
-			let cadastro = null
+			let cadastro: CadastroInfo[] | CadastroInfo | null = null
 			try {
 				if (options && options.artigo) {
 					cadastro = options.componente

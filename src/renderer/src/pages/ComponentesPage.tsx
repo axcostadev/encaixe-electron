@@ -2,13 +2,7 @@ import { PageHeader } from "@renderer/components/common/PageHeader"
 import { ComponenteForm } from "@renderer/components/componentes/ComponenteForm"
 import { ComponenteList } from "@renderer/components/componentes/ComponenteList"
 import { Button } from "@renderer/components/ui/button"
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@renderer/components/ui/select"
+import { SelectSearch } from "@renderer/components/ui/select"
 import { useApp } from "@renderer/contexts/AppContext"
 import { Componente, ComponentePayload } from "@renderer/types"
 import { Plus } from "lucide-react"
@@ -124,18 +118,15 @@ export function ComponentesPage() {
 
 			<div className="flex items-center gap-4">
 				<div className="w-full max-w-xs">
-					<Select value={selectedModeloId} onValueChange={handleModeloChange}>
-						<SelectTrigger>
-							<SelectValue placeholder="Selecione um modelo" />
-						</SelectTrigger>
-						<SelectContent>
-							{modelos.map((modelo) => (
-								<SelectItem key={modelo.id} value={modelo.id.toString()}>
-									{modelo.nome} ({modelo.artigo})
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+					<SelectSearch
+						value={selectedModeloId}
+						onValueChange={handleModeloChange}
+						placeholder="Selecione um modelo"
+						options={modelos.map((modelo) => ({
+							value: modelo.id.toString(),
+							label: `${modelo.nome} (${modelo.artigo})`,
+						}))}
+					/>
 				</div>
 				{selectedModelo && (
 					<p className="text-sm text-muted-foreground">
