@@ -53,28 +53,28 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto">
         {/* Cabeçalho */}
-        <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <div className="mb-6 bg-card p-4 rounded-lg shadow-sm border border-border">
           {/* Informações do Modelo */}
           {selectedModel && (
-            <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="mb-4 p-4 bg-primary/10 rounded-lg border border-primary/30">
               <div className="text-center">
-                <h2 className="text-xl font-bold text-blue-900 mb-2">
+                <h2 className="text-xl font-bold text-primary mb-2">
                   ESCALA PARA O MODELO {selectedModel.nome_modelo}
                 </h2>
                 <div className="flex justify-center items-center gap-4 text-sm">
                   <div className="flex gap-1">
-                    <span className="font-medium">BR</span>
+                    <span className="font-medium text-foreground">BR</span>
                     {selectedModel.tamanhos.map((tamanho, index) => (
-                      <span key={index} className="px-2 py-1 bg-white border border-gray-300">
+                      <span key={index} className="px-2 py-1 bg-card border border-border text-foreground">
                         {tamanho}
                       </span>
                     ))}
                   </div>
                 </div>
-                <div className="mt-2 flex justify-center gap-8 text-sm">
+                <div className="mt-2 flex justify-center gap-8 text-sm text-muted-foreground">
                   <span>PROJETO {selectedModel.numero_projeto}</span>
                   <span>ARTIGO {selectedModel.numero_artigo}</span>
                   <span>FORMA {selectedModel.forma}</span>
@@ -84,35 +84,35 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
           )}
           
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-800">
+            <h1 className="text-2xl font-bold text-foreground">
               {selectedModel ? `Componentes - ${selectedModel.nome_modelo}` : 'Manual de Operação Industrial'}
             </h1>
             <div className="flex items-center gap-4">
               {/* Controles de Zoom */}
-              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-2">
+              <div className="flex items-center gap-2 bg-muted rounded-lg p-2">
                 <button
                   onClick={() => handleZoom(-25)}
-                  className="p-1 bg-white rounded hover:bg-gray-50 border"
+                  className="p-1 bg-card rounded hover:bg-muted-foreground/20 border border-border"
                   title="Diminuir zoom"
                 >
-                  <ZoomOut className="w-4 h-4" />
+                  <ZoomOut className="w-4 h-4 text-muted-foreground" />
                 </button>
-                <span className="text-sm font-medium min-w-12 text-center">
+                <span className="text-sm font-medium min-w-12 text-center text-muted-foreground">
                   {zoomLevel}%
                 </span>
                 <button
                   onClick={() => handleZoom(25)}
-                  className="p-1 bg-white rounded hover:bg-gray-50 border"
+                  className="p-1 bg-card rounded hover:bg-muted-foreground/20 border border-border"
                   title="Aumentar zoom"
                 >
-                  <ZoomIn className="w-4 h-4" />
+                  <ZoomIn className="w-4 h-4 text-muted-foreground" />
                 </button>
                 <button
                   onClick={resetZoom}
-                  className="p-1 bg-white rounded hover:bg-gray-50 border"
+                  className="p-1 bg-card rounded hover:bg-muted-foreground/20 border border-border"
                   title="Resetar zoom"
                 >
-                  <RotateCcw className="w-4 h-4" />
+                  <RotateCcw className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
               
@@ -126,13 +126,13 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
                 <span className="text-sm font-medium">Imprimir</span>
               </button>
               
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="w-4 h-4" />
                 <span>LIBERAÇÃO: {new Date().toLocaleDateString('pt-BR')}</span>
               </div>
             </div>
           </div>
-          <p className="text-sm text-gray-600 mt-2">
+          <p className="text-sm text-muted-foreground mt-2">
             {selectedModel 
               ? `Gerenciando componentes do modelo ${selectedModel.nome_modelo}. Arraste e solte para reorganizar.`
               : 'Selecione um modelo no menu lateral para gerenciar seus componentes.'
@@ -143,7 +143,7 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
         {/* Grid de componentes */}
         <div 
           id="handbook-components-grid"
-          className="grid gap-4 bg-white p-6 rounded-lg shadow-sm border border-gray-200"
+          className="grid gap-4 bg-card p-6 rounded-lg shadow-sm border border-border"
           style={{ 
             gridTemplateColumns: `repeat(${maxColumns}, 1fr)`,
             minHeight: '600px',
@@ -164,7 +164,7 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
                     onUpdateComponent={updateComponent}
                   />
                 ) : (
-                  <div className="h-48 border-2 border-dashed border-gray-300 rounded bg-gray-50 flex items-center justify-center text-gray-400 text-sm">
+                  <div className="h-48 border-2 border-dashed border-border rounded bg-muted flex items-center justify-center text-muted-foreground text-sm">
                     Área disponível
                   </div>
                 )}
@@ -174,25 +174,25 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
         </div>
 
         {/* Estatísticas */}
-        <div className="mt-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <div className="mt-6 bg-card p-4 rounded-lg shadow-sm border border-border">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
-            <div className="p-3 bg-blue-50 rounded">
-              <div className="text-2xl font-bold text-blue-600">{components.length}</div>
-              <div className="text-sm text-blue-800">Total de Componentes</div>
+            <div className="p-3 bg-primary/10 rounded">
+              <div className="text-2xl font-bold text-primary">{components.length}</div>
+              <div className="text-sm text-primary">Total de Componentes</div>
             </div>
-            <div className="p-3 bg-green-50 rounded">
-              <div className="text-2xl font-bold text-green-600">
+            <div className="p-3 bg-green-500/10 rounded">
+              <div className="text-2xl font-bold text-green-500">
                 {components.filter(c => c.infestado_lado_so).length}
               </div>
-              <div className="text-sm text-green-800">Enfestar Lado Só</div>
+              <div className="text-sm text-green-500">Enfestar Lado Só</div>
             </div>
-            <div className="p-3 bg-purple-50 rounded">
-              <div className="text-2xl font-bold text-purple-600">
+            <div className="p-3 bg-purple-500/10 rounded">
+              <div className="text-2xl font-bold text-purple-500">
                 {new Set(components.map(c => c.setor_atual)).size}
               </div>
-              <div className="text-sm text-purple-800">Setores Diferentes</div>
+              <div className="text-sm text-purple-500">Setores Diferentes</div>
             </div>
-            <div className="p-3 bg-orange-50 rounded">
+            <div className="p-3 bg-orange-500/10 rounded">
               <button 
                 onClick={() => {
                   if (confirm('Deseja resetar todos os dados do manual?')) {
@@ -200,7 +200,7 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
                     window.location.reload();
                   }
                 }}
-                className="text-sm text-orange-600 hover:text-orange-800 underline"
+                className="text-sm text-orange-500 hover:text-orange-400 underline"
               >
                 Resetar Dados
               </button>

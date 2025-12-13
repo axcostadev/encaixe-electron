@@ -41,55 +41,55 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
 
   if (!selectedModel) {
     return (
-      <div className="flex items-center justify-center h-full bg-gray-50">
+      <div className="flex items-center justify-center h-full bg-background">
         <div className="text-center p-8">
-          <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">Nenhum Manual Selecionado</h3>
-          <p className="text-gray-500">Selecione um modelo na lista para visualizar o manual</p>
+          <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+          <h3 className="text-xl font-semibold text-muted-foreground mb-2">Nenhum Manual Selecionado</h3>
+          <p className="text-muted-foreground">Selecione um modelo na lista para visualizar o manual</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-background">
       {/* Barra de ferramentas de visualização */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50 print:hidden">
+      <div className="flex items-center justify-between p-4 border-b border-border bg-card print:hidden">
         <div className="flex items-center gap-4">
-          <h2 className="text-lg font-semibold text-gray-800">
+          <h2 className="text-lg font-semibold text-foreground">
             Visualização do Manual
           </h2>
-          <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+          <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium">
             {selectedModel.nome_modelo}
           </span>
         </div>
         
         <div className="flex items-center gap-3">
           {/* Controles de Zoom */}
-          <div className="flex items-center gap-2 bg-white rounded-lg p-1 border border-gray-200">
+          <div className="flex items-center gap-2 bg-muted rounded-lg p-1 border border-border">
             <button
               onClick={() => handleZoom(-10)}
-              className="p-1.5 hover:bg-gray-100 rounded"
+              className="p-1.5 hover:bg-muted-foreground/20 rounded"
               title="Diminuir zoom"
             >
-              <ZoomOut className="w-4 h-4 text-gray-600" />
+              <ZoomOut className="w-4 h-4 text-muted-foreground" />
             </button>
-            <span className="text-sm font-medium min-w-12 text-center text-gray-600">
+            <span className="text-sm font-medium min-w-12 text-center text-muted-foreground">
               {zoomLevel}%
             </span>
             <button
               onClick={() => handleZoom(10)}
-              className="p-1.5 hover:bg-gray-100 rounded"
+              className="p-1.5 hover:bg-muted-foreground/20 rounded"
               title="Aumentar zoom"
             >
-              <ZoomIn className="w-4 h-4 text-gray-600" />
+              <ZoomIn className="w-4 h-4 text-muted-foreground" />
             </button>
             <button
               onClick={() => setZoomLevel(100)}
-              className="p-1.5 hover:bg-gray-100 rounded border-l border-gray-200"
+              className="p-1.5 hover:bg-muted-foreground/20 rounded border-l border-border"
               title="Resetar zoom"
             >
-              <RotateCcw className="w-4 h-4 text-gray-600" />
+              <RotateCcw className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
           
@@ -105,9 +105,9 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
       </div>
 
       {/* Área de visualização */}
-      <div className="flex-1 overflow-auto p-6 bg-gray-100">
+      <div className="flex-1 overflow-auto p-6 bg-muted">
         <div 
-          className="mx-auto bg-white shadow-lg rounded-lg overflow-hidden"
+          className="mx-auto bg-card shadow-lg rounded-lg overflow-hidden"
           style={{ 
             transform: `scale(${zoomLevel / 100})`,
             transformOrigin: 'top center',
@@ -144,7 +144,7 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
           </div>
 
           {/* Data de liberação */}
-          <div className="flex items-center justify-end gap-2 px-6 py-2 bg-gray-100 text-sm text-gray-600 border-b">
+          <div className="flex items-center justify-end gap-2 px-6 py-2 bg-muted text-sm text-muted-foreground border-b border-border">
             <Calendar className="w-4 h-4" />
             <span>LIBERAÇÃO: {new Date().toLocaleDateString('pt-BR')}</span>
           </div>
@@ -160,7 +160,7 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
                   {component ? (
                     <ViewOnlyCard component={component} />
                   ) : (
-                    <div className="h-44 border border-dashed border-gray-200 rounded bg-gray-50" />
+                    <div className="h-44 border border-dashed border-border rounded bg-muted" />
                   )}
                 </div>
               ))
@@ -168,8 +168,8 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
           </div>
 
           {/* Rodapé */}
-          <div className="bg-gray-100 px-6 py-4 border-t">
-            <div className="flex justify-between items-center text-sm text-gray-600">
+          <div className="bg-muted px-6 py-4 border-t border-border">
+            <div className="flex justify-between items-center text-sm text-muted-foreground">
               <span>Total de componentes: {components.length}</span>
               <span>Gerado em: {new Date().toLocaleString('pt-BR')}</span>
             </div>

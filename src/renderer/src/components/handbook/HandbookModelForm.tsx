@@ -84,8 +84,8 @@ export const HandbookModelForm: React.FC<HandbookModelFormProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-green-600 to-green-700">
+    <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden">
+      <div className="p-4 border-b border-border bg-gradient-to-r from-green-600 to-green-700">
         <h2 className="text-lg font-semibold text-white">
           {model ? 'Editar Modelo' : 'Novo Modelo'}
         </h2>
@@ -94,76 +94,76 @@ export const HandbookModelForm: React.FC<HandbookModelFormProps> = ({
       <form onSubmit={handleSubmit} className="p-4 space-y-4">
         {/* Nome do Modelo */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-foreground mb-1">
             Nome do Modelo *
           </label>
           <input
             type="text"
             value={formData.nome_modelo}
             onChange={(e) => handleChange('nome_modelo', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className="w-full px-3 py-2 border border-border bg-muted text-foreground rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
             placeholder="Ex: Modelo Esportivo"
           />
         </div>
 
         {/* Número do Projeto */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-foreground mb-1">
             Número do Projeto *
           </label>
           <input
             type="text"
             value={formData.numero_projeto}
             onChange={(e) => handleChange('numero_projeto', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className="w-full px-3 py-2 border border-border bg-muted text-foreground rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
             placeholder="Ex: 001/2024"
           />
         </div>
 
         {/* Número do Artigo */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-foreground mb-1">
             Número do Artigo *
           </label>
           <input
             type="text"
             value={formData.numero_artigo}
             onChange={(e) => handleChange('numero_artigo', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className="w-full px-3 py-2 border border-border bg-muted text-foreground rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
             placeholder="Ex: ART-2024-001"
           />
         </div>
 
         {/* Forma */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-foreground mb-1">
             Forma
           </label>
           <input
             type="text"
             value={formData.forma}
             onChange={(e) => handleChange('forma', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className="w-full px-3 py-2 border border-border bg-muted text-foreground rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
             placeholder="Ex: F-001"
           />
         </div>
 
         {/* Tamanhos */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-foreground mb-1">
             Tamanhos
           </label>
           <div className="flex flex-wrap gap-2 mb-2">
             {formData.tamanhos.map(tamanho => (
               <span
                 key={tamanho}
-                className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm"
+                className="inline-flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded text-sm"
               >
                 {tamanho}
                 <button
                   type="button"
                   onClick={() => removeTamanho(tamanho)}
-                  className="text-blue-600 hover:text-blue-800"
+                  className="text-primary hover:text-primary/80"
                 >
                   <Minus className="w-3 h-3" />
                 </button>
@@ -176,7 +176,7 @@ export const HandbookModelForm: React.FC<HandbookModelFormProps> = ({
               value={newTamanho}
               onChange={(e) => setNewTamanho(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTamanho())}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              className="flex-1 px-3 py-2 border border-border bg-muted text-foreground rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
               placeholder="Adicionar tamanho"
             />
             <button
@@ -190,7 +190,7 @@ export const HandbookModelForm: React.FC<HandbookModelFormProps> = ({
         </div>
 
         {/* Botões */}
-        <div className="flex gap-2 pt-4 border-t border-gray-200">
+        <div className="flex gap-2 pt-4 border-t border-border">
           <button
             type="submit"
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -201,7 +201,7 @@ export const HandbookModelForm: React.FC<HandbookModelFormProps> = ({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-muted text-muted-foreground rounded-lg hover:bg-muted-foreground/20 transition-colors"
           >
             <X className="w-4 h-4" />
             Cancelar

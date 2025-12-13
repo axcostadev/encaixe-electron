@@ -92,9 +92,9 @@ const ManualPage: React.FC = () => {
   ];
 
   return (
-    <div className="flex h-full bg-gray-100">
+    <div className="flex h-full bg-background">
       {/* Sidebar com abas */}
-      <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
+      <div className="w-64 bg-card border-r border-border flex flex-col">
         {/* Cabeçalho */}
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700">
           <div className="flex items-center gap-3 text-white">
@@ -117,14 +117,14 @@ const ManualPage: React.FC = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                   activeTab === tab.id
-                    ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-primary/20 text-primary border-l-4 border-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
-                <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-blue-600' : 'text-gray-400'}`} />
+                <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-primary' : 'text-muted-foreground'}`} />
                 <div className="text-left">
                   <div className="font-medium text-sm">{tab.label}</div>
-                  <div className="text-xs text-gray-400">{tab.description}</div>
+                  <div className="text-xs text-muted-foreground">{tab.description}</div>
                 </div>
               </button>
             ))}
@@ -132,15 +132,15 @@ const ManualPage: React.FC = () => {
 
           {/* Modelo selecionado */}
           {selectedModel && (
-            <div className="mt-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="mt-6 p-3 bg-primary/10 rounded-lg border border-primary/30">
               <div className="flex items-center gap-2 mb-2">
-                <FileText className="w-4 h-4 text-blue-600" />
-                <span className="text-xs font-medium text-blue-600">MODELO ATIVO</span>
+                <FileText className="w-4 h-4 text-primary" />
+                <span className="text-xs font-medium text-primary">MODELO ATIVO</span>
               </div>
-              <h3 className="font-semibold text-gray-800 text-sm truncate">
+              <h3 className="font-semibold text-foreground text-sm truncate">
                 {selectedModel.nome_modelo}
               </h3>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Projeto: {selectedModel.numero_projeto}
               </p>
               <div className="flex gap-2 mt-3">
@@ -164,10 +164,10 @@ const ManualPage: React.FC = () => {
         </nav>
 
         {/* Rodapé */}
-        <div className="p-3 border-t border-gray-200">
-          <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="p-3 border-t border-border">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{models.length} modelo(s)</span>
-            <Settings className="w-4 h-4 cursor-pointer hover:text-gray-700" />
+            <Settings className="w-4 h-4 cursor-pointer hover:text-foreground" />
           </div>
         </div>
       </div>
@@ -175,14 +175,14 @@ const ManualPage: React.FC = () => {
       {/* Área de conteúdo principal */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Barra de título da aba */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-800">
+            <h2 className="text-xl font-bold text-foreground">
               {activeTab === 'modelos' && 'Gerenciar Modelos'}
               {activeTab === 'edicao' && 'Editor de Componentes'}
               {activeTab === 'visualizacao' && 'Visualização do Manual'}
             </h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               {activeTab === 'modelos' && 'Crie e gerencie os modelos de manuais'}
               {activeTab === 'edicao' && 'Arraste e edite os componentes do manual'}
               {activeTab === 'visualizacao' && 'Visualize o manual pronto para impressão'}
@@ -263,9 +263,9 @@ const ModelosGrid: React.FC<ModelosGridProps> = ({
   if (models.length === 0) {
     return (
       <div className="text-center py-12">
-        <FolderOpen className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-        <h3 className="text-lg font-semibold text-gray-600 mb-2">Nenhum modelo cadastrado</h3>
-        <p className="text-gray-500">Clique em "Novo Modelo" para começar</p>
+        <FolderOpen className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+        <h3 className="text-lg font-semibold text-muted-foreground mb-2">Nenhum modelo cadastrado</h3>
+        <p className="text-muted-foreground">Clique em "Novo Modelo" para começar</p>
       </div>
     );
   }
@@ -276,39 +276,39 @@ const ModelosGrid: React.FC<ModelosGridProps> = ({
         <div
           key={model.id}
           onClick={() => onSelectModel(model)}
-          className={`bg-white rounded-xl border-2 p-5 cursor-pointer transition-all hover:shadow-lg ${
+          className={`bg-card rounded-xl border-2 p-5 cursor-pointer transition-all hover:shadow-lg ${
             selectedModel?.id === model.id
-              ? 'border-blue-500 shadow-md ring-2 ring-blue-100'
-              : 'border-gray-200 hover:border-gray-300'
+              ? 'border-primary shadow-md ring-2 ring-primary/20'
+              : 'border-border hover:border-muted-foreground'
           }`}
         >
           {/* Badge selecionado */}
           {selectedModel?.id === model.id && (
             <div className="flex justify-end mb-2">
-              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+              <span className="px-2 py-0.5 bg-primary/20 text-primary text-xs font-medium rounded-full">
                 Selecionado
               </span>
             </div>
           )}
 
           {/* Nome do modelo */}
-          <h3 className="font-bold text-gray-800 text-lg mb-2">
+          <h3 className="font-bold text-foreground text-lg mb-2">
             {model.nome_modelo}
           </h3>
 
           {/* Informações */}
-          <div className="space-y-2 text-sm text-gray-600 mb-4">
+          <div className="space-y-2 text-sm text-muted-foreground mb-4">
             <div className="flex justify-between">
-              <span className="text-gray-500">Projeto:</span>
-              <span className="font-medium">{model.numero_projeto}</span>
+              <span className="text-muted-foreground">Projeto:</span>
+              <span className="font-medium text-foreground">{model.numero_projeto}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Artigo:</span>
-              <span className="font-medium">{model.numero_artigo}</span>
+              <span className="text-muted-foreground">Artigo:</span>
+              <span className="font-medium text-foreground">{model.numero_artigo}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Forma:</span>
-              <span className="font-medium truncate max-w-32">{model.forma}</span>
+              <span className="text-muted-foreground">Forma:</span>
+              <span className="font-medium text-foreground truncate max-w-32">{model.forma}</span>
             </div>
           </div>
 
@@ -317,27 +317,27 @@ const ModelosGrid: React.FC<ModelosGridProps> = ({
             {model.tamanhos.slice(0, 8).map((tam, idx) => (
               <span 
                 key={idx}
-                className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded"
+                className="px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded"
               >
                 {tam}
               </span>
             ))}
             {model.tamanhos.length > 8 && (
-              <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded">
+              <span className="px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded">
                 +{model.tamanhos.length - 8}
               </span>
             )}
           </div>
 
           {/* Ações */}
-          <div className="flex gap-2 pt-3 border-t border-gray-100">
+          <div className="flex gap-2 pt-3 border-t border-border">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onSelectModel(model);
                 onGoToEdit();
               }}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors"
             >
               <Edit3 className="w-4 h-4" />
               Editar
@@ -348,7 +348,7 @@ const ModelosGrid: React.FC<ModelosGridProps> = ({
                 onSelectModel(model);
                 onGoToView();
               }}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm bg-green-500/10 text-green-500 rounded-lg hover:bg-green-500/20 transition-colors"
             >
               <Eye className="w-4 h-4" />
               Visualizar
@@ -360,7 +360,7 @@ const ModelosGrid: React.FC<ModelosGridProps> = ({
                   onDeleteModel(model.id);
                 }
               }}
-              className="px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              className="px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
               title="Excluir"
             >
               ✕
@@ -368,7 +368,7 @@ const ModelosGrid: React.FC<ModelosGridProps> = ({
           </div>
 
           {/* Data */}
-          <div className="text-xs text-gray-400 mt-3 text-right">
+          <div className="text-xs text-muted-foreground mt-3 text-right">
             Criado em {new Date(model.created_at).toLocaleDateString('pt-BR')}
           </div>
         </div>
