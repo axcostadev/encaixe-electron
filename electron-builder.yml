@@ -1,4 +1,4 @@
-appId: br.com.aincrad
+appId: br.dev.aincrad
 productName: "cutting room"
 directories:
   buildResources: build
@@ -41,11 +41,11 @@ linux:
     - AppImage
     - snap
     - deb
-  maintainer: aincrad.com.br
+  maintainer: aincrad.dev.br
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
 publish:
   provider: generic
-  url: https://aincrad.com.br/auto-updates
+  url: https://aincrad.dev.br/auto-updates
