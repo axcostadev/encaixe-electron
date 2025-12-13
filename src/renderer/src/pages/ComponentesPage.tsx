@@ -117,7 +117,7 @@ export function ComponentesPage() {
 			/>
 
 			<div className="flex items-center gap-4">
-				<div className="w-full max-w-xs">
+				<div className="w-full max-w-xl">
 					<SelectSearch
 						value={selectedModeloId}
 						onValueChange={handleModeloChange}

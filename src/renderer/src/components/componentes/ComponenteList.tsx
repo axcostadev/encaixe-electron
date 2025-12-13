@@ -25,11 +25,11 @@ interface ComponenteListProps {
 
 export function ComponenteList({
 	componentes,
- 	materiais,
- 	cores,
- 	setores,
- 	onEdit,
- 	onDelete,
+	materiais,
+	cores,
+	setores,
+	onEdit,
+	onDelete,
 }: ComponenteListProps) {
 	const [deleteId, setDeleteId] = useState<string | null>(null)
 
@@ -74,7 +74,7 @@ export function ComponenteList({
 
 	return (
 		<>
-			<div className="rounded-lg border border-border bg-card overflow-hidden animate-fade-in">
+			<div className="rounded-lg border border-border bg-card overflow-hidden animate-fade-in w-full">
 				<div className="overflow-x-auto">
 					<Table>
 						<TableHeader>

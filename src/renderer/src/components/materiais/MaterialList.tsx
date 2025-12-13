@@ -2,6 +2,8 @@ import { DeleteConfirmDialog } from "@renderer/components/common/DeleteConfirmDi
 import { EmptyState } from "@renderer/components/common/EmptyState"
 import { Badge } from "@renderer/components/ui/badge"
 import { Button } from "@renderer/components/ui/button"
+import { Input } from "@renderer/components/ui/input"
+import { Label } from "@renderer/components/ui/label"
 import {
 	Dialog,
 	DialogContent,
@@ -19,7 +21,7 @@ import {
 import { Componente, Material, SENTIDO_OPTIONS } from "@renderer/types"
 import { Layers, Pencil, Trash2, Unlink } from "lucide-react"
 import { useApp } from "@renderer/contexts/AppContext"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 
 interface MaterialListProps {
 	materiais: Material[]
@@ -43,6 +45,17 @@ export function MaterialList({
 	const [selectedMaterialId, setSelectedMaterialId] = useState<number | null>(
 		null,
 	)
+	const [query, setQuery] = useState("")
+
+	const filteredMateriais = useMemo(() => {
+		const q = query.trim().toLowerCase()
+		if (!q) return materiais
+		return materiais.filter(
+			(m) =>
+				m.artigo.toLowerCase().includes(q) ||
+				(m.obs || "").toLowerCase().includes(q),
+		)
+	}, [materiais, query])
 
 	function handleConfirmDelete() {
 		if (deleteId !== null) {
@@ -68,6 +81,16 @@ export function MaterialList({
 	return (
 		<>
 			<div className="rounded-lg border border-border bg-card overflow-hidden animate-fade-in">
+				<div className="p-4 flex items-center gap-4">
+					<div className="w-full max-w-sm">
+						<Label className="text-sm">Pesquisar</Label>
+						<Input
+							value={query}
+							onChange={(e) => setQuery(e.target.value)}
+							placeholder="Pesquisar por artigo ou observação"
+						/>
+					</div>
+				</div>
 				<Table>
 					<TableHeader>
 						<TableRow className="table-header">
@@ -82,7 +105,7 @@ export function MaterialList({
 						</TableRow>
 					</TableHeader>
 					<TableBody>
-						{materiais.map((material) => {
+						{filteredMateriais.map((material) => {
 							const componentesCount = getComponentesCountByMaterial(
 								material.id,
 							)
