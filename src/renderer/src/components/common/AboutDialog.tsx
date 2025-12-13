@@ -50,19 +50,18 @@ export const AboutDialog: React.FC<AboutDialogProps> = ({ isOpen, onClose }) => 
 
 					{/* Copyright */}
 					<div className="text-center text-sm text-gray-500 mb-4">
-						<p>Copyright © 2025 AlysonDEV & axcostadev</p>
-						<p className="mt-1">Todos os direitos reservados</p>
+						<p>© 2025 Aincrad. Todos os direitos reservados. Desenvolvido por Axcostadev & Alysondev.</p>
 					</div>
 
 					{/* Website */}
 					<div className="text-center">
 						<a
-							href="https://aincrad.dev"
+							href="https://aincrad.dev.br/"
 							target="_blank"
 							rel="noopener noreferrer"
 							className="text-blue-600 hover:text-blue-800 text-sm underline"
 						>
-							aincrad.dev
+							aincrad.dev.br
 						</a>
 					</div>
 				</div>

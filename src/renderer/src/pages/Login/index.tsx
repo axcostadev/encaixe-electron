@@ -196,7 +196,7 @@ export function Login({ onLoginSuccess }: LoginProps): React.JSX.Element {
 
 					{/* Footer */}
 					<div className="absolute bottom-8 left-0 right-0 text-center text-slate-500 text-sm">
-						© 2024 ModelManager. Todos os direitos reservados.
+						© 2025 Aincrad. Todos os direitos reservados. Desenvolvido por Axcostadev & Alysondev.
 					</div>
 				</div>
 			</div>

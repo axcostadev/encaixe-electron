@@ -131,7 +131,7 @@ export function Sidebar({
 							collapsed ? "hidden" : "block",
 						)}
 					>
-						Sistema de Gestão v1.0
+						cutting room v1.0
 					</p>
 				</div>
 			</div>
