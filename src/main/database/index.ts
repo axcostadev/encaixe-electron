@@ -1,5 +1,10 @@
 import { initDatabase, closeDatabase } from "./db"
-import { LoginResult, authenticateUser, createUser, resetAdminPassword } from "./users"
+import {
+	LoginResult,
+	authenticateUser,
+	createUser,
+	resetAdminPassword,
+} from "./users"
 import {
 	Modelo,
 	ModeloCor,
