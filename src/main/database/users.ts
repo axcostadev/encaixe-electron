@@ -73,7 +73,7 @@ export function createUser(
 			database.run(
 				"INSERT INTO users (username, password, email) VALUES (?, ?, ?)",
 				[username, password, email],
-				function (err: Error | null) {
+				function (this: { lastID?: number }, err: Error | null) {
 					if (err) {
 						if (err.message.includes("UNIQUE constraint failed")) {
 							resolve({
@@ -116,7 +116,7 @@ export function resetAdminPassword(password: string): Promise<LoginResult> {
 			database.run(
 				"UPDATE users SET password = ? WHERE username = 'admin'",
 				[password],
-				function (err: Error | null) {
+				function (this: { changes?: number }, err: Error | null) {
 					if (err) {
 						resolve({
 							success: false,
@@ -125,7 +125,7 @@ export function resetAdminPassword(password: string): Promise<LoginResult> {
 						return
 					}
 
-					if ((this as any).changes && (this as any).changes > 0) {
+					if (this.changes && this.changes > 0) {
 						resolve({
 							success: true,
 							message: "Senha do admin atualizada com sucesso",
