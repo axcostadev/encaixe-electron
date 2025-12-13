@@ -4,6 +4,7 @@ import { Toaster } from "@renderer/components/ui/toaster"
 import { TooltipProvider } from "@renderer/components/ui/tooltip"
 import { AppProvider } from "@renderer/contexts/AppContext"
 import { AuthProvider, useAuth } from "@renderer/contexts/AuthContext"
+import type { User } from "@renderer/contexts/AuthContext"
 import { SetoresProvider } from "@renderer/contexts/SetoresContext"
 import { ComponentesPage } from "@renderer/pages/ComponentesPage"
 import { CoresPage } from "@renderer/pages/CoresPage"
@@ -14,13 +15,25 @@ import EncaixePage from "@renderer/pages/EncaixePage"
 import ManualPage from "@renderer/pages/ManualPage"
 import NotFound from "@renderer/pages/NotFound"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { HashRouter, Route, Routes, Navigate } from "react-router-dom"
+import {
+	HashRouter,
+	Route,
+	Routes,
+	Navigate,
+	useNavigate,
+} from "react-router-dom"
 import { Login } from "./pages/Login"
 
 const queryClient = new QueryClient()
 
 function AuthenticatedApp() {
 	const { user, login } = useAuth()
+	const navigate = useNavigate()
+
+	const handleLogin = (u: User) => {
+		login(u)
+		navigate("/", { replace: true })
+	}
 
 	return user ? (
 		<MainLayout>
@@ -37,7 +50,7 @@ function AuthenticatedApp() {
 		</MainLayout>
 	) : (
 		<Routes>
-			<Route path="/login" element={<Login onLoginSuccess={login} />} />
+			<Route path="/login" element={<Login onLoginSuccess={handleLogin} />} />
 			<Route path="*" element={<Navigate to="/login" replace />} />
 		</Routes>
 	)
