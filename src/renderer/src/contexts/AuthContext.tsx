@@ -1,6 +1,6 @@
 import { createContext, ReactNode, useContext, useState, useCallback } from "react"
 
-export type UserRole = "admin" | "editor" | "viewer"
+export type UserRole = string // Agora suporta roles customizados
 
 export interface UserPermissions {
 	canViewDashboard: boolean
@@ -25,6 +25,7 @@ export interface UserPermissions {
 	canEditManual: boolean
 	canAccessSetup: boolean
 	canManageUsers: boolean
+	canManageRoles: boolean
 }
 
 export interface User {
@@ -36,8 +37,35 @@ export interface User {
 	permissions?: UserPermissions
 }
 
-// Permissões padrão por role
-const ROLE_PERMISSIONS: Record<UserRole, UserPermissions> = {
+// Permissões padrão (fallback)
+const DEFAULT_PERMISSIONS: UserPermissions = {
+	canViewDashboard: false,
+	canViewModelos: false,
+	canEditModelos: false,
+	canDeleteModelos: false,
+	canViewMateriais: false,
+	canEditMateriais: false,
+	canDeleteMateriais: false,
+	canViewComponentes: false,
+	canEditComponentes: false,
+	canDeleteComponentes: false,
+	canViewCores: false,
+	canEditCores: false,
+	canDeleteCores: false,
+	canViewSetores: false,
+	canEditSetores: false,
+	canDeleteSetores: false,
+	canViewEncaixe: false,
+	canCreateEncaixe: false,
+	canViewManual: false,
+	canEditManual: false,
+	canAccessSetup: false,
+	canManageUsers: false,
+	canManageRoles: false,
+}
+
+// Permissões padrão por role (fallback para compatibilidade)
+const ROLE_PERMISSIONS: Record<string, UserPermissions> = {
 	admin: {
 		canViewDashboard: true,
 		canViewModelos: true,
@@ -61,6 +89,7 @@ const ROLE_PERMISSIONS: Record<UserRole, UserPermissions> = {
 		canEditManual: true,
 		canAccessSetup: true,
 		canManageUsers: true,
+		canManageRoles: true,
 	},
 	editor: {
 		canViewDashboard: true,
@@ -85,6 +114,7 @@ const ROLE_PERMISSIONS: Record<UserRole, UserPermissions> = {
 		canEditManual: true,
 		canAccessSetup: false,
 		canManageUsers: false,
+		canManageRoles: false,
 	},
 	viewer: {
 		canViewDashboard: false,
@@ -109,18 +139,20 @@ const ROLE_PERMISSIONS: Record<UserRole, UserPermissions> = {
 		canEditManual: false,
 		canAccessSetup: false,
 		canManageUsers: false,
+		canManageRoles: false,
 	},
 }
 
 interface AuthContextType {
 	user: User | null
 	permissions: UserPermissions | null
-	login: (user: User) => void
+	login: (user: User) => Promise<void>
 	logout: () => void
 	hasPermission: (permission: keyof UserPermissions) => boolean
 	isAdmin: () => boolean
 	isEditor: () => boolean
 	isViewer: () => boolean
+	refreshPermissions: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -129,17 +161,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const [user, setUser] = useState<User | null>(null)
 	const [permissions, setPermissions] = useState<UserPermissions | null>(null)
 
-	const login = useCallback((loggedInUser: User) => {
+	// Buscar permissões do banco de dados
+	const fetchPermissions = useCallback(async (roleName: string): Promise<UserPermissions> => {
+		try {
+			const response = await window.api.users.getPermissions(roleName)
+			if (response.success && response.permissions) {
+				return response.permissions
+			}
+		} catch (error) {
+			console.error("Erro ao buscar permissões:", error)
+		}
+		// Fallback para permissões padrão
+		return ROLE_PERMISSIONS[roleName] || DEFAULT_PERMISSIONS
+	}, [])
+
+	const login = useCallback(async (loggedInUser: User) => {
 		const role = loggedInUser.role || "viewer"
-		const userPermissions = loggedInUser.permissions || ROLE_PERMISSIONS[role]
+		
+		// Usar permissões do usuário se já vieram, senão buscar do banco
+		let userPermissions = loggedInUser.permissions
+		if (!userPermissions) {
+			userPermissions = await fetchPermissions(role)
+		}
+		
 		setUser({ ...loggedInUser, role, permissions: userPermissions })
 		setPermissions(userPermissions)
-	}, [])
+	}, [fetchPermissions])
 
 	const logout = useCallback(() => {
 		setUser(null)
 		setPermissions(null)
 	}, [])
+
+	const refreshPermissions = useCallback(async () => {
+		if (user?.role) {
+			const newPermissions = await fetchPermissions(user.role)
+			setPermissions(newPermissions)
+			setUser(prev => prev ? { ...prev, permissions: newPermissions } : null)
+		}
+	}, [user?.role, fetchPermissions])
 
 	const hasPermission = useCallback(
 		(permission: keyof UserPermissions): boolean => {
@@ -164,6 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				isAdmin,
 				isEditor,
 				isViewer,
+				refreshPermissions,
 			}}
 		>
 			{children}

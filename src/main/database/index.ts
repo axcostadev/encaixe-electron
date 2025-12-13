@@ -1,5 +1,5 @@
-import { initDatabase, closeDatabase, ROLE_PERMISSIONS } from "./db"
-import type { UserRole, UserPermissions } from "./db"
+import { initDatabase, closeDatabase, ROLE_PERMISSIONS, getRolePermissions, DEFAULT_PERMISSIONS, clearRolesCache, updateRolesCache } from "./db"
+import type { UserRole, UserPermissions, Role } from "./db"
 import {
 	LoginResult,
 	UserListResult,
@@ -45,6 +45,17 @@ import {
 	updateSetor,
 	deleteSetor,
 } from "./models"
+import {
+	listRoles,
+	getRoleById,
+	getRoleByName,
+	createRole,
+	updateRole,
+	deleteRole,
+	getPermissionsByRoleName,
+	duplicateRole,
+} from "./roles"
+import type { RoleListResult, RoleSingleResult } from "./roles"
 
 export type { Modelo, ModeloCor }
 export type { LoginResult, UserListResult }
@@ -53,7 +64,8 @@ export type { Componente }
 export type { ComponenteDados }
 export type { CadastroInfo }
 export type { Setor }
-export type { UserRole, UserPermissions }
+export type { UserRole, UserPermissions, Role }
+export type { RoleListResult, RoleSingleResult }
 export {
 	initDatabase,
 	closeDatabase,
@@ -64,6 +76,10 @@ export {
 	listUsers,
 	resetAdminPassword,
 	ROLE_PERMISSIONS,
+	getRolePermissions,
+	DEFAULT_PERMISSIONS,
+	clearRolesCache,
+	updateRolesCache,
 	listModelos,
 	createModelo,
 	updateModelo,
@@ -85,4 +101,13 @@ export {
 	updateSetor,
 	deleteSetor,
 	getUserByUsername,
+	// Roles
+	listRoles,
+	getRoleById,
+	getRoleByName,
+	createRole,
+	updateRole,
+	deleteRole,
+	getPermissionsByRoleName,
+	duplicateRole,
 }

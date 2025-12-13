@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { useAuth, UserRole, ROLE_PERMISSIONS } from "@renderer/contexts/AuthContext"
+import { useAuth, UserRole } from "@renderer/contexts/AuthContext"
 import { Button } from "@renderer/components/ui/button"
 import { Input } from "@renderer/components/ui/input"
 import { Label } from "@renderer/components/ui/label"
@@ -58,8 +58,11 @@ import {
 	CheckCircle2,
 	XCircle,
 	RefreshCw,
+	Plus,
+	Lock,
 } from "lucide-react"
 import { toast } from "sonner"
+import { RoleForm, RoleList, Role } from "@renderer/components/roles"
 
 interface UserData {
 	id: number
@@ -88,14 +91,35 @@ const ROLE_ICONS: Record<UserRole, typeof Shield> = {
 	viewer: Eye,
 }
 
+// Função para obter ícone de role dinâmico
+const getRoleIcon = (roleName: string) => {
+	return ROLE_ICONS[roleName as UserRole] || Shield
+}
+
+// Função para obter cor de role dinâmico
+const getRoleColor = (roleName: string) => {
+	return ROLE_COLORS[roleName as UserRole] || "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
+}
+
+// Função para obter label de role dinâmico
+const getRoleLabel = (roleName: string, roles: Role[]) => {
+	const role = roles.find(r => r.name === roleName)
+	if (role) return role.displayName
+	return ROLE_LABELS[roleName as UserRole] || roleName
+}
+
 export default function SetupPage() {
 	const { user, hasPermission } = useAuth()
 	const [users, setUsers] = useState<UserData[]>([])
+	const [roles, setRoles] = useState<Role[]>([])
 	const [loading, setLoading] = useState(true)
+	const [loadingRoles, setLoadingRoles] = useState(true)
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+	const [isRoleFormOpen, setIsRoleFormOpen] = useState(false)
 	const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
+	const [selectedRole, setSelectedRole] = useState<Role | null>(null)
 	const [activeTab, setActiveTab] = useState("usuarios")
 
 	// Form state
@@ -124,9 +148,27 @@ export default function SetupPage() {
 		}
 	}, [])
 
+	const loadRoles = useCallback(async () => {
+		try {
+			setLoadingRoles(true)
+			const response = await window.api.roles.list()
+			if (response.success && response.roles) {
+				setRoles(response.roles)
+			} else {
+				toast.error("Erro ao carregar papéis")
+			}
+		} catch (error) {
+			console.error("Erro ao carregar papéis:", error)
+			toast.error("Erro ao carregar papéis")
+		} finally {
+			setLoadingRoles(false)
+		}
+	}, [])
+
 	useEffect(() => {
 		loadUsers()
-	}, [loadUsers])
+		loadRoles()
+	}, [loadUsers, loadRoles])
 
 	const resetForm = () => {
 		setFormData({
@@ -303,6 +345,29 @@ export default function SetupPage() {
 		setIsDeleteDialogOpen(true)
 	}
 
+	// Funções para gerenciamento de roles
+	const handleEditRole = (role: Role) => {
+		setSelectedRole(role)
+		setIsRoleFormOpen(true)
+	}
+
+	const handleCreateRole = () => {
+		setSelectedRole(null)
+		setIsRoleFormOpen(true)
+	}
+
+	const handleRoleSaved = () => {
+		loadRoles()
+	}
+
+	const handleRoleDeleted = () => {
+		loadRoles()
+	}
+
+	const handleRoleDuplicated = () => {
+		loadRoles()
+	}
+
 	// Verificar se o usuário atual pode gerenciar usuários
 	if (!hasPermission("canAccessSetup") || !hasPermission("canManageUsers")) {
 		return (
@@ -334,14 +399,18 @@ export default function SetupPage() {
 			</div>
 
 			<Tabs value={activeTab} onValueChange={setActiveTab}>
-				<TabsList className="grid w-full max-w-md grid-cols-2">
+				<TabsList className="grid w-full max-w-lg grid-cols-3">
 					<TabsTrigger value="usuarios" className="flex items-center gap-2">
 						<Users className="w-4 h-4" />
 						Usuários
 					</TabsTrigger>
-					<TabsTrigger value="permissoes" className="flex items-center gap-2">
+					<TabsTrigger value="papeis" className="flex items-center gap-2">
 						<Shield className="w-4 h-4" />
-						Permissões
+						Papéis
+					</TabsTrigger>
+					<TabsTrigger value="permissoes" className="flex items-center gap-2">
+						<Lock className="w-4 h-4" />
+						Matriz
 					</TabsTrigger>
 				</TabsList>
 
@@ -405,7 +474,6 @@ export default function SetupPage() {
 									</TableHeader>
 									<TableBody>
 										{users.map((userData) => {
-											const RoleIcon = ROLE_ICONS[userData.role]
 											return (
 												<TableRow key={userData.id}>
 													<TableCell className="font-medium">
@@ -422,13 +490,18 @@ export default function SetupPage() {
 														{userData.email || "-"}
 													</TableCell>
 													<TableCell>
-														<Badge
-															variant="outline"
-															className={`${ROLE_COLORS[userData.role]} flex items-center gap-1 w-fit`}
-														>
-															<RoleIcon className="w-3 h-3" />
-															{ROLE_LABELS[userData.role]}
-														</Badge>
+														{(() => {
+															const RoleIcon = getRoleIcon(userData.role)
+															return (
+																<Badge
+																	variant="outline"
+																	className={`${getRoleColor(userData.role)} flex items-center gap-1 w-fit`}
+																>
+																	<RoleIcon className="w-3 h-3" />
+																	{getRoleLabel(userData.role, roles)}
+																</Badge>
+															)
+														})()}
 													</TableCell>
 													<TableCell>
 														<div className="flex items-center gap-2">
@@ -482,12 +555,62 @@ export default function SetupPage() {
 					</Card>
 				</TabsContent>
 
-				{/* Tab Permissões */}
+				{/* Tab Papéis (NOVA) */}
+				<TabsContent value="papeis" className="space-y-4">
+					<Card>
+						<CardHeader>
+							<div className="flex items-center justify-between">
+								<div>
+									<CardTitle className="flex items-center gap-2">
+										<Shield className="w-5 h-5" />
+										Gerenciar Papéis
+									</CardTitle>
+									<CardDescription>
+										Crie, edite ou remova papéis de permissão personalizados
+									</CardDescription>
+								</div>
+								<div className="flex gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={loadRoles}
+										disabled={loadingRoles}
+									>
+										<RefreshCw
+											className={`w-4 h-4 mr-2 ${loadingRoles ? "animate-spin" : ""}`}
+										/>
+										Atualizar
+									</Button>
+									<Button onClick={handleCreateRole}>
+										<Plus className="w-4 h-4 mr-2" />
+										Novo Papel
+									</Button>
+								</div>
+							</div>
+						</CardHeader>
+						<CardContent>
+							{loadingRoles ? (
+								<div className="flex items-center justify-center py-8">
+									<RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+								</div>
+							) : (
+								<RoleList
+									roles={roles}
+									onEdit={handleEditRole}
+									onDelete={handleRoleDeleted}
+									onDuplicate={handleRoleDuplicated}
+								/>
+							)}
+						</CardContent>
+					</Card>
+				</TabsContent>
+
+				{/* Tab Matriz de Permissões */}
 				<TabsContent value="permissoes" className="space-y-4">
 					<Card>
 						<CardHeader>
 							<CardTitle className="flex items-center gap-2">
-								<Shield className="w-5 h-5" />
+								<Lock className="w-5 h-5" />
 								Matriz de Permissões
 							</CardTitle>
 							<CardDescription>
@@ -495,72 +618,99 @@ export default function SetupPage() {
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-								{(["admin", "editor", "viewer"] as UserRole[]).map((role) => {
-									const RoleIcon = ROLE_ICONS[role]
-									const permissions = ROLE_PERMISSIONS[role]
-									return (
-										<Card key={role} className="border-2">
-											<CardHeader className="pb-3">
-												<CardTitle className="flex items-center gap-2 text-lg">
-													<RoleIcon className="w-5 h-5" />
-													{ROLE_LABELS[role]}
-												</CardTitle>
-											</CardHeader>
-											<CardContent className="space-y-2 text-sm">
-												<PermissionItem
-													label="Dashboard"
-													allowed={permissions.canViewDashboard}
-												/>
-												<PermissionItem
-													label="Ver Modelos"
-													allowed={permissions.canViewModelos}
-												/>
-												<PermissionItem
-													label="Editar Modelos"
-													allowed={permissions.canEditModelos}
-												/>
-												<PermissionItem
-													label="Ver Materiais"
-													allowed={permissions.canViewMateriais}
-												/>
-												<PermissionItem
-													label="Editar Materiais"
-													allowed={permissions.canEditMateriais}
-												/>
-												<PermissionItem
-													label="Ver Encaixe"
-													allowed={permissions.canViewEncaixe}
-												/>
-												<PermissionItem
-													label="Criar Encaixe"
-													allowed={permissions.canCreateEncaixe}
-												/>
-												<PermissionItem
-													label="Ver Manual"
-													allowed={permissions.canViewManual}
-												/>
-												<PermissionItem
-													label="Editar Manual"
-													allowed={permissions.canEditManual}
-												/>
-												<PermissionItem
-													label="Configurações"
-													allowed={permissions.canAccessSetup}
-												/>
-												<PermissionItem
-													label="Gerenciar Usuários"
-													allowed={permissions.canManageUsers}
-												/>
-											</CardContent>
-										</Card>
-									)
-								})}
-							</div>
+							{loadingRoles ? (
+								<div className="flex items-center justify-center py-8">
+									<RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+								</div>
+							) : (
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+									{roles.map((role) => {
+										const RoleIcon = getRoleIcon(role.name)
+										return (
+											<Card key={role.id} className="border-2">
+												<CardHeader className="pb-3">
+													<CardTitle className="flex items-center gap-2 text-lg">
+														<RoleIcon className="w-5 h-5" />
+														{role.displayName}
+														{role.isSystem && (
+															<Badge variant="outline" className="ml-2 text-xs">
+																Sistema
+															</Badge>
+														)}
+													</CardTitle>
+													{role.description && (
+														<CardDescription className="text-xs">
+															{role.description}
+														</CardDescription>
+													)}
+												</CardHeader>
+												<CardContent className="space-y-2 text-sm">
+													<PermissionItem
+														label="Dashboard"
+														allowed={role.permissions.canViewDashboard}
+													/>
+													<PermissionItem
+														label="Ver Modelos"
+														allowed={role.permissions.canViewModelos}
+													/>
+													<PermissionItem
+														label="Editar Modelos"
+														allowed={role.permissions.canEditModelos}
+													/>
+													<PermissionItem
+														label="Ver Materiais"
+														allowed={role.permissions.canViewMateriais}
+													/>
+													<PermissionItem
+														label="Editar Materiais"
+														allowed={role.permissions.canEditMateriais}
+													/>
+													<PermissionItem
+														label="Ver Encaixe"
+														allowed={role.permissions.canViewEncaixe}
+													/>
+													<PermissionItem
+														label="Criar Encaixe"
+														allowed={role.permissions.canCreateEncaixe}
+													/>
+													<PermissionItem
+														label="Ver Manual"
+														allowed={role.permissions.canViewManual}
+													/>
+													<PermissionItem
+														label="Editar Manual"
+														allowed={role.permissions.canEditManual}
+													/>
+													<PermissionItem
+														label="Configurações"
+														allowed={role.permissions.canAccessSetup}
+													/>
+													<PermissionItem
+														label="Gerenciar Usuários"
+														allowed={role.permissions.canManageUsers}
+													/>
+													<PermissionItem
+														label="Gerenciar Papéis"
+														allowed={role.permissions.canManageRoles}
+													/>
+												</CardContent>
+											</Card>
+										)
+									})}
+								</div>
+							)}
 						</CardContent>
 					</Card>
 				</TabsContent>
 			</Tabs>
+
+			{/* Formulário de Role */}
+			<RoleForm
+				open={isRoleFormOpen}
+				onOpenChange={setIsRoleFormOpen}
+				role={selectedRole}
+				onSave={handleRoleSaved}
+			/>
 
 			{/* Dialog Criar Usuário */}
 			<Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -634,24 +784,17 @@ export default function SetupPage() {
 									<SelectValue placeholder="Selecione o papel" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="admin">
-										<div className="flex items-center gap-2">
-											<ShieldCheck className="w-4 h-4" />
-											Administrador
-										</div>
-									</SelectItem>
-									<SelectItem value="editor">
-										<div className="flex items-center gap-2">
-											<Shield className="w-4 h-4" />
-											Editor
-										</div>
-									</SelectItem>
-									<SelectItem value="viewer">
-										<div className="flex items-center gap-2">
-											<Eye className="w-4 h-4" />
-											Visualizador
-										</div>
-									</SelectItem>
+									{roles.map((role) => {
+										const RoleIcon = getRoleIcon(role.name)
+										return (
+											<SelectItem key={role.id} value={role.name}>
+												<div className="flex items-center gap-2">
+													<RoleIcon className="w-4 h-4" />
+													{role.displayName}
+												</div>
+											</SelectItem>
+										)
+									})}
 								</SelectContent>
 							</Select>
 						</div>
@@ -743,24 +886,17 @@ export default function SetupPage() {
 									<SelectValue placeholder="Selecione o papel" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="admin">
-										<div className="flex items-center gap-2">
-											<ShieldCheck className="w-4 h-4" />
-											Administrador
-										</div>
-									</SelectItem>
-									<SelectItem value="editor">
-										<div className="flex items-center gap-2">
-											<Shield className="w-4 h-4" />
-											Editor
-										</div>
-									</SelectItem>
-									<SelectItem value="viewer">
-										<div className="flex items-center gap-2">
-											<Eye className="w-4 h-4" />
-											Visualizador
-										</div>
-									</SelectItem>
+									{roles.map((role) => {
+										const RoleIcon = getRoleIcon(role.name)
+										return (
+											<SelectItem key={role.id} value={role.name}>
+												<div className="flex items-center gap-2">
+													<RoleIcon className="w-4 h-4" />
+													{role.displayName}
+												</div>
+											</SelectItem>
+										)
+									})}
 								</SelectContent>
 							</Select>
 							{selectedUser?.id === user?.id && (

@@ -105,6 +105,7 @@ interface UserPermissions {
 	canEditManual: boolean
 	canAccessSetup: boolean
 	canManageUsers: boolean
+	canManageRoles: boolean
 }
 
 interface UserListResponse {
@@ -163,6 +164,54 @@ interface UsersAPI {
 	update: (id: number, data: UserUpdateData) => Promise<OperationResponse>
 	delete: (id: number) => Promise<OperationResponse>
 	getPermissions: (role: string) => Promise<PermissionsResponse>
+}
+
+interface Role {
+	id: number
+	name: string
+	displayName: string
+	description: string
+	permissions: UserPermissions
+	isSystem: boolean
+	created_at?: string
+}
+
+interface RoleListResponse {
+	success: boolean
+	roles?: Role[]
+	message?: string
+}
+
+interface RoleResponse {
+	success: boolean
+	role?: Role
+	message?: string
+}
+
+interface RolesAPI {
+	list: () => Promise<RoleListResponse>
+	get: (id: number) => Promise<RoleResponse>
+	getByName: (name: string) => Promise<RoleResponse>
+	create: (
+		name: string,
+		displayName: string,
+		description: string,
+		permissions: UserPermissions,
+	) => Promise<RoleResponse>
+	update: (
+		id: number,
+		data: {
+			displayName?: string
+			description?: string
+			permissions?: UserPermissions
+		},
+	) => Promise<OperationResponse>
+	delete: (id: number) => Promise<OperationResponse>
+	duplicate: (
+		sourceId: number,
+		newName: string,
+		newDisplayName: string,
+	) => Promise<RoleResponse>
 }
 
 interface Modelo {
@@ -309,6 +358,7 @@ declare global {
 		api: {
 			auth: AuthAPI
 			users: UsersAPI
+			roles: RolesAPI
 			modelos: ModelosAPI
 			materiais: MateriaisAPI
 			setores: SetoresAPI

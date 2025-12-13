@@ -30,8 +30,17 @@ import {
 	createSetor,
 	updateSetor,
 	deleteSetor,
+	// Roles
+	listRoles,
+	getRoleById,
+	getRoleByName,
+	createRole,
+	updateRole,
+	deleteRole,
+	getPermissionsByRoleName,
+	duplicateRole,
 } from "../database"
-import type { ComponenteDados, CadastroInfo } from "../database"
+import type { ComponenteDados, CadastroInfo, UserPermissions } from "../database"
 import * as parser from "../modules/arquivoParser.js"
 import * as db from "../modules/db.js"
 import * as gerenciadorApelidos from "../modules/gerenciadorApelidos.js"
@@ -297,12 +306,78 @@ export function setupIPC(): void {
 
 	// Obter permissões por role
 	ipcMain.handle("users:get-permissions", async (_event, role: string) => {
+		// Primeiro tenta buscar do banco (roles customizados)
+		const result = await getPermissionsByRoleName(role)
+		if (result.success && result.permissions) {
+			return { success: true, permissions: result.permissions }
+		}
+		// Fallback para roles padrão
 		const permissions = ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS]
 		if (permissions) {
 			return { success: true, permissions }
 		}
 		return { success: false, message: "Role não encontrada" }
 	})
+
+	// ===== ROLES (Papéis de Permissão) =====
+	
+	// Listar todos os roles
+	ipcMain.handle("roles:list", async () => {
+		return await listRoles()
+	})
+
+	// Buscar role por ID
+	ipcMain.handle("roles:get", async (_event, id: number) => {
+		return await getRoleById(id)
+	})
+
+	// Buscar role por nome
+	ipcMain.handle("roles:get-by-name", async (_event, name: string) => {
+		return await getRoleByName(name)
+	})
+
+	// Criar novo role
+	ipcMain.handle(
+		"roles:create",
+		async (
+			_event,
+			name: string,
+			displayName: string,
+			description: string,
+			permissions: UserPermissions
+		) => {
+			return await createRole(name, displayName, description, permissions)
+		}
+	)
+
+	// Atualizar role
+	ipcMain.handle(
+		"roles:update",
+		async (
+			_event,
+			id: number,
+			data: {
+				displayName?: string
+				description?: string
+				permissions?: UserPermissions
+			}
+		) => {
+			return await updateRole(id, data)
+		}
+	)
+
+	// Deletar role
+	ipcMain.handle("roles:delete", async (_event, id: number) => {
+		return await deleteRole(id)
+	})
+
+	// Duplicar role
+	ipcMain.handle(
+		"roles:duplicate",
+		async (_event, sourceId: number, newName: string, newDisplayName: string) => {
+			return await duplicateRole(sourceId, newName, newDisplayName)
+		}
+	)
 
 	// IPC para fechar banco de dados
 	ipcMain.handle("app:close", async () => {

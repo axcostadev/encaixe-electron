@@ -58,6 +58,25 @@ interface ComponenteDados {
 	numeroTecido?: string
 }
 
+interface UserPermissions {
+	canViewDashboard: boolean
+	canViewModelos: boolean
+	canEditModelos: boolean
+	canViewCores: boolean
+	canEditCores: boolean
+	canViewMateriais: boolean
+	canEditMateriais: boolean
+	canViewComponentes: boolean
+	canEditComponentes: boolean
+	canViewEncaixe: boolean
+	canCreateEncaixe: boolean
+	canViewManual: boolean
+	canEditManual: boolean
+	canAccessSetup: boolean
+	canManageUsers: boolean
+	canManageRoles: boolean
+}
+
 interface CadastroInfo {
 	artigo: string
 	modelo: string
@@ -107,6 +126,29 @@ const api = {
 		delete: (id: number) => ipcRenderer.invoke("users:delete", id),
 		getPermissions: (role: string) =>
 			ipcRenderer.invoke("users:get-permissions", role),
+	},
+	// Gerenciamento de papéis (Roles)
+	roles: {
+		list: () => ipcRenderer.invoke("roles:list"),
+		get: (id: number) => ipcRenderer.invoke("roles:get", id),
+		getByName: (name: string) => ipcRenderer.invoke("roles:get-by-name", name),
+		create: (
+			name: string,
+			displayName: string,
+			description: string,
+			permissions: UserPermissions
+		) => ipcRenderer.invoke("roles:create", name, displayName, description, permissions),
+		update: (
+			id: number,
+			data: {
+				displayName?: string
+				description?: string
+				permissions?: UserPermissions
+			}
+		) => ipcRenderer.invoke("roles:update", id, data),
+		delete: (id: number) => ipcRenderer.invoke("roles:delete", id),
+		duplicate: (sourceId: number, newName: string, newDisplayName: string) =>
+			ipcRenderer.invoke("roles:duplicate", sourceId, newName, newDisplayName),
 	},
 	modelos: {
 		list: () => ipcRenderer.invoke("modelos:list"),
