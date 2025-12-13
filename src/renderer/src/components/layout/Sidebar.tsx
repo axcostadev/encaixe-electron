@@ -1,5 +1,5 @@
 import { cn } from "@renderer/lib/utils"
-import { Box, Layers, LayoutDashboard, Package, Palette, Zap } from "lucide-react"
+import { Book, Box, Layers, LayoutDashboard, Package, Palette, Zap } from "lucide-react"
 import { NavLink } from "react-router-dom"
 
 const menuItems = [
@@ -9,6 +9,7 @@ const menuItems = [
 	{ path: "/materiais", label: "Materiais", icon: Layers },
 	{ path: "/componentes", label: "Componentes", icon: Package },
 	{ path: "/encaixe", label: "Encaixe", icon: Zap },
+	{ path: "/manual", label: "Manual", icon: Book },
 ]
 
 export function Sidebar() {

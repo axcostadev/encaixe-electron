@@ -11,6 +11,7 @@ import { Dashboard } from "@renderer/pages/Dashboard"
 import { MateriaisPage } from "@renderer/pages/MateriaisPage"
 import { ModelosPage } from "@renderer/pages/ModelosPage"
 import EncaixePage from "@renderer/pages/EncaixePage"
+import ManualPage from "@renderer/pages/ManualPage"
 import NotFound from "@renderer/pages/NotFound"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { HashRouter, Route, Routes, Navigate } from "react-router-dom"
@@ -30,6 +31,7 @@ function AuthenticatedApp() {
 				<Route path="/cores" element={<CoresPage />} />
 				<Route path="/materiais" element={<MateriaisPage />} />
 				<Route path="/componentes" element={<ComponentesPage />} />
+				<Route path="/manual" element={<ManualPage />} />
 				<Route path="*" element={<NotFound />} />
 			</Routes>
 		</MainLayout>
