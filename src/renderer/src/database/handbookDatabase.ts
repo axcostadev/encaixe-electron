@@ -135,7 +135,7 @@ export class HandbookDatabaseManager {
       {
         id: '1',
         nome_modelo: 'MIZUNO COOL RIDE 2',
-        tamanhos: ['34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44'],
+        tamanhos: [34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44],
         numero_projeto: '087',
         numero_artigo: '101087087',
         forma: '34A37-6N063UNL;38A44-6N063UN',
