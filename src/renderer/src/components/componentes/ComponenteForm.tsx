@@ -126,6 +126,16 @@ export function ComponenteForm({
 		}))
 	}
 
+	function handleToggleSelectAll() {
+		if (coresModelo.length === 0) return
+		const all = coresModelo.map((c) => c.id.toString())
+		setFormData((prev) => ({
+			...prev,
+			coresDisponiveis:
+				prev.coresDisponiveis.length === coresModelo.length ? [] : all,
+		}))
+	}
+
 	function handleAddTamanho() {
 		const inicial = parseInt(novoTamanhoInicial)
 		const final = parseInt(novoTamanhoFinal)
@@ -359,6 +369,22 @@ export function ComponenteForm({
 								{coresModelo.length > 0 && (
 									<div className="space-y-3">
 										<Label>Cores Disponíveis</Label>
+										<div className="flex items-center justify-between">
+											<p className="text-sm text-muted-foreground">
+												{formData.coresDisponiveis.length} de{" "}
+												{coresModelo.length} selecionada(s)
+											</p>
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												onClick={handleToggleSelectAll}
+											>
+												{formData.coresDisponiveis.length === coresModelo.length
+													? "Desmarcar todas"
+													: "Marcar todas"}
+											</Button>
+										</div>
 										<div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-muted/50 rounded-lg border">
 											{coresModelo.map((cor) => (
 												<div
