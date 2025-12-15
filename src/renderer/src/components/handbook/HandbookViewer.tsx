@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { HandbookModel, OperationComponent } from '@renderer/types/handbook';
 import { handbookDatabase } from '@renderer/database/handbookDatabase';
-import { Printer, ZoomIn, ZoomOut, RotateCcw, Calendar, FileText } from 'lucide-react';
+import { Printer, ZoomIn, ZoomOut, RotateCcw, Calendar, FileText, Maximize2, Minimize2 } from 'lucide-react';
 
 interface HandbookViewerProps {
   selectedModel?: HandbookModel;
@@ -10,6 +10,7 @@ interface HandbookViewerProps {
 export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel }) => {
   const [components, setComponents] = useState<OperationComponent[]>([]);
   const [zoomLevel, setZoomLevel] = useState(100);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const data = handbookDatabase.getAllComponents();
@@ -17,8 +18,31 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
   }, []);
 
   const handleZoom = (delta: number) => {
-    setZoomLevel(prev => Math.max(50, Math.min(150, prev + delta)));
+    setZoomLevel(prev => Math.max(50, Math.min(200, prev + delta)));
   };
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === '+' || e.key === '=') handleZoom(10);
+      if (e.key === '-') handleZoom(-10);
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, []);;
+      if (e.key === '-') handleZoom(-10);
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, []);
 
   const handlePrint = () => {
     window.print();
@@ -93,6 +117,22 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
             </button>
           </div>
           
+          {/* Fullscreen */}
+          <button
+            onClick={async () => {
+              const el = document.documentElement;
+              if (!document.fullscreenElement) {
+                await el.requestFullscreen().catch(() => {});
+              } else {
+                await document.exitFullscreen().catch(() => {});
+              }
+            }}
+            className="p-2 rounded hover:bg-muted-foreground/10"
+            title="Alternar tela cheia"
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
+
           {/* Botão Imprimir */}
           <button
             onClick={handlePrint}

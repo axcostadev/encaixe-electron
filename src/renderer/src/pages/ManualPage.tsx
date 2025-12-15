@@ -11,7 +11,8 @@ import {
   Plus, 
   FolderOpen,
   Settings,
-  FileText
+  FileText,
+  X
 } from 'lucide-react';
 
 type TabType = 'modelos' | 'edicao' | 'visualizacao';
@@ -90,6 +91,35 @@ const ManualPage: React.FC = () => {
     { id: 'edicao' as TabType, label: 'Edição', icon: Edit3, description: 'Editar componentes' },
     { id: 'visualizacao' as TabType, label: 'Visualização', icon: Eye, description: 'Visualizar e imprimir' },
   ];
+
+  // Modo tela cheia para visualização
+  const isFullView = activeTab === 'visualizacao' && selectedModel;
+
+  // Se estiver em modo visualização com modelo, mostra tela cheia
+  if (isFullView) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col">
+        {/* Barra superior mínima */}
+        <div className="flex items-center justify-between px-4 py-2 bg-card border-b border-border print:hidden">
+          <div className="flex items-center gap-3">
+            <Book className="w-5 h-5 text-primary" />
+            <span className="font-semibold text-foreground">{selectedModel.nome_modelo}</span>
+          </div>
+          <button
+            onClick={() => setActiveTab('modelos')}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-muted hover:bg-muted-foreground/20 rounded-lg transition-colors"
+          >
+            <X className="w-4 h-4" />
+            Fechar
+          </button>
+        </div>
+        {/* Visualizador em tela cheia */}
+        <div className="flex-1 overflow-auto">
+          <HandbookViewer selectedModel={selectedModel} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full bg-background">

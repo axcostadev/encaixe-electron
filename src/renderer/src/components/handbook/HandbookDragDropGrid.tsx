@@ -16,14 +16,39 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
     handleDragStart,
     handleDragEnd,
     handleDrop,
-    updateComponent
+    updateComponent,
+    moveComponentToPosition,
+    undo, redo, canUndo, canRedo
   } = useHandbookDragDrop();
 
   const [zoomLevel, setZoomLevel] = React.useState(100);
+  const [isPanning, setIsPanning] = React.useState(false);
+  const [pan, setPan] = React.useState({ x: 0, y: 0 });
+  const panRef = React.useRef(pan);
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const [showGridLines, setShowGridLines] = React.useState(false);
+  const [snapToGrid, setSnapToGrid] = React.useState(true);
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
 
   useEffect(() => {
     loadComponents();
   }, [loadComponents]);
+
+  // keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault(); undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+        e.preventDefault(); redo();
+      }
+      if (e.key === '+' || e.key === '=') handleZoom(25);
+      if (e.key === '-') handleZoom(-25);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [undo, redo]);
 
   const handleZoom = (delta: number) => {
     setZoomLevel(prev => Math.max(25, Math.min(200, prev + delta)));
@@ -36,6 +61,29 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
   const handlePrint = () => {
     window.print();
   };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (e.ctrlKey) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -10 : 10;
+      handleZoom(delta);
+    }
+  };
+
+  // Pan handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    setIsPanning(true);
+    panRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isPanning) return;
+    const origin = panRef.current;
+    setPan({ x: e.clientX - origin.x, y: e.clientY - origin.y });
+  };
+
+  const handleMouseUp = () => setIsPanning(false);
 
   const maxColumns = components.length > 0 
     ? Math.max(4, Math.max(...components.map(c => c.position_x)) + 1)
@@ -141,36 +189,87 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
         </div>
 
         {/* Grid de componentes */}
-        <div 
-          id="handbook-components-grid"
-          className="grid gap-4 bg-card p-6 rounded-lg shadow-sm border border-border"
-          style={{ 
-            gridTemplateColumns: `repeat(${maxColumns}, 1fr)`,
-            minHeight: '600px',
-            transform: `scale(${zoomLevel / 100})`,
-            transformOrigin: 'top left'
-          }}
-        >
-          {grid.map((row, rowIndex) =>
-            row.map((component, colIndex) => (
-              <div key={`${rowIndex}-${colIndex}`} className="min-h-48">
-                {component ? (
-                  <HandbookComponentCard
-                    component={component}
-                    isDragging={draggedItem === component.id}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                    onDrop={handleDrop}
-                    onUpdateComponent={updateComponent}
-                  />
-                ) : (
-                  <div className="h-48 border-2 border-dashed border-border rounded bg-muted flex items-center justify-center text-muted-foreground text-sm">
-                    Área disponível
-                  </div>
-                )}
-              </div>
-            ))
+        <div className="mb-4 flex items-center gap-2 no-print">
+          <button onClick={() => undo()} disabled={!canUndo} className="px-3 py-1 bg-card border rounded hover:shadow disabled:opacity-50">Undo</button>
+          <button onClick={() => redo()} disabled={!canRedo} className="px-3 py-1 bg-card border rounded hover:shadow disabled:opacity-50">Redo</button>
+          <label className="inline-flex items-center px-2 py-1 bg-card border rounded">
+            <input type="checkbox" checked={showGridLines} onChange={() => setShowGridLines(s => !s)} />
+            <span className="ml-2 text-sm">Grade</span>
+          </label>
+          <label className="inline-flex items-center px-2 py-1 bg-card border rounded">
+            <input type="checkbox" checked={snapToGrid} onChange={() => setSnapToGrid(s => !s)} />
+            <span className="ml-2 text-sm">Snap</span>
+          </label>
+          {selectedIds.length > 0 && (
+            <span className="px-2 py-1 bg-primary/20 text-primary text-sm rounded">
+              {selectedIds.length} selecionado(s)
+            </span>
           )}
+          <div className="ml-auto text-sm text-muted-foreground">Dica: segure Ctrl e role para zoom | Shift+clique para multi-seleção</div>
+        </div>
+
+        <div
+          ref={containerRef}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          id="handbook-components-grid"
+          className="relative overflow-hidden"
+          style={{ minHeight: '600px' }}
+        >
+          <div
+            className="grid gap-4 bg-card p-6 rounded-lg shadow-sm border border-border"
+            style={{
+              gridTemplateColumns: `repeat(${maxColumns}, 1fr)`,
+              transform: `scale(${zoomLevel / 100}) translate(${pan.x / (zoomLevel/100)}px, ${pan.y / (zoomLevel/100)}px)`,
+              transformOrigin: 'top left',
+              transition: isPanning ? 'none' : 'transform 0.1s linear',
+              backgroundImage: showGridLines ? `repeating-linear-gradient(0deg, transparent, transparent 48px, rgba(0,0,0,0.03) 48px, rgba(0,0,0,0.03) 49px), repeating-linear-gradient(90deg, transparent, transparent 48px, rgba(0,0,0,0.03) 48px, rgba(0,0,0,0.03) 49px)` : undefined
+            }}
+          >
+            {grid.map((row, rowIndex) =>
+              row.map((component, colIndex) => (
+                <div key={`${rowIndex}-${colIndex}`} className="min-h-48">
+                  {component ? (
+                    <div
+                      onClick={(e) => {
+                        if (e.shiftKey) {
+                          setSelectedIds(prev => prev.includes(component.id) ? prev.filter(id => id !== component.id) : [...prev, component.id]);
+                        } else {
+                          setSelectedIds([component.id]);
+                        }
+                      }}
+                    >
+                      <HandbookComponentCard
+                        component={component}
+                        isDragging={draggedItem === component.id}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                        onDrop={(targetId, sourceId) => handleDrop(targetId, sourceId)}
+                        onUpdateComponent={updateComponent}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e: React.DragEvent) => {
+                        e.preventDefault();
+                        const sourceId = e.dataTransfer.getData('text/plain');
+                        if (sourceId) {
+                          moveComponentToPosition(sourceId, colIndex, rowIndex);
+                        }
+                      }}
+                      className="h-48 border-2 border-dashed border-border rounded bg-muted flex items-center justify-center text-muted-foreground text-sm"
+                    >
+                      Área disponível
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         {/* Estatísticas */}
