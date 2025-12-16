@@ -203,7 +203,7 @@ export const HandbookComponentCard: React.FC<HandbookComponentCardProps> = ({
 
     return (
       <div
-        className={`${className} ${isEditing ? 'cursor-pointer hover:bg-blue-50 rounded px-1' : ''}`}
+        className={`${className} ${isEditing ? 'cursor-pointer hover:bg-blue-800 rounded px-1' : ''}`}
         style={style}
         onClick={() => isEditing && setEditingField(fieldName)}
       >
@@ -236,11 +236,11 @@ export const HandbookComponentCard: React.FC<HandbookComponentCardProps> = ({
 
     return (
       <div
-        className={`${isEditing ? 'cursor-pointer hover:bg-blue-50 rounded px-1' : ''}`}
+        className={`${isEditing ? 'cursor-pointer hover:bg-blue-800 rounded px-1' : ''}`}
         onClick={() => isEditing && setEditingField('setores_posteriores')}
       >
         {setores.map((setor, index) => (
-          <span key={index} className="text-red-600 font-bold mr-1" style={style}>
+          <span key={index} className="text-red-300 font-bold mr-1" style={style}>
             {setor}{index < setores.length - 1 ? ',' : ''}
           </span>
         ))}
@@ -272,7 +272,7 @@ export const HandbookComponentCard: React.FC<HandbookComponentCardProps> = ({
 
     return (
       <div
-        className={`text-center font-medium ${isEditing ? 'cursor-pointer hover:bg-blue-100 rounded px-1' : ''}`}
+        className={`text-center font-medium text-black ${isEditing ? 'cursor-pointer hover:bg-blue-800 rounded px-1' : ''}`}
         style={style}
         onClick={() => isEditing && setEditingField('agrupamento_tamanhos')}
       >
@@ -295,7 +295,7 @@ export const HandbookComponentCard: React.FC<HandbookComponentCardProps> = ({
               {component.conjugacao && renderEditableField(
                 'conjugacao',
                 tempValues.conjugacao || component.conjugacao,
-                'font-bold whitespace-nowrap'
+                'font-bold whitespace-nowrap bg-yellow-400 text-black px-1 rounded'
               )}
             </div>
           );
@@ -304,7 +304,7 @@ export const HandbookComponentCard: React.FC<HandbookComponentCardProps> = ({
           return renderEditableField(
             'materiais_operacao',
             tempValues.materiais_operacao || component.materiais_operacao,
-            'font-medium'
+            'font-medium text-gray-200'
           );
 
         case 'setores_posteriores':
@@ -312,7 +312,7 @@ export const HandbookComponentCard: React.FC<HandbookComponentCardProps> = ({
 
         case 'setor_atual':
           return (
-            <div className="text-center font-bold" style={{ fontSize: `${fontSize + 2}px` }}>
+            <div className="text-center font-bold text-blue-200" style={{ fontSize: `${fontSize + 2}px` }}>
               {renderEditableField(
                 'setor_atual',
                 tempValues.setor_atual || component.setor_atual,
@@ -329,7 +329,7 @@ export const HandbookComponentCard: React.FC<HandbookComponentCardProps> = ({
                   <img
                     src={tempValues.foto_desenho_url || component.foto_desenho_url}
                     alt="Desenho"
-                    className="w-16 h-12 object-contain border border-gray-300 rounded bg-white shadow-sm"
+                    className="w-16 h-12 object-contain border border-gray-400 rounded bg-blue-800 shadow-sm"
                   />
                   {isEditing && (
                     <button
@@ -344,13 +344,13 @@ export const HandbookComponentCard: React.FC<HandbookComponentCardProps> = ({
               ) : isEditing ? (
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1 p-2 border-2 border-dashed border-gray-300 rounded hover:border-blue-500 bg-white shadow-sm"
+                  className="flex items-center gap-1 p-2 border-2 border-dashed border-gray-400 rounded hover:border-blue-500 bg-blue-800 shadow-sm"
                 >
                   <Upload className="w-3 h-3" />
                   <span style={{ fontSize: `${fontSize - 2}px` }}>IMG</span>
                 </button>
               ) : (
-                <div className="w-16 h-12 border border-gray-300 rounded flex items-center justify-center text-gray-400 bg-white shadow-sm">
+                <div className="w-16 h-12 border border-gray-400 rounded flex items-center justify-center text-gray-300 bg-blue-800 shadow-sm">
                   <span style={{ fontSize: `${fontSize - 2}px` }}>IMG</span>
                 </div>
               )}
@@ -359,7 +359,7 @@ export const HandbookComponentCard: React.FC<HandbookComponentCardProps> = ({
 
         case 'infestado_lado_so':
           return (
-            <div className="font-medium" style={{ fontSize: `${fontSize - 1}px` }}>
+            <div className="font-medium text-green-300" style={{ fontSize: `${fontSize - 1}px` }}>
               {component.infestado_lado_so ? 'ENFESTAR LADO SÓ' : 'SEM ENFESTAR'}
             </div>
           );
@@ -368,7 +368,7 @@ export const HandbookComponentCard: React.FC<HandbookComponentCardProps> = ({
           return renderEditableField(
             'pecas_par',
             tempValues.pecas_par || component.pecas_par,
-            'font-medium'
+            'font-medium text-gray-200'
           );
 
         default:
@@ -398,7 +398,7 @@ export const HandbookComponentCard: React.FC<HandbookComponentCardProps> = ({
       onDrop={handleDrop}
       onDoubleClick={handleDoubleClick}
       className={`
-        bg-white border-2 border-black p-2 h-48 flex flex-col justify-between relative
+        bg-blue-900 border-2 border-gray-300 p-2 h-48 flex flex-col justify-between relative text-white
         ${!isEditing ? 'cursor-move' : 'cursor-default'} transition-all duration-200 hover:shadow-lg
         ${isDragging ? 'opacity-50 transform rotate-2' : 'opacity-100'}
         ${isEditing ? 'ring-2 ring-blue-500' : ''}
@@ -461,14 +461,14 @@ export const HandbookComponentCard: React.FC<HandbookComponentCardProps> = ({
 
       {/* Agrupamento de tamanhos no rodapé */}
       {component.agrupamento_tamanhos.length > 0 && (
-        <div className="bg-yellow-300 p-1 -mx-2 -mb-2 mt-1 relative z-10">
+        <div className="bg-yellow-500 p-1 -mx-2 -mb-2 mt-1 relative z-10">
           {renderAgrupamentoTamanhos()}
         </div>
       )}
 
       {/* Dica de uso */}
       {!isEditing && (
-        <div className="absolute bottom-1 left-1 text-gray-400 opacity-0 hover:opacity-100 transition-opacity" style={{ fontSize: `${fontSize - 4}px` }}>
+        <div className="absolute bottom-1 left-1 text-gray-300 opacity-0 hover:opacity-100 transition-opacity" style={{ fontSize: `${fontSize - 4}px` }}>
           2x clique = editar
         </div>
       )}

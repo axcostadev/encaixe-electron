@@ -241,6 +241,7 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
                           setSelectedIds([component.id]);
                         }
                       }}
+                      className="relative"
                     >
                       <HandbookComponentCard
                         component={component}
@@ -250,6 +251,9 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
                         onDrop={(targetId, sourceId) => handleDrop(targetId, sourceId)}
                         onUpdateComponent={updateComponent}
                       />
+                      <div className="absolute top-1 left-1 text-base font-bold text-white bg-black/50 px-1 rounded z-20">
+                        {rowIndex + 1}:{colIndex + 1}
+                      </div>
                     </div>
                   ) : (
                     <div
@@ -261,9 +265,9 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
                           moveComponentToPosition(sourceId, colIndex, rowIndex);
                         }
                       }}
-                      className="h-48 border-2 border-dashed border-border rounded bg-muted flex items-center justify-center text-muted-foreground text-sm"
+                      className="h-48 border-2 border-dashed border-border rounded bg-muted flex items-center justify-center text-muted-foreground text-lg font-bold"
                     >
-                      Área disponível
+                      {rowIndex + 1}:{colIndex + 1}
                     </div>
                   )}
                 </div>

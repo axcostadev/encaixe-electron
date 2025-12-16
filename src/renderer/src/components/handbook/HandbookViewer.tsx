@@ -33,15 +33,6 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
       document.removeEventListener('fullscreenchange', onFsChange);
       window.removeEventListener('keydown', onKey);
     };
-  }, []);;
-      if (e.key === '-') handleZoom(-10);
-    };
-    document.addEventListener('fullscreenchange', onFsChange);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('fullscreenchange', onFsChange);
-      window.removeEventListener('keydown', onKey);
-    };
   }, []);
 
   const handlePrint = () => {
@@ -196,11 +187,20 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
           >
             {grid.map((row, rowIndex) =>
               row.map((component, colIndex) => (
-                <div key={`${rowIndex}-${colIndex}`} className="min-h-44">
+                <div key={`${rowIndex}-${colIndex}`} className="min-h-44 relative">
                   {component ? (
-                    <ViewOnlyCard component={component} />
+                    <div className="relative">
+                      <ViewOnlyCard component={component} />
+                      <div className="absolute top-1 left-1 text-base font-bold text-white bg-black/50 px-1 rounded">
+                        {rowIndex + 1}:{colIndex + 1}
+                      </div>
+                    </div>
                   ) : (
-                    <div className="h-44 border border-dashed border-border rounded bg-muted" />
+                    <div className="h-44 border border-dashed border-border rounded bg-muted flex items-center justify-center">
+                      <span className="text-lg font-bold text-muted-foreground">
+                        {rowIndex + 1}:{colIndex + 1}
+                      </span>
+                    </div>
                   )}
                 </div>
               ))
@@ -223,21 +223,21 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
 // Componente de visualização somente leitura
 const ViewOnlyCard: React.FC<{ component: OperationComponent }> = ({ component }) => {
   return (
-    <div className="bg-white border-2 border-gray-800 p-3 h-44 flex flex-col justify-between text-xs relative overflow-hidden">
+    <div className="bg-blue-900 border-2 border-gray-300 p-3 h-44 flex flex-col justify-between text-xs relative overflow-hidden text-white">
       {/* Cabeçalho com nome e conjugação */}
       <div className="flex justify-between items-start gap-2">
         <span className="font-bold text-sm leading-tight flex-1">
           {component.nome_operacao}
         </span>
         {component.conjugacao && (
-          <span className="font-bold text-sm whitespace-nowrap bg-yellow-100 px-1 rounded">
+          <span className="font-bold text-sm whitespace-nowrap bg-yellow-400 px-1 rounded text-black">
             {component.conjugacao}
           </span>
         )}
       </div>
 
       {/* Material */}
-      <div className="font-medium text-gray-700 mt-1">
+      <div className="font-medium text-gray-200 mt-1">
         {component.materiais_operacao}
       </div>
 
@@ -247,7 +247,7 @@ const ViewOnlyCard: React.FC<{ component: OperationComponent }> = ({ component }
           {component.setores_posteriores.map((setor, idx) => (
             <span 
               key={idx}
-              className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-[10px] font-medium"
+              className="px-1.5 py-0.5 bg-blue-700 text-blue-100 rounded text-[10px] font-medium"
             >
               {setor}
             </span>
@@ -256,7 +256,7 @@ const ViewOnlyCard: React.FC<{ component: OperationComponent }> = ({ component }
       )}
 
       {/* Setor atual */}
-      <div className="text-center font-bold text-base mt-2 text-blue-900">
+      <div className="text-center font-bold text-base mt-2 text-blue-200">
         {component.setor_atual}
       </div>
 
@@ -266,7 +266,7 @@ const ViewOnlyCard: React.FC<{ component: OperationComponent }> = ({ component }
           <img
             src={component.foto_desenho_url}
             alt="Desenho"
-            className="w-14 h-10 object-contain border border-gray-300 rounded bg-white"
+            className="w-14 h-10 object-contain border border-gray-400 rounded bg-blue-800"
           />
         </div>
       )}
@@ -274,18 +274,18 @@ const ViewOnlyCard: React.FC<{ component: OperationComponent }> = ({ component }
       {/* Infestado e peças */}
       <div className="mt-auto pt-2 space-y-1">
         {component.infestado_lado_so && (
-          <div className="font-medium text-green-700 text-[10px]">
+          <div className="font-medium text-green-300 text-[10px]">
             ENFESTAR LADO SÓ
           </div>
         )}
-        <div className="font-medium text-gray-700">
+        <div className="font-medium text-gray-200">
           {component.pecas_par}
         </div>
       </div>
 
       {/* Agrupamento de tamanhos */}
       {component.agrupamento_tamanhos.length > 0 && (
-        <div className="bg-yellow-300 text-center font-medium py-1 -mx-3 -mb-3 mt-2 text-[10px]">
+        <div className="bg-yellow-500 text-center font-medium py-1 -mx-3 -mb-3 mt-2 text-[10px] text-black">
           {component.agrupamento_tamanhos.join(' - ')}
         </div>
       )}
