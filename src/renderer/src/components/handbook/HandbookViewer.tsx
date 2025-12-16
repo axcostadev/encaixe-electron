@@ -138,13 +138,24 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
       {/* Área de visualização */}
       <div className="flex-1 overflow-auto p-6 bg-muted">
         <div 
-          className="mx-auto bg-card shadow-lg rounded-lg overflow-hidden"
+          className="mx-auto bg-card shadow-lg rounded-lg overflow-hidden handbook-viewer-container"
           style={{ 
             transform: `scale(${zoomLevel / 100})`,
             transformOrigin: 'top center',
             maxWidth: '1200px'
           }}
         >
+          <style>
+            {`
+              @media print {
+                .handbook-viewer-container {
+                  transform: scale(1) !important;
+                  max-width: none !important;
+                  margin: 0 !important;
+                }
+              }
+            `}
+          </style>
           {/* Cabeçalho do Manual */}
           <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white p-6">
             <div className="text-center">
@@ -182,12 +193,12 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
 
           {/* Grid de componentes - Modo visualização (somente leitura) */}
           <div 
-            className="grid gap-3 p-6"
+            className="grid gap-4 p-6"
             style={{ gridTemplateColumns: `repeat(${maxColumns}, 1fr)` }}
           >
             {grid.map((row, rowIndex) =>
               row.map((component, colIndex) => (
-                <div key={`${rowIndex}-${colIndex}`} className="min-h-44 relative">
+                <div key={`${rowIndex}-${colIndex}`} className="min-h-48 relative">
                   {component ? (
                     <div className="relative">
                       <ViewOnlyCard component={component} />
@@ -196,7 +207,7 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
                       </div>
                     </div>
                   ) : (
-                    <div className="h-44 border border-dashed border-border rounded bg-muted flex items-center justify-center">
+                    <div className="h-48 border border-dashed border-border rounded bg-muted flex items-center justify-center">
                       <span className="text-lg font-bold text-muted-foreground">
                         {rowIndex + 1}:{colIndex + 1}
                       </span>
@@ -223,7 +234,7 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
 // Componente de visualização somente leitura
 const ViewOnlyCard: React.FC<{ component: OperationComponent }> = ({ component }) => {
   return (
-    <div className="bg-blue-900 border-2 border-gray-300 p-3 h-44 flex flex-col justify-between text-xs relative overflow-hidden text-white">
+    <div className="bg-blue-900 border-2 border-gray-300 p-3 h-48 flex flex-col justify-between text-xs relative overflow-hidden text-white">
       {/* Cabeçalho com nome e conjugação */}
       <div className="flex justify-between items-start gap-2">
         <span className="font-bold text-sm leading-tight flex-1">
