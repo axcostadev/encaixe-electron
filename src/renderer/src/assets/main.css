@@ -223,6 +223,59 @@
 	.card-stats {
 		@apply bg-card rounded-xl border border-border p-6 shadow-sm hover:shadow-md transition-shadow duration-200;
 	}
+
+	/* Economia specific styles */
+	.card-stats-economia {
+		@apply bg-background/40 text-white rounded-xl border border-border p-6 shadow-md flex flex-col items-center justify-center gap-2;
+	}
+	.card-stats-economia .label {
+		@apply text-sm text-muted-foreground;
+	}
+	.card-stats-economia .value {
+		@apply text-2xl sm:text-3xl font-bold;
+	}
+
+	.economia-actions {
+		@apply flex items-center gap-3;
+	}
+
+	.economia-charts-container {
+		@apply grid gap-6 md:grid-cols-2;
+	}
+
+	.economia-badges {
+		@apply items-center;
+	}
+
+	.econ-badge {
+		@apply flex items-center gap-3 bg-background/10 rounded-md border border-border p-3 min-w-[180px] justify-center;
+	}
+
+	.econ-badge .badge-icon {
+		@apply rounded-full w-10 h-10 flex items-center justify-center;
+	}
+
+	.econ-badge .badge-icon img {
+		@apply w-6 h-6 object-contain;
+	}
+
+	.econ-badge .badge-body {
+		@apply text-left;
+	}
+
+	.econ-badge .badge-amount {
+		@apply block text-white text-lg font-bold;
+	}
+
+	.econ-badge .badge-label {
+		@apply text-sm text-muted-foreground;
+	}
+
+	.chart-placeholder {
+		@apply rounded-xl border border-border p-6 bg-muted/5 min-h-[300px] flex items-center justify-center text-muted-foreground;
+		border-style: dashed;
+	}
+
 }
 
 #root {

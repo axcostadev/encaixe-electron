@@ -857,7 +857,6 @@ export function setupIPC(): void {
 	ipcMain.handle("economia-import-file", async (_event, filePath?: string) => {
 		try {
 			const xlsx = await import("xlsx")
-			const fs = await import("fs")
 			let pathToRead = filePath
 			if (!pathToRead) {
 				const res = await dialog.showOpenDialog({ properties: ["openFile"], filters: [{ name: "Excel", extensions: ["xlsx", "xls"] }] })
@@ -873,7 +872,7 @@ export function setupIPC(): void {
 			return result
 		} catch (err) {
 			console.error('[IPC] economia-import-file error:', err)
-			return { imported: 0, error: err?.message || String(err) }
+			return { imported: 0, error: (err as any)?.message || String(err) }
 		}
 	})
 
