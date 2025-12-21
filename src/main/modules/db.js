@@ -99,6 +99,27 @@ export function initDB() {
 												createUsersTable().then(resolve).catch(resolve)
 											},
 										)
+											// Ensure economia table exists for economia dashboard
+											db.run(
+												`CREATE TABLE IF NOT EXISTS economia (
+													id INTEGER PRIMARY KEY AUTOINCREMENT,
+													data DATETIME,
+													artigo TEXT,
+													ordem INTEGER,
+													modelo TEXT,
+													material TEXT,
+													cor_espessura TEXT,
+													preco REAL,
+													previsto REAL,
+													encaixe REAL,
+													dif REAL,
+													porcent REAL
+												)`,
+												(errEconomia) => {
+													if (errEconomia) console.log('[DB] error creating economia table:', errEconomia)
+													return resolve()
+												}
+											)
 									}
 								})
 							},
@@ -315,6 +336,111 @@ export function deleteCadastroById(id) {
 			if (err) return reject(err)
 			resolve({ deleted: this.changes || 0 })
 		})
+	})
+}
+
+// ==================== Economia table handlers ====================
+
+export function saveEconomiaRows(rows) {
+	return new Promise((resolve, reject) => {
+		try {
+			const stmt = db.prepare(
+				`INSERT INTO economia (data, artigo, ordem, modelo, material, cor_espessura, preco, previsto, encaixe, dif, porcent) VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+			)
+
+			db.serialize(() => {
+				for (const r of rows) {
+					const data = r.Data ? new Date(r.Data).toISOString() : null
+					const artigo = r.Artigo || r.artigo || null
+					const ordem = r.Ordem || r.ordem || null
+					const modelo = r.Modelo || r.modelo || null
+					const material = r.Material || r.material || null
+					const cor_espessura = r["Cor/Espessura"] || r.Cor || null
+					const preco = r["PREÇO"] || r.PRECO || r.preco || null
+					const previsto = r.Previsto || r.previsto || null
+					const encaixe = r.Encaixe || r.encaixe || null
+					const dif = r.Dif || r.dif || null
+					const porcent = r["%"] || r.Porcent || r.porcent || null
+
+					stmt.run([
+						data,
+						artigo,
+						ordem,
+						modelo,
+						material,
+						cor_espessura,
+						preco,
+						previsto,
+						encaixe,
+						dif,
+						porcent,
+					])
+				}
+
+				stmt.finalize((err) => {
+					if (err) return reject(err)
+					resolve({ inserted: rows.length })
+				})
+			})
+		} catch (e) {
+			reject(e)
+		}
+	})
+}
+
+export function listEconomia(limit = 500) {
+	return new Promise((resolve, reject) => {
+		db.all("SELECT * FROM economia ORDER BY id DESC LIMIT ?", [limit], (err, rows) => {
+			if (err) return reject(err)
+			resolve(rows || [])
+		})
+	})
+}
+
+export function clearEconomia() {
+	return new Promise((resolve, reject) => {
+		db.run("DELETE FROM economia", function (err) {
+			if (err) return reject(err)
+			resolve({ deleted: this.changes || 0 })
+		})
+	})
+}
+
+export function getEconomiaSummary() {
+	return new Promise((resolve, reject) => {
+		db.get(
+			"SELECT SUM(dif) as totalDif, COUNT(DISTINCT ordem) as ordemCount, AVG(dif) as avgDif FROM economia",
+			(err, row) => {
+				if (err) return reject(err)
+				resolve(row || { totalDif: 0, ordemCount: 0, avgDif: 0 })
+			},
+		)
+	})
+}
+
+export function getEconomiaByModelo(limit = 10) {
+	return new Promise((resolve, reject) => {
+		db.all(
+			"SELECT modelo as name, SUM(dif) as total FROM economia GROUP BY modelo ORDER BY total ASC LIMIT ?",
+			[limit],
+			(err, rows) => {
+				if (err) return reject(err)
+				resolve(rows || [])
+			},
+		)
+	})
+}
+
+export function getEconomiaByMaterial(limit = 10) {
+	return new Promise((resolve, reject) => {
+		db.all(
+			"SELECT material as name, SUM(dif) as total FROM economia GROUP BY material ORDER BY total ASC LIMIT ?",
+			[limit],
+			(err, rows) => {
+				if (err) return reject(err)
+				resolve(rows || [])
+			},
+		)
 	})
 }
 

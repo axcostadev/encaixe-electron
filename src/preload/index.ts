@@ -285,6 +285,15 @@ const api = {
 	cadastroImportAPI: {
 		importAll: () => ipcRenderer.invoke("cadastro-import-folder"),
 	},
+	// Economia APIs
+	economia: {
+		importFile: (filePath?: string) => ipcRenderer.invoke("economia-import-file", filePath),
+		list: (limit: number = 500) => ipcRenderer.invoke("economia-list", limit),
+		clear: () => ipcRenderer.invoke("economia-clear"),
+		summary: () => ipcRenderer.invoke("economia-summary"),
+		byModelo: (limit: number = 10) => ipcRenderer.invoke("economia-by-modelo", limit),
+		byMaterial: (limit: number = 10) => ipcRenderer.invoke("economia-by-material", limit),
+	},
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

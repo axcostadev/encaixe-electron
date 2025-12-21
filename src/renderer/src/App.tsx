@@ -13,6 +13,7 @@ import { MateriaisPage } from "@renderer/pages/MateriaisPage"
 import { ModelosPage } from "@renderer/pages/ModelosPage"
 import EncaixePage from "@renderer/pages/EncaixePage"
 import ManualPage from "@renderer/pages/ManualPage"
+import EconomiaPage from "@renderer/pages/EconomiaPage"
 import SetupPage from "@renderer/pages/SetupPage"
 import NotFound from "@renderer/pages/NotFound"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
@@ -40,6 +41,7 @@ function AuthenticatedApp() {
 		<MainLayout>
 			<Routes>
 				<Route path="/" element={<Dashboard />} />
+					<Route path="/economia" element={<EconomiaPage />} />
 				<Route path="/encaixe" element={<EncaixePage />} />
 				<Route path="/modelos" element={<ModelosPage />} />
 				<Route path="/cores" element={<CoresPage />} />

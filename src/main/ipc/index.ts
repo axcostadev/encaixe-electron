@@ -851,4 +851,49 @@ export function setupIPC(): void {
 		// Implementar importação em lote se necessário
 		return { imported: 0 }
 	})
+
+	// ==================== Economia IPC handlers ====================
+
+	ipcMain.handle("economia-import-file", async (_event, filePath?: string) => {
+		try {
+			const xlsx = await import("xlsx")
+			const fs = await import("fs")
+			let pathToRead = filePath
+			if (!pathToRead) {
+				const res = await dialog.showOpenDialog({ properties: ["openFile"], filters: [{ name: "Excel", extensions: ["xlsx", "xls"] }] })
+				if (res.canceled) return { imported: 0 }
+				pathToRead = res.filePaths[0]
+			}
+
+			const wb = xlsx.readFile(pathToRead)
+			const sheet = wb.SheetNames[0]
+			const data = xlsx.utils.sheet_to_json(wb.Sheets[sheet], { defval: null })
+			if (!data || data.length === 0) return { imported: 0 }
+			const result = await db.saveEconomiaRows(data)
+			return result
+		} catch (err) {
+			console.error('[IPC] economia-import-file error:', err)
+			return { imported: 0, error: err?.message || String(err) }
+		}
+	})
+
+	ipcMain.handle("economia-list", async (_event, limit: number = 500) => {
+		return await db.listEconomia(limit)
+	})
+
+	ipcMain.handle("economia-clear", async () => {
+		return await db.clearEconomia()
+	})
+
+	ipcMain.handle("economia-summary", async () => {
+		return await db.getEconomiaSummary()
+	})
+
+	ipcMain.handle("economia-by-modelo", async (_event, limit: number = 10) => {
+		return await db.getEconomiaByModelo(limit)
+	})
+
+	ipcMain.handle("economia-by-material", async (_event, limit: number = 10) => {
+		return await db.getEconomiaByMaterial(limit)
+	})
 }
