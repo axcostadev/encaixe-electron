@@ -1,0 +1,50 @@
+.economia-filters {
+  background: var(--economia-gradient);
+  color: #fff;
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+.economia-filters h3{color:#fff;margin:0 0 8px;font-weight:700}
+.economia-filters .filter-box{background:rgba(255,255,255,0.06);border-radius:8px;padding:8px;height:160px;overflow:auto}
+.economia-filters label{display:flex;align-items:center;padding:4px 6px;border-radius:6px;margin-bottom:4px}
+.economia-filters input[type="checkbox"]{width:14px;height:14px}
+.economia-filters label:hover{background:rgba(255,255,255,0.03)}
+.economia-filters .controls{display:flex;gap:8px;margin-top:8px}
+.economia-filters .controls button{padding:4px 8px}
+
+.economia-badges .econ-badge{background:linear-gradient(180deg,#e6f2ff,#d8eefe);border-radius:10px;padding:10px;display:flex;align-items:center;gap:10px}
+.economia-badges .badge-icon{width:48px;height:48px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.economia-badges .badge-amount{font-weight:700}
+
+/* layout: left narrow filters, right area with two square cards */
+.economia-charts-container{display:grid;grid-template-columns:180px 1fr;gap:18px;align-items:start}
+.economia-charts-container > .bg-card{background: var(--economia-gradient) !important;border-radius:14px;padding:18px;min-height:var(--panel-height);background-repeat:no-repeat;background-size:cover}
+.economia-charts-container > .economia-filters{min-height:var(--panel-height)}
+.charts-right{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.charts-right > .bg-card{min-height:var(--panel-height);background: var(--economia-gradient) !important;background-repeat:no-repeat;background-size:cover}
+.bg-card h3{font-weight:700;text-align:center;color:#ffffff}
+.chart-placeholder{padding:40px;text-align:center;color:#475569}
+
+/* responsive fallback for small screens */
+:root{
+  --economia-blue-start: #3b82c4;
+  --economia-blue-end: #2b6ea8;
+  --economia-gradient: linear-gradient(180deg,var(--economia-blue-start),var(--economia-blue-end));
+  /* lighter variant for cards */
+  --economia-light-start: #7fb7ea;
+  --economia-light-end: #5b97d6;
+  --economia-gradient-light: linear-gradient(180deg,var(--economia-light-start),var(--economia-light-end));
+  --panel-height: 720px;
+}
+
+@media (max-width: 767px){
+  .economia-charts-container{grid-template-columns:1fr}
+  .charts-right{grid-template-columns:1fr}
+  :root{--panel-height:360px}
+}
+
+/* ensure filters keep original blue gradient and white text */
+.economia-filters{background: linear-gradient(180deg,#3b82c4,#2b6ea8);color:#ffffff}
+.economia-filters h3{color:#ffffff}
+.economia-filters .font-medium{color:#ffffff}

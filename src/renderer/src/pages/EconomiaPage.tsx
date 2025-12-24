@@ -5,6 +5,7 @@ import { Button } from "@renderer/components/ui/button"
 import { ChartContainer } from "@renderer/components/ui/chart"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { Box, Zap } from "lucide-react"
+import "./EconomiaPage.css"
 import shoeImg from "../assets/images/shoe.svg"
 import rollsImg from "../assets/images/rolls.svg"
 import vulcabrasImg from "../assets/images/vulcabras.svg"
@@ -33,6 +34,10 @@ export default function EconomiaPage() {
   const [summary, setSummary] = useState<any>(null)
   const [byModelo, setByModelo] = useState<any[]>([])
   const [byMaterial, setByMaterial] = useState<any[]>([])
+  const [availablePeriods, setAvailablePeriods] = useState<string[]>([])
+  const [availableModels, setAvailableModels] = useState<string[]>([])
+  const [selectedPeriods, setSelectedPeriods] = useState<string[]>([])
+  const [selectedModels, setSelectedModels] = useState<string[]>([])
 
   // Prefer PNG versions of images when available; fallback to bundled SVGs
   const [images, setImages] = useState({ shoe: shoeImg, rolls: rollsImg, logo: vulcabrasImg })
@@ -79,6 +84,27 @@ export default function EconomiaPage() {
       setSummary(sum || { totalDif: 0, ordemCount: 0, avgDif: 0 })
       setByModelo(Array.isArray(modelos) ? modelos : [])
       setByMaterial(Array.isArray(materiais) ? materiais : [])
+      // compute available periods and models for client-side filters
+      const rs = Array.isArray(list) ? list : []
+      const periodsSet = new Set<string>()
+      const modelsSet = new Set<string>()
+      rs.forEach((r:any) => {
+        if (r.data) {
+          try {
+            const dt = new Date(r.data)
+            const p = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`
+            periodsSet.add(p)
+          } catch(e) {}
+        }
+        if (r.modelo) modelsSet.add(r.modelo)
+      })
+      const periods = Array.from(periodsSet).sort().reverse()
+      const models = Array.from(modelsSet).sort()
+      setAvailablePeriods(periods)
+      setAvailableModels(models)
+      // default select all
+      setSelectedPeriods(periods)
+      setSelectedModels(models)
     } catch (e) {
       console.error(e)
     }
@@ -99,6 +125,51 @@ export default function EconomiaPage() {
     }
     setLoading(false)
   }
+
+  // Apply filters client-side and recompute aggregates
+  const applyFilters = () => {
+    const filtered = rows.filter((r:any) => {
+      let okPeriod = true
+      let okModel = true
+      if (selectedPeriods && selectedPeriods.length > 0) {
+        if (r.data) {
+          try {
+            const dt = new Date(r.data)
+            const p = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`
+            okPeriod = selectedPeriods.includes(p)
+          } catch(e) { okPeriod = false }
+        } else okPeriod = false
+      }
+      if (selectedModels && selectedModels.length > 0) {
+        okModel = selectedModels.includes(r.modelo)
+      }
+      return okPeriod && okModel
+    })
+
+    // summary: totalDif, ordemCount (distinct), avgDif per order
+    const totalDif = filtered.reduce((s:any,r:any)=>s + (Number(r.dif)||0), 0)
+    const ordSet = new Set(filtered.map((r:any)=>r.ordem))
+    const ordemCount = ordSet.size
+    const avgDif = ordemCount > 0 ? totalDif / ordemCount : 0
+    setSummary({ totalDif, ordemCount, avgDif })
+
+    // byModelo and byMaterial from filtered
+    const modeloMap = new Map<string,number>()
+    const materialMap = new Map<string,number>()
+    filtered.forEach((r:any)=>{
+      const m = r.modelo || 'N/A'
+      const mat = r.material || 'N/A'
+      modeloMap.set(m, (modeloMap.get(m)||0) + (Number(r.dif)||0))
+      materialMap.set(mat, (materialMap.get(mat)||0) + (Number(r.dif)||0))
+    })
+    const bm = Array.from(modeloMap.entries()).map(([name,total])=>({name,total})).sort((a,b)=>Math.abs(b.total)-Math.abs(a.total)).slice(0,20)
+    const bmat = Array.from(materialMap.entries()).map(([name,total])=>({name,total})).sort((a,b)=>Math.abs(b.total)-Math.abs(a.total)).slice(0,20)
+    setByModelo(bm)
+    setByMaterial(bmat)
+  }
+
+  // rerun applyFilters when rows or selections change
+  useEffect(()=>{ applyFilters() }, [rows, selectedPeriods, selectedModels])
 
   return (
     <div className="space-y-6">
@@ -163,6 +234,46 @@ export default function EconomiaPage() {
       </div>
 
       <div className="economia-charts-container">
+        <div className="economia-filters">
+          <h3 className="font-semibold mb-2">FILTROS</h3>
+          <div className="mb-3">
+            <div className="font-medium">Período</div>
+            <div className="h-44 overflow-auto border rounded mt-2 p-2 bg-muted/5">
+              {availablePeriods.map(p=> (
+                <label key={p} className="block text-sm">
+                  <input type="checkbox" checked={selectedPeriods.includes(p)} onChange={(e)=>{
+                    if (e.target.checked) setSelectedPeriods(s=>Array.from(new Set([...s,p])))
+                    else setSelectedPeriods(s=>s.filter(x=>x!==p))
+                  }} /> <span className="ml-2">{p}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-2 mt-2">
+              <Button onClick={()=>setSelectedPeriods(availablePeriods)}>Todos</Button>
+              <Button onClick={()=>setSelectedPeriods([])}>Limpar</Button>
+            </div>
+          </div>
+
+          <div>
+            <div className="font-medium">Modelo</div>
+            <div className="h-44 overflow-auto border rounded mt-2 p-2 bg-muted/5">
+              {availableModels.map(m=> (
+                <label key={m} className="block text-sm">
+                  <input type="checkbox" checked={selectedModels.includes(m)} onChange={(e)=>{
+                    if (e.target.checked) setSelectedModels(s=>Array.from(new Set([...s,m])))
+                    else setSelectedModels(s=>s.filter(x=>x!==m))
+                  }} /> <span className="ml-2">{m}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-2 mt-2">
+              <Button onClick={()=>setSelectedModels(availableModels)}>Todos</Button>
+              <Button onClick={()=>setSelectedModels([])}>Limpar</Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="charts-right">
         <div className="bg-card rounded-xl border border-border p-4">
           <h3 className="font-semibold mb-2">Modelos - Performance Negativa</h3>
           {byModelo && byModelo.length > 0 ? (
@@ -199,6 +310,7 @@ export default function EconomiaPage() {
           ) : (
             <div className="chart-placeholder">Sem dados para exibir</div>
           )}
+        </div>
         </div>
       </div>
 
