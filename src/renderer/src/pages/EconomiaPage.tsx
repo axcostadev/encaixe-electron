@@ -47,7 +47,7 @@ export default function EconomiaPage() {
   const [tab, setTab] = useState<'dashboard' | 'busca' | 'banco'>('dashboard')
 
   // Busca Dados (file search) state
-  const [searchTerm, setSearchTerm] = useState<string>('off')
+  const [searchTerm, setSearchTerm] = useState<string>('')
   const [selectedFileName, setSelectedFileName] = useState<string>('')
   const [selectedFileContent, setSelectedFileContent] = useState<string>('')
   const [searchResults, setSearchResults] = useState<{ line: number; text: string; parsed?: Record<string,string> }[]>([])
@@ -417,28 +417,28 @@ export default function EconomiaPage() {
         </>
       )}
       {tab === 'busca' && (
-        <div style={{padding: 24, background: 'var(--economia-gradient)', borderRadius: 12, color: '#fff', minHeight: 400}}>
-          <h2 style={{fontSize: 24, fontWeight: 700, marginBottom: 12}}>Busca Dados</h2>
+        <div className="busca-panel">
+          <h2 className="busca-title">Busca Dados</h2>
 
-          <div style={{display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12}}>
-            <label style={{display: 'flex', flexDirection: 'column', gap: 6}}>
-              <span style={{fontSize: 13, color: '#e6f0ff'}}>Termo de busca</span>
-              <input value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)} placeholder="off" style={{padding: '8px 10px', borderRadius: 8, border: 'none', minWidth: 220}} />
+          <div className="busca-row">
+            <label className="busca-field">
+              <span className="busca-label">Termo de busca</span>
+              <input className="busca-input" value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)} placeholder="Digite número da OFF" />
             </label>
 
-            <label style={{display: 'flex', flexDirection: 'column', gap: 6}}>
-              <span style={{fontSize: 13, color: '#e6f0ff'}}>Termos adicionais (vírgula separado)</span>
-              <input value={additionalTerms} onChange={(e)=>setAdditionalTerms(e.target.value)} placeholder="ex: artigo, ordem" style={{padding: '8px 10px', borderRadius: 8, border: 'none', minWidth: 220}} />
+            <label className="busca-field">
+              <span className="busca-label">Termos adicionais (vírgula separado)</span>
+              <input className="busca-input" value={additionalTerms} onChange={(e)=>setAdditionalTerms(e.target.value)} placeholder="ex: artigo, ordem" />
             </label>
 
-            <label style={{display: 'flex', alignItems: 'center', gap: 8}}>
+            <label className="busca-field-inline">
               <input type="checkbox" checked={includeToday} onChange={(e)=>setIncludeToday(e.target.checked)} />
-              <span style={{fontSize: 13, color: '#e6f0ff'}}>Incluir data de hoje na busca</span>
+              <span className="busca-label-inline">Incluir data de hoje</span>
             </label>
 
-            <label style={{display: 'flex', flexDirection: 'column', gap: 6}}>
-              <span style={{fontSize: 13, color: '#e6f0ff'}}>Arquivo .txt</span>
-              <input type="file" accept=".txt" onChange={(e:any)=>{
+            <label className="busca-field">
+              <span className="busca-label">Arquivo .txt</span>
+              <input className="busca-file" type="file" accept=".txt" onChange={(e:any)=>{
                 const f = e.target.files && e.target.files[0]
                 if (!f) return
                 setSelectedFileName(f.name)
@@ -449,8 +449,8 @@ export default function EconomiaPage() {
               }} />
             </label>
 
-            <div style={{display:'flex', gap:8, alignItems:'center'}}>
-              <button onClick={()=>{
+            <div className="busca-actions">
+              <button className="busca-button" onClick={()=>{
                 if (!selectedFileContent) { alert('Selecione um arquivo .txt primeiro') ; return }
                 setSearchLoading(true)
                 setTimeout(()=>{
@@ -512,7 +512,7 @@ export default function EconomiaPage() {
                   setSearchLoading(false)
                 }, 10)
               }} style={{padding:'8px 12px', borderRadius:8, background:'#1f6feb', color:'#fff', border:'none', cursor:'pointer'}}>Buscar no arquivo</button>
-              <button onClick={()=>{ setSelectedFileName(''); setSelectedFileContent(''); setSearchResults([]) }} style={{padding:'8px 12px', borderRadius:8, background:'#334155', color:'#fff', border:'none', cursor:'pointer'}}>Limpar</button>
+              <button className="busca-clear" onClick={()=>{ setSelectedFileName(''); setSelectedFileContent(''); setSearchResults([]) }}>Limpar</button>
             </div>
           </div>
 
