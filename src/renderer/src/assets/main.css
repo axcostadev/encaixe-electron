@@ -234,6 +234,31 @@
 	.card-stats-economia .value {
 		@apply text-2xl sm:text-3xl font-bold;
 	}
+	.card-stats-economia .card-icon {
+		@apply w-14 h-14 flex items-center justify-center;
+		background: linear-gradient(180deg,#ffffff,#f3f4f6);
+		border-radius: 10px;
+		box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+	}
+	.card-stats-economia .card-icon img {
+		@apply w-10 h-10 object-contain;
+		border-radius: 4px;
+	}
+	/* shoe drawing: use full canvas without rounding so the artwork sits clean */
+	.card-stats-economia .card-icon img.shoe-drawing {
+		border-radius: 0;
+		padding: 0;
+	}
+	/* shoe photo: larger and centered, no extra background so photo reads as a shoe */
+	.card-stats-economia .card-icon img.shoe-photo {
+		@apply w-12 h-12 object-contain;
+		border-radius: 4px;
+		background: transparent;
+		padding: 0;
+	}
+	.card-stats-economia .card-icon svg {
+		@apply w-7 h-7;
+	}
 
 	.economia-actions {
 		@apply flex items-center gap-3;

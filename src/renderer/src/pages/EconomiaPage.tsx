@@ -9,6 +9,9 @@ import "./EconomiaPage.css"
 import shoeImg from "../assets/images/shoe.svg"
 import rollsImg from "../assets/images/rolls.svg"
 import vulcabrasImg from "../assets/images/vulcabras.svg"
+import shoePng from "../assets/images/shoe.png"
+import rollsPng from "../assets/images/rolls.png"
+import vulcabrasPng from "../assets/images/vulcabras.png"
 
 export interface CadastroInfo {
   id?: number
@@ -41,7 +44,7 @@ export default function EconomiaPage() {
   const [selectedModels, setSelectedModels] = useState<string[]>([])
 
   // Prefer PNG versions of images when available; fallback to bundled SVGs
-  const [images, setImages] = useState({ shoe: shoeImg, rolls: rollsImg, logo: vulcabrasImg })
+  const [images, setImages] = useState({ shoe: shoePng || shoeImg, rolls: rollsPng || rollsImg, logo: vulcabrasPng || vulcabrasImg })
 
   // Tabs state
   const [tab, setTab] = useState<'dashboard' | 'busca' | 'banco'>('dashboard')
@@ -59,36 +62,6 @@ export default function EconomiaPage() {
     'Data','Artigo','DATA FASE','Ordem','Modelo','Material','Cor/Espessura','PREÇO','Previsto','Encaixe','Dif','%','Economia (R$)','Periodo (Ano/Mês)'
   ]
   const [selectedFields, setSelectedFields] = useState<string[]>(['Data','Artigo','Ordem','Modelo','Material','Encaixe','Dif','Periodo (Ano/Mês)'])
-
-  useEffect(() => {
-    const tryUsePng = (name: 'shoe' | 'rolls' | 'logo', pngFileName: string) => {
-      try {
-        const pngUrl = new URL(`../assets/images/${pngFileName}`, import.meta.url).href
-        const img = new Image()
-        img.onload = () => setImages((s) => ({ ...s, [name]: pngUrl }))
-        img.onerror = () => {}
-        img.src = pngUrl
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    tryUsePng('shoe', 'shoe.png')
-    tryUsePng('rolls', 'rolls.png')
-    tryUsePng('logo', 'vulcabras.png')
-
-    // if PNGs exist locally, prefer them (update images state immediately)
-    try {
-      const shoeP = new URL('../assets/images/shoe.png', import.meta.url).href
-      const rollsP = new URL('../assets/images/rolls.png', import.meta.url).href
-      const logoP = new URL('../assets/images/vulcabras.png', import.meta.url).href
-      setImages({ shoe: shoeP, rolls: rollsP, logo: logoP })
-    } catch (e) {
-      // ignore
-    }
-  }, [])
-
-  // Load data once on mount (no Import/Atualizar buttons)
   useEffect(() => {
     let mounted = true
     ;(async () => {
@@ -246,51 +219,26 @@ export default function EconomiaPage() {
       {/* Tab Content */}
       {tab === 'dashboard' && (
         <>
-          <div className="economia-badges mt-4 mb-2 flex justify-end gap-3">
-            <div className="econ-badge">
-              <div className="badge-icon bg-primary/20 text-primary"><img src={images.shoe} alt="shoe" className="w-6 h-6" /></div>
-              <div className="badge-body">
-                <div className="badge-amount">{summary ? (summary.totalDif || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
-                <div className="badge-label">Total Economia</div>
-              </div>
-            </div>
-            <div className="econ-badge">
-              <div className="badge-icon bg-muted/30 text-muted-foreground"><img src={images.rolls} alt="rolos" className="w-6 h-6" /></div>
-              <div className="badge-body">
-                <div className="badge-amount">{summary ? summary.ordemCount : 0}</div>
-                <div className="badge-label">Pedidos</div>
-              </div>
-            </div>
-            <div className="econ-badge">
-              <div className="badge-icon bg-emerald-600/20 text-emerald-400"><Zap className="w-5 h-5" /></div>
-              <div className="badge-body">
-                <div className="badge-amount">{summary ? (summary.avgDif || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
-                <div className="badge-label">Média por pedido</div>
-              </div>
-            </div>
-            <div className="econ-badge">
-              <div className="badge-icon bg-muted/30 text-muted-foreground"><Box className="w-5 h-5" /></div>
-              <div className="badge-body">
-                <div className="badge-amount">{rows.length}</div>
-                <div className="badge-label">Linhas</div>
-              </div>
-            </div>
-          </div>
+          {/* top badges removed per user request */}
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
             <div className="card-stats-economia">
+              <div className="card-icon mb-2"><img src={images.shoe} alt="shoe" className="w-12 h-12 object-contain shoe-photo" onError={(e:any)=>{e.currentTarget.src = shoeImg}}/></div>
               <div className="label">Total Economia (R$)</div>
               <div className="value">{summary ? (summary.totalDif || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
             </div>
             <div className="card-stats-economia">
+              <div className="card-icon mb-2"><img src={images.rolls} alt="rolos" className="w-10 h-10 object-contain" onError={(e:any)=>{e.currentTarget.src = rollsImg}}/></div>
               <div className="label">Pedidos</div>
               <div className="value">{summary ? summary.ordemCount : 0}</div>
             </div>
             <div className="card-stats-economia">
+              <div className="card-icon mb-2"><Zap className="w-7 h-7 text-emerald-400" /></div>
               <div className="label">Média por pedido</div>
               <div className="value">{summary ? (summary.avgDif || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
             </div>
             <div className="card-stats-economia">
+              <div className="card-icon mb-2"><Box className="w-7 h-7 text-muted-foreground" /></div>
               <div className="label">Linhas</div>
               <div className="value">{rows.length}</div>
             </div>
