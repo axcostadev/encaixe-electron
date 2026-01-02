@@ -2,11 +2,11 @@
   ; Remove default desktop shortcut if exists
   Delete "$DESKTOP\${PRODUCT_NAME}.lnk"
 
-  ; Create new desktop shortcut with correct icon
+  ; Create new desktop shortcut (icon is embedded in the exe)
   CreateShortCut "$DESKTOP\${PRODUCT_NAME}.lnk" \
     "$INSTDIR\${PRODUCT_FILENAME}.exe" \
     "" \
-    "$INSTDIR\resources\build\view-cutting-machine.ico" \
+    "$INSTDIR\${PRODUCT_FILENAME}.exe" \
     0 \
     SW_SHOWNORMAL \
     "" \
