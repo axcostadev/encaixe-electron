@@ -36,6 +36,7 @@ export interface UserPermissions {
 	canCreateEncaixe: boolean
 	canViewManual: boolean
 	canEditManual: boolean
+	canViewEconomia: boolean
 	canAccessSetup: boolean
 	canManageUsers: boolean
 	canManageRoles: boolean
@@ -74,6 +75,7 @@ export const DEFAULT_PERMISSIONS: UserPermissions = {
 	canCreateEncaixe: false,
 	canViewManual: false,
 	canEditManual: false,
+	canViewEconomia: false,
 	canAccessSetup: false,
 	canManageUsers: false,
 	canManageRoles: false,
@@ -107,6 +109,7 @@ export const SYSTEM_ROLES: Omit<Role, "id" | "created_at">[] = [
 			canCreateEncaixe: true,
 			canViewManual: true,
 			canEditManual: true,
+			canViewEconomia: true,
 			canAccessSetup: true,
 			canManageUsers: true,
 			canManageRoles: true,
@@ -138,6 +141,7 @@ export const SYSTEM_ROLES: Omit<Role, "id" | "created_at">[] = [
 			canCreateEncaixe: false,
 			canViewManual: true,
 			canEditManual: true,
+			canViewEconomia: true,
 			canAccessSetup: false,
 			canManageUsers: false,
 			canManageRoles: false,
@@ -169,6 +173,7 @@ export const SYSTEM_ROLES: Omit<Role, "id" | "created_at">[] = [
 			canCreateEncaixe: false,
 			canViewManual: true,
 			canEditManual: false,
+			canViewEconomia: false,
 			canAccessSetup: false,
 			canManageUsers: false,
 			canManageRoles: false,
@@ -256,6 +261,19 @@ export function initDatabase(): void {
 					(insertErr) => {
 						if (insertErr && !insertErr.message.includes("UNIQUE")) {
 							console.error(`Erro ao inserir role ${role.name}:`, insertErr)
+						}
+					}
+				)
+			})
+
+			// Migração: Atualizar roles do sistema existentes com novas permissões
+			SYSTEM_ROLES.forEach(role => {
+				database.run(
+					`UPDATE roles SET permissions = ? WHERE name = ? AND is_system = 1`,
+					[JSON.stringify(role.permissions), role.name],
+					(updateErr) => {
+						if (updateErr) {
+							console.error(`Erro ao atualizar role ${role.name}:`, updateErr)
 						}
 					}
 				)

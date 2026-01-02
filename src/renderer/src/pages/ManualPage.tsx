@@ -4,6 +4,7 @@ import { HandbookViewer } from '@renderer/components/handbook/HandbookViewer';
 import { HandbookModelForm } from '@renderer/components/handbook/HandbookModelForm';
 import { handbookDatabase } from '@renderer/database/handbookDatabase';
 import { HandbookModel } from '@renderer/types/handbook';
+import { useAuth } from '@renderer/contexts/AuthContext';
 import { 
   Book, 
   Edit3, 
@@ -18,6 +19,9 @@ import {
 type TabType = 'modelos' | 'edicao' | 'visualizacao';
 
 const ManualPage: React.FC = () => {
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission('canEditManual');
+  
   const [models, setModels] = useState<HandbookModel[]>([]);
   const [selectedModel, setSelectedModel] = useState<HandbookModel | undefined>();
   const [showForm, setShowForm] = useState(false);
@@ -88,7 +92,7 @@ const ManualPage: React.FC = () => {
 
   const tabs = [
     { id: 'modelos' as TabType, label: 'Modelos', icon: FolderOpen, description: 'Gerenciar modelos' },
-    { id: 'edicao' as TabType, label: 'Edição', icon: Edit3, description: 'Editar componentes' },
+    ...(canEdit ? [{ id: 'edicao' as TabType, label: 'Edição', icon: Edit3, description: 'Editar componentes' }] : []),
     { id: 'visualizacao' as TabType, label: 'Visualização', icon: Eye, description: 'Visualizar e imprimir' },
   ];
 
@@ -174,13 +178,15 @@ const ManualPage: React.FC = () => {
                 Projeto: {selectedModel.numero_projeto}
               </p>
               <div className="flex gap-2 mt-3">
-                <button
-                  onClick={handleGoToEdit}
-                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                >
-                  <Edit3 className="w-3 h-3" />
-                  Editar
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={handleGoToEdit}
+                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    Editar
+                  </button>
+                )}
                 <button
                   onClick={handleGoToView}
                   className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
@@ -219,7 +225,7 @@ const ManualPage: React.FC = () => {
             </p>
           </div>
           
-          {activeTab === 'modelos' && (
+          {activeTab === 'modelos' && canEdit && (
             <button
               onClick={handleCreateNew}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -252,6 +258,7 @@ const ManualPage: React.FC = () => {
                     onDeleteModel={handleDeleteModel}
                     onGoToEdit={handleGoToEdit}
                     onGoToView={handleGoToView}
+                    canEdit={canEdit}
                   />
                 </div>
               )}
@@ -280,6 +287,7 @@ interface ModelosGridProps {
   onDeleteModel: (modelId: string) => void;
   onGoToEdit: () => void;
   onGoToView: () => void;
+  canEdit: boolean;
 }
 
 const ModelosGrid: React.FC<ModelosGridProps> = ({
@@ -288,7 +296,8 @@ const ModelosGrid: React.FC<ModelosGridProps> = ({
   onSelectModel,
   onDeleteModel,
   onGoToEdit,
-  onGoToView
+  onGoToView,
+  canEdit
 }) => {
   if (models.length === 0) {
     return (
@@ -361,17 +370,19 @@ const ModelosGrid: React.FC<ModelosGridProps> = ({
 
           {/* Ações */}
           <div className="flex gap-2 pt-3 border-t border-border">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelectModel(model);
-                onGoToEdit();
-              }}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors"
-            >
-              <Edit3 className="w-4 h-4" />
-              Editar
-            </button>
+            {canEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectModel(model);
+                  onGoToEdit();
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors"
+              >
+                <Edit3 className="w-4 h-4" />
+                Editar
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -383,18 +394,20 @@ const ModelosGrid: React.FC<ModelosGridProps> = ({
               <Eye className="w-4 h-4" />
               Visualizar
             </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (confirm(`Excluir modelo "${model.nome_modelo}"?`)) {
-                  onDeleteModel(model.id);
-                }
-              }}
-              className="px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-              title="Excluir"
-            >
-              ✕
-            </button>
+            {canEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm(`Excluir modelo "${model.nome_modelo}"?`)) {
+                    onDeleteModel(model.id);
+                  }
+                }}
+                className="px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                title="Excluir"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
           {/* Data */}

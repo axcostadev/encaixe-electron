@@ -23,6 +23,7 @@ export interface UserPermissions {
 	canCreateEncaixe: boolean
 	canViewManual: boolean
 	canEditManual: boolean
+	canViewEconomia: boolean
 	canAccessSetup: boolean
 	canManageUsers: boolean
 	canManageRoles: boolean
@@ -59,6 +60,7 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
 	canCreateEncaixe: false,
 	canViewManual: false,
 	canEditManual: false,
+	canViewEconomia: false,
 	canAccessSetup: false,
 	canManageUsers: false,
 	canManageRoles: false,
@@ -87,6 +89,7 @@ const ROLE_PERMISSIONS: Record<string, UserPermissions> = {
 		canCreateEncaixe: true,
 		canViewManual: true,
 		canEditManual: true,
+		canViewEconomia: true,
 		canAccessSetup: true,
 		canManageUsers: true,
 		canManageRoles: true,
@@ -112,6 +115,7 @@ const ROLE_PERMISSIONS: Record<string, UserPermissions> = {
 		canCreateEncaixe: false,
 		canViewManual: true,
 		canEditManual: true,
+		canViewEconomia: true,
 		canAccessSetup: false,
 		canManageUsers: false,
 		canManageRoles: false,
@@ -137,6 +141,7 @@ const ROLE_PERMISSIONS: Record<string, UserPermissions> = {
 		canCreateEncaixe: false,
 		canViewManual: true,
 		canEditManual: false,
+		canViewEconomia: false,
 		canAccessSetup: false,
 		canManageUsers: false,
 		canManageRoles: false,

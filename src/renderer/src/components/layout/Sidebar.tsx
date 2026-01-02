@@ -31,7 +31,7 @@ const menuItems: MenuItem[] = [
 	{ path: "/componentes", label: "Componentes", icon: Package, permission: "canViewComponentes" },
 	{ path: "/encaixe", label: "Encaixe", icon: Zap, permission: "canViewEncaixe" },
 	{ path: "/manual", label: "Manual", icon: Book, permission: "canViewManual" },
-	{ path: "/economia", label: "Economia Dashboard", icon: LayoutDashboard },
+	{ path: "/economia", label: "Economia Dashboard", icon: LayoutDashboard, permission: "canViewEconomia" },
 	{ path: "/setup", label: "Configurações", icon: Settings, permission: "canAccessSetup" },
 ]
 

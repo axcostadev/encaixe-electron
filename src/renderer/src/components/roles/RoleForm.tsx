@@ -43,6 +43,7 @@ export type UserPermissions = {
 	canCreateEncaixe: boolean
 	canViewManual: boolean
 	canEditManual: boolean
+	canViewEconomia: boolean
 	canAccessSetup: boolean
 	canManageUsers: boolean
 	canManageRoles: boolean
@@ -87,6 +88,7 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
 	canCreateEncaixe: false,
 	canViewManual: false,
 	canEditManual: false,
+	canViewEconomia: false,
 	canAccessSetup: false,
 	canManageUsers: false,
 	canManageRoles: false,
@@ -152,6 +154,12 @@ const PERMISSION_CATEGORIES = [
 		permissions: [
 			{ key: "canViewManual", label: "Visualizar Manual" },
 			{ key: "canEditManual", label: "Editar Manual" },
+		],
+	},
+	{
+		title: "Economia Dashboard",
+		permissions: [
+			{ key: "canViewEconomia", label: "Visualizar Economia Dashboard" },
 		],
 	},
 	{

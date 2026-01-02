@@ -682,6 +682,10 @@ export default function SetupPage() {
 														allowed={role.permissions.canEditManual}
 													/>
 													<PermissionItem
+														label="Economia Dashboard"
+														allowed={role.permissions.canViewEconomia}
+													/>
+													<PermissionItem
 														label="Configurações"
 														allowed={role.permissions.canAccessSetup}
 													/>
