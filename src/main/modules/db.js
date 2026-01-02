@@ -1,13 +1,18 @@
 import path from "path"
-import os from "os"
 import fs from "fs"
 import sqlite3 from "sqlite3"
 import { fileURLToPath } from "url"
+import { app } from "electron"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const DB_FILE = path.join(__dirname, "encaixe.db")
+// Use per-user data directory so rebuilds and out folders won't conflict with runtime DB
+const USER_DATA = app && typeof app.getPath === "function" ? app.getPath("userData") : path.join(__dirname, "..", "data")
+// ensure directory exists
+if (!fs.existsSync(USER_DATA)) fs.mkdirSync(USER_DATA, { recursive: true })
+
+const DB_FILE = path.join(USER_DATA, "encaixe.db")
 let db
 console.log("[DB] using encaixe DB file at:", DB_FILE)
 

@@ -15,7 +15,7 @@ function buildMkx(modelos = [], markerName = 'MARKER') {
   return lines.join('\n')
 }
 
-export async function exportar(pedidoOrModelos, caminho, markerName) {
+export async function exportarMkx(pedidoOrModelos, caminho, markerName) {
   const dir = path.dirname(caminho)
   await fs.mkdir(dir, { recursive: true })
 

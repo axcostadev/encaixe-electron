@@ -1,3 +1,9 @@
+.card-stats-economia .card-icon img.rolls-icon {
+		max-width: 64px;
+		max-height: 48px;
+		filter: none;
+		margin: auto;
+	}
 /* @import "./base.css"; */
 
 @import "tailwindcss";
@@ -226,38 +232,53 @@
 
 	/* Economia specific styles */
 	.card-stats-economia {
-		@apply bg-background/40 text-white rounded-xl border border-border p-6 shadow-md flex flex-col items-center justify-center gap-2;
+		@apply flex flex-row items-center justify-center gap-4 rounded-xl border border-gray-200 shadow-sm px-6 py-4;
+		background: linear-gradient(180deg, #ffffff 0%, #e6e6e6 100%);
+		min-height: 120px;
 	}
 	.card-stats-economia .label {
-		@apply text-sm text-muted-foreground;
+		display: none;
 	}
 	.card-stats-economia .value {
-		@apply text-2xl sm:text-3xl font-bold;
+		@apply text-2xl font-bold;
+		color: #a01830;
 	}
 	.card-stats-economia .card-icon {
-		@apply w-14 h-14 flex items-center justify-center;
-		background: linear-gradient(180deg,#ffffff,#f3f4f6);
-		border-radius: 10px;
-		box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+		@apply w-20 h-20 flex items-center justify-center;
+		background: transparent;
+		box-shadow: none;
+		padding: 0;
 	}
 	.card-stats-economia .card-icon img {
-		@apply w-10 h-10 object-contain;
-		border-radius: 4px;
+		@apply w-full h-full object-contain;
+		max-width: 96px;
+		max-height: 64px;
 	}
-	/* shoe drawing: use full canvas without rounding so the artwork sits clean */
-	.card-stats-economia .card-icon img.shoe-drawing {
-		border-radius: 0;
-		padding: 0;
+
+	.card-stats-economia .card-icon img.shoe-icon {
+		max-width: 96px;
+		max-height: 64px;
+		filter: none;
 	}
-	/* shoe photo: larger and centered, no extra background so photo reads as a shoe */
-	.card-stats-economia .card-icon img.shoe-photo {
-		@apply w-12 h-12 object-contain;
-		border-radius: 4px;
-		background: transparent;
-		padding: 0;
+
+	.card-stats-economia .card-icon img.rolls-icon {
+		max-width: 120px;
+		max-height: 84px;
+		width: auto;
+		height: auto;
+		filter: none;
+		margin: auto;
+		transform: scale(1.25);
+		transform-origin: center;
 	}
 	.card-stats-economia .card-icon svg {
-		@apply w-7 h-7;
+		@apply w-10 h-10;
+		color: #a01830;
+	}
+	.card-stats-economia .card-icon svg.economia-icon {
+		@apply w-10 h-10;
+		color: #a01830;
+		stroke-width: 2;
 	}
 
 	.economia-actions {

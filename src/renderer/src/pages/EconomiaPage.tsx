@@ -223,22 +223,22 @@ export default function EconomiaPage() {
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
             <div className="card-stats-economia">
-              <div className="card-icon mb-2"><img src={images.shoe} alt="shoe" className="w-12 h-12 object-contain shoe-photo" onError={(e:any)=>{e.currentTarget.src = shoeImg}}/></div>
+              <div className="card-icon"><img src={shoeImg} alt="shoe" className="shoe-icon"/></div>
               <div className="label">Total Economia (R$)</div>
               <div className="value">{summary ? (summary.totalDif || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
             </div>
             <div className="card-stats-economia">
-              <div className="card-icon mb-2"><img src={images.rolls} alt="rolos" className="w-10 h-10 object-contain" onError={(e:any)=>{e.currentTarget.src = rollsImg}}/></div>
+              <div className="card-icon"><img src={rollsImg} alt="rolos" className="rolls-icon"/></div>
               <div className="label">Pedidos</div>
               <div className="value">{summary ? summary.ordemCount : 0}</div>
             </div>
             <div className="card-stats-economia">
-              <div className="card-icon mb-2"><Zap className="w-7 h-7 text-emerald-400" /></div>
+              <div className="card-icon"><Zap className="economia-icon" /></div>
               <div className="label">Média por pedido</div>
               <div className="value">{summary ? (summary.avgDif || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
             </div>
             <div className="card-stats-economia">
-              <div className="card-icon mb-2"><Box className="w-7 h-7 text-muted-foreground" /></div>
+              <div className="card-icon"><Box className="economia-icon" /></div>
               <div className="label">Linhas</div>
               <div className="value">{rows.length}</div>
             </div>

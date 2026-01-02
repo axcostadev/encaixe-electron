@@ -51,7 +51,6 @@ import * as exportadorLectra from "../modules/exportadorLectra.js"
 import * as conversorComelz from "../modules/conversorComelz.js"
 import * as conversorEmma from "../modules/conversorEmma.js"
 import * as conversorLectra from "../modules/conversorLectra.js"
-import * as os from "os"
 
 // Type definitions
 interface LinhaCTF {
