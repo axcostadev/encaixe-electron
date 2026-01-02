@@ -146,6 +146,37 @@ export const useHandbookDragDrop = () => {
     });
   }, [history]);
 
+  const createComponent = useCallback((componentData: Omit<OperationComponent, 'id' | 'created_at' | 'updated_at'>) => {
+    const newComponent = handbookDatabase.createComponent(componentData);
+    setComponents(prev => {
+      const next = [...prev, newComponent];
+      setHistory(h => {
+        const newHistory = h.slice(0, historyIndex + 1);
+        newHistory.push(next.map(it => ({ ...it })));
+        if (newHistory.length > 50) newHistory.shift();
+        return newHistory;
+      });
+      setHistoryIndex(idx => Math.min((idx + 1) || 0, 1000));
+      return next;
+    });
+    return newComponent;
+  }, [historyIndex]);
+
+  const deleteComponent = useCallback((id: string) => {
+    handbookDatabase.deleteComponent(id);
+    setComponents(prev => {
+      const next = prev.filter(c => c.id !== id);
+      setHistory(h => {
+        const newHistory = h.slice(0, historyIndex + 1);
+        newHistory.push(next.map(it => ({ ...it })));
+        if (newHistory.length > 50) newHistory.shift();
+        return newHistory;
+      });
+      setHistoryIndex(idx => Math.min((idx + 1) || 0, 1000));
+      return next;
+    });
+  }, [historyIndex]);
+
   return {
     components,
     draggedItem,
@@ -155,6 +186,8 @@ export const useHandbookDragDrop = () => {
     handleDrop,
     updateComponent,
     moveComponentToPosition,
+    createComponent,
+    deleteComponent,
     undo,
     redo,
     canUndo,

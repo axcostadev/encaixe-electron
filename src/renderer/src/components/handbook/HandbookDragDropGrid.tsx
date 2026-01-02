@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { HandbookComponentCard } from './HandbookComponentCard';
 import { useHandbookDragDrop } from '@renderer/hooks/useHandbookDragDrop';
-import { HandbookModel } from '@renderer/types/handbook';
-import { Calendar, ZoomIn, ZoomOut, RotateCcw, Printer } from 'lucide-react';
+import { HandbookModel, OperationComponent } from '@renderer/types/handbook';
+import { Calendar, ZoomIn, ZoomOut, RotateCcw, Printer, Plus, X, Save, Trash2 } from 'lucide-react';
 
 interface HandbookDragDropGridProps {
   selectedModel?: HandbookModel;
@@ -18,6 +18,8 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
     handleDrop,
     updateComponent,
     moveComponentToPosition,
+    createComponent,
+    deleteComponent,
     undo, redo, canUndo, canRedo
   } = useHandbookDragDrop();
 
@@ -29,6 +31,18 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
   const [showGridLines, setShowGridLines] = React.useState(false);
   const [snapToGrid, setSnapToGrid] = React.useState(true);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [showNewComponentForm, setShowNewComponentForm] = React.useState(false);
+  const [newComponent, setNewComponent] = React.useState<Partial<OperationComponent>>({
+    nome_operacao: '',
+    materiais_operacao: '',
+    setores_posteriores: [],
+    setor_atual: 'COMELZ',
+    infestado_lado_so: true,
+    pecas_par: '',
+    conjugacao: '',
+    ftls: 4,
+    agrupamento_tamanhos: ['34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44'],
+  });
 
   useEffect(() => {
     loadComponents();
@@ -70,6 +84,60 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
     }
   };
 
+  // Funções para novo componente
+  const handleCreateComponent = () => {
+    if (!newComponent.nome_operacao) return;
+    
+    // Encontrar próxima posição disponível
+    const maxX = components.length > 0 ? Math.max(...components.map(c => c.position_x)) : -1;
+    const maxY = components.length > 0 ? Math.max(...components.map(c => c.position_y)) : 0;
+    
+    let nextX = maxX + 1;
+    let nextY = maxY;
+    
+    // Se passar de 4 colunas, vai para próxima linha
+    if (nextX >= 4) {
+      nextX = 0;
+      nextY = maxY + 1;
+    }
+
+    createComponent({
+      nome_operacao: newComponent.nome_operacao || '',
+      materiais_operacao: newComponent.materiais_operacao || '',
+      setores_posteriores: newComponent.setores_posteriores || [],
+      setor_atual: newComponent.setor_atual || 'COMELZ',
+      infestado_lado_so: newComponent.infestado_lado_so ?? true,
+      pecas_par: newComponent.pecas_par || '',
+      conjugacao: newComponent.conjugacao || '',
+      ftls: newComponent.ftls || 4,
+      agrupamento_tamanhos: newComponent.agrupamento_tamanhos || ['34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44'],
+      position_x: nextX,
+      position_y: nextY,
+    });
+
+    // Reset form
+    setNewComponent({
+      nome_operacao: '',
+      materiais_operacao: '',
+      setores_posteriores: [],
+      setor_atual: 'COMELZ',
+      infestado_lado_so: true,
+      pecas_par: '',
+      conjugacao: '',
+      ftls: 4,
+      agrupamento_tamanhos: ['34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44'],
+    });
+    setShowNewComponentForm(false);
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Deseja excluir ${selectedIds.length} componente(s)?`)) return;
+    
+    selectedIds.forEach(id => deleteComponent(id));
+    setSelectedIds([]);
+  };
+
   // Pan handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -84,6 +152,7 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
   };
 
   const handleMouseUp = () => setIsPanning(false);
+
 
   const maxColumns = components.length > 0 
     ? Math.max(4, Math.max(...components.map(c => c.position_x)) + 1)
@@ -102,6 +171,184 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
 
   return (
     <div className="min-h-screen bg-background p-6">
+      {/* Modal de Novo Componente */}
+      {showNewComponentForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-card rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-border bg-green-600 rounded-t-lg">
+              <h2 className="text-lg font-bold text-white">Novo Componente</h2>
+              <button
+                onClick={() => setShowNewComponentForm(false)}
+                className="p-1 hover:bg-green-700 rounded text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Nome da Operação */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Nome da Operação *
+                </label>
+                <input
+                  type="text"
+                  value={newComponent.nome_operacao || ''}
+                  onChange={(e) => setNewComponent(prev => ({ ...prev, nome_operacao: e.target.value }))}
+                  placeholder="Ex: 01 PLACA DA VISTA"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground"
+                />
+              </div>
+
+              {/* Materiais */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Materiais da Operação
+                </label>
+                <input
+                  type="text"
+                  value={newComponent.materiais_operacao || ''}
+                  onChange={(e) => setNewComponent(prev => ({ ...prev, materiais_operacao: e.target.value }))}
+                  placeholder="Ex: LP1050 - 1.38"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                {/* Setor Atual */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    Setor Atual
+                  </label>
+                  <select
+                    value={newComponent.setor_atual || 'COMELZ'}
+                    onChange={(e) => setNewComponent(prev => ({ ...prev, setor_atual: e.target.value }))}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground"
+                  >
+                    <option value="COMELZ">COMELZ</option>
+                    <option value="EMMA">EMMA</option>
+                    <option value="LECTRA">LECTRA</option>
+                    <option value="FREQUÊNCIA">FREQUÊNCIA</option>
+                    <option value="SERIGRAFIA">SERIGRAFIA</option>
+                    <option value="CORTE">CORTE</option>
+                    <option value="COSTURA">COSTURA</option>
+                  </select>
+                </div>
+
+                {/* Conjugação */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    Conjugação (Pares)
+                  </label>
+                  <input
+                    type="text"
+                    value={newComponent.conjugacao || ''}
+                    onChange={(e) => setNewComponent(prev => ({ ...prev, conjugacao: e.target.value }))}
+                    placeholder="Ex: 6 PARES"
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground"
+                  />
+                </div>
+
+                {/* FTLS - Quantidade de Folhas */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    FTLS (Qtd. Folhas)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newComponent.ftls || 4}
+                    onChange={(e) => setNewComponent(prev => ({ ...prev, ftls: parseInt(e.target.value) || 4 }))}
+                    placeholder="Ex: 4"
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground"
+                  />
+                </div>
+              </div>
+
+              {/* Setores Posteriores */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Setores Posteriores (separados por vírgula)
+                </label>
+                <input
+                  type="text"
+                  value={newComponent.setores_posteriores?.join(', ') || ''}
+                  onChange={(e) => setNewComponent(prev => ({ 
+                    ...prev, 
+                    setores_posteriores: e.target.value.split(',').map(s => s.trim()).filter(s => s) 
+                  }))}
+                  placeholder="Ex: FREQUÊNCIA, SERIGRAFIA"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground"
+                />
+              </div>
+
+              {/* Peças por Par */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Peças por Par
+                </label>
+                <input
+                  type="text"
+                  value={newComponent.pecas_par || ''}
+                  onChange={(e) => setNewComponent(prev => ({ ...prev, pecas_par: e.target.value }))}
+                  placeholder="Ex: 1 PLACA/2 PEÇAS/4 FTLS"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground"
+                />
+              </div>
+
+              {/* Tamanhos */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Agrupamento de Tamanhos (separados por vírgula)
+                </label>
+                <input
+                  type="text"
+                  value={newComponent.agrupamento_tamanhos?.join(', ') || ''}
+                  onChange={(e) => setNewComponent(prev => ({ 
+                    ...prev, 
+                    agrupamento_tamanhos: e.target.value.split(',').map(s => s.trim()).filter(s => s) 
+                  }))}
+                  placeholder="Ex: 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground"
+                />
+              </div>
+
+              {/* Enfestar Lado Só */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="infestado_lado_so"
+                  checked={newComponent.infestado_lado_so ?? true}
+                  onChange={(e) => setNewComponent(prev => ({ ...prev, infestado_lado_so: e.target.checked }))}
+                  className="w-4 h-4"
+                />
+                <label htmlFor="infestado_lado_so" className="text-sm font-medium text-foreground">
+                  Enfestar Lado Só
+                </label>
+              </div>
+            </div>
+
+            {/* Botões */}
+            <div className="flex justify-end gap-3 p-4 border-t border-border">
+              <button
+                onClick={() => setShowNewComponentForm(false)}
+                className="px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted-foreground/20 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreateComponent}
+                disabled={!newComponent.nome_operacao}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save className="w-4 h-4" />
+                Criar Componente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         {/* Cabeçalho */}
         <div className="mb-6 bg-card p-4 rounded-lg shadow-sm border border-border">
@@ -173,6 +420,16 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
                 <Printer className="w-4 h-4" />
                 <span className="text-sm font-medium">Imprimir</span>
               </button>
+
+              {/* Botão Novo Componente */}
+              <button
+                onClick={() => setShowNewComponentForm(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                title="Novo Componente"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="text-sm font-medium">Novo Componente</span>
+              </button>
               
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="w-4 h-4" />
@@ -201,9 +458,19 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
             <span className="ml-2 text-sm">Snap</span>
           </label>
           {selectedIds.length > 0 && (
-            <span className="px-2 py-1 bg-primary/20 text-primary text-sm rounded">
-              {selectedIds.length} selecionado(s)
-            </span>
+            <>
+              <span className="px-2 py-1 bg-primary/20 text-primary text-sm rounded">
+                {selectedIds.length} selecionado(s)
+              </span>
+              <button
+                onClick={handleDeleteSelected}
+                className="flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                title="Excluir selecionados"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="text-sm">Excluir</span>
+              </button>
+            </>
           )}
           <div className="ml-auto text-sm text-muted-foreground">Dica: segure Ctrl e role para zoom | Shift+clique para multi-seleção</div>
         </div>
