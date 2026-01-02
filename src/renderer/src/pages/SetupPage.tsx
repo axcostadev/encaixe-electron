@@ -62,7 +62,35 @@ import {
 	Lock,
 } from "lucide-react"
 import { toast } from "sonner"
-import { RoleForm, RoleList, Role } from "@renderer/components/roles"
+import { RoleForm, RoleList, Role, UserPermissions } from "@renderer/components/roles"
+
+// Permissões padrão para fallback
+const DEFAULT_PERMISSIONS: UserPermissions = {
+	canViewDashboard: false,
+	canViewModelos: false,
+	canEditModelos: false,
+	canDeleteModelos: false,
+	canViewCores: false,
+	canEditCores: false,
+	canDeleteCores: false,
+	canViewMateriais: false,
+	canEditMateriais: false,
+	canDeleteMateriais: false,
+	canViewComponentes: false,
+	canEditComponentes: false,
+	canDeleteComponentes: false,
+	canViewSetores: false,
+	canEditSetores: false,
+	canDeleteSetores: false,
+	canViewEncaixe: false,
+	canCreateEncaixe: false,
+	canViewManual: false,
+	canEditManual: false,
+	canViewEconomia: false,
+	canAccessSetup: false,
+	canManageUsers: false,
+	canManageRoles: false,
+}
 
 interface UserData {
 	id: number
@@ -153,7 +181,15 @@ export default function SetupPage() {
 			setLoadingRoles(true)
 			const response = await window.api.roles.list()
 			if (response.success && response.roles) {
-				setRoles(response.roles)
+				// Garantir que todas as permissões existam (fallback para novas permissões)
+				const rolesWithDefaults = (response.roles as any[]).map((role) => ({
+					...role,
+					permissions: {
+						...DEFAULT_PERMISSIONS,
+						...(role.permissions || {}),
+					},
+				})) as Role[]
+				setRoles(rolesWithDefaults)
 			} else {
 				toast.error("Erro ao carregar papéis")
 			}

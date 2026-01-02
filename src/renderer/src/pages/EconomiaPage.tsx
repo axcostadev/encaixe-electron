@@ -44,7 +44,7 @@ export default function EconomiaPage() {
   const [selectedModels, setSelectedModels] = useState<string[]>([])
 
   // Prefer PNG versions of images when available; fallback to bundled SVGs
-  const [images, setImages] = useState({ shoe: shoePng || shoeImg, rolls: rollsPng || rollsImg, logo: vulcabrasPng || vulcabrasImg })
+  const images = { shoe: shoePng || shoeImg, rolls: rollsPng || rollsImg, logo: vulcabrasPng || vulcabrasImg }
 
   // Tabs state
   const [tab, setTab] = useState<'dashboard' | 'busca' | 'banco'>('dashboard')

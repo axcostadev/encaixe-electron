@@ -1,4 +1,5 @@
 import { dialog, ipcMain } from "electron"
+import os from "os"
 import {
 	authenticateUser,
 	resetAdminPassword,

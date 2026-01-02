@@ -171,7 +171,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		try {
 			const response = await window.api.users.getPermissions(roleName)
 			if (response.success && response.permissions) {
-				return response.permissions
+				// Garantir que todas as permissões existam (fallback para novas permissões)
+				return {
+					...DEFAULT_PERMISSIONS,
+					...response.permissions,
+				}
 			}
 		} catch (error) {
 			console.error("Erro ao buscar permissões:", error)
