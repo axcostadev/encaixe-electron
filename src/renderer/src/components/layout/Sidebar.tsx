@@ -11,6 +11,7 @@ import {
 	Menu,
 	X,
 	Settings,
+	LogOut,
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
 
@@ -42,7 +43,7 @@ export function Sidebar({
 	collapsed: boolean
 	setCollapsed: (v: boolean) => void
 }) {
-	const { hasPermission, user } = useAuth()
+	const { hasPermission, user, logout } = useAuth()
 
 	// Filtrar itens de menu baseado nas permissões do usuário
 	const visibleMenuItems = menuItems.filter((item) => {
@@ -115,15 +116,24 @@ export function Sidebar({
 				{/* User Info + Footer */}
 				<div className="border-t border-sidebar-border p-4">
 					{user && !collapsed && (
-						<div className="mb-2 px-2">
-							<p className="text-sm font-medium text-sidebar-foreground truncate">
-								{user.username}
-							</p>
-							<p className="text-xs text-sidebar-foreground/50 capitalize">
-								{user.role === "admin" && "Administrador"}
-								{user.role === "editor" && "Editor"}
-								{user.role === "viewer" && "Visualizador"}
-							</p>
+						<div className="mb-2 px-2 flex items-center justify-between">
+							<div>
+								<p className="text-sm font-medium text-sidebar-foreground truncate">
+									{user.username}
+								</p>
+								<p className="text-xs text-sidebar-foreground/50 capitalize">
+									{user.role === "admin" && "Administrador"}
+									{user.role === "editor" && "Editor"}
+									{user.role === "viewer" && "Visualizador"}
+								</p>
+							</div>
+							<button
+								onClick={logout}
+								className="p-1.5 rounded-md text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+								title="Sair"
+							>
+								<LogOut className="h-4 w-4" />
+							</button>
 						</div>
 					)}
 					<p
