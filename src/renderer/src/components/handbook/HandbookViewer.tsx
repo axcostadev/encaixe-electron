@@ -1,16 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { HandbookModel, OperationComponent } from '@renderer/types/handbook';
 import { handbookDatabase } from '@renderer/database/handbookDatabase';
-import { Printer, ZoomIn, ZoomOut, RotateCcw, Calendar, FileText, Maximize2, Minimize2 } from 'lucide-react';
+import { useAuth } from '@renderer/contexts/AuthContext';
+import { Printer, ZoomIn, ZoomOut, RotateCcw, Calendar, FileText, Maximize2, Minimize2, EyeOff, Eye } from 'lucide-react';
 
 interface HandbookViewerProps {
   selectedModel?: HandbookModel;
 }
 
 export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel }) => {
+  const { user } = useAuth();
   const [components, setComponents] = useState<OperationComponent[]>([]);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hideFtls, setHideFtls] = useState(false);
+  
+  // Visualizador não pode ver FTLS
+  const isViewer = user?.role === 'viewer';
+  const canSeeFtls = !isViewer;
 
   useEffect(() => {
     const data = handbookDatabase.getAllComponents();
@@ -124,6 +131,22 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
 
+          {/* Botão Ocultar FTLS (somente para quem pode ver) */}
+          {canSeeFtls && (
+            <button
+              onClick={() => setHideFtls(!hideFtls)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                hideFtls 
+                  ? 'bg-orange-600 text-white hover:bg-orange-700' 
+                  : 'bg-muted text-foreground hover:bg-muted-foreground/20 border border-border'
+              }`}
+              title={hideFtls ? 'Mostrar FTLS' : 'Ocultar FTLS na impressão'}
+            >
+              {hideFtls ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <span className="font-medium text-sm">{hideFtls ? 'FTLS Oculto' : 'Ocultar FTLS'}</span>
+            </button>
+          )}
+
           {/* Botão Imprimir */}
           <button
             onClick={handlePrint}
@@ -201,7 +224,7 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
                 <div key={`${rowIndex}-${colIndex}`} className="min-h-48 relative">
                   {component ? (
                     <div className="relative">
-                      <ViewOnlyCard component={component} />
+                      <ViewOnlyCard component={component} showFtls={canSeeFtls && !hideFtls} />
                       <div className="absolute top-1 left-1 text-base font-bold text-white bg-black/50 px-1 rounded">
                         {rowIndex + 1}:{colIndex + 1}
                       </div>
@@ -232,7 +255,14 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
 };
 
 // Componente de visualização somente leitura
-const ViewOnlyCard: React.FC<{ component: OperationComponent }> = ({ component }) => {
+const ViewOnlyCard: React.FC<{ component: OperationComponent; showFtls?: boolean }> = ({ component, showFtls = true }) => {
+  // Função para formatar pecas_par ocultando FTLS se necessário
+  const formatPecasPar = () => {
+    if (showFtls) return component.pecas_par;
+    // Remove a parte de FTLS do texto (ex: "1 PLACA/2 PEÇAS/4 FTLS" -> "1 PLACA/2 PEÇAS")
+    return component.pecas_par.replace(/\/?\d+\s*FTLS?/gi, '').replace(/\/+$/, '').trim();
+  };
+
   return (
     <div className="bg-blue-900 border-2 border-gray-300 p-3 h-48 flex flex-col justify-between text-xs relative overflow-hidden text-white">
       {/* Cabeçalho com nome e conjugação */}
@@ -290,16 +320,9 @@ const ViewOnlyCard: React.FC<{ component: OperationComponent }> = ({ component }
           </div>
         )}
         <div className="font-medium text-gray-200">
-          {component.pecas_par}
+          {formatPecasPar()}
         </div>
       </div>
-
-      {/* Agrupamento de tamanhos */}
-      {component.agrupamento_tamanhos.length > 0 && (
-        <div className="bg-yellow-500 text-center font-medium py-1 -mx-3 -mb-3 mt-2 text-[10px] text-black">
-          {component.agrupamento_tamanhos.join(' - ')}
-        </div>
-      )}
     </div>
   );
 };
