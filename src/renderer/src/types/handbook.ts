@@ -7,7 +7,7 @@ export interface OperationComponent {
   infestado_lado_so: boolean;
   pecas_par: string;
   conjugacao: string;
-  ftls?: number;
+  fls?: number;
   agrupamento_tamanhos: string[];
   foto_desenho_url?: string;
   position_x: number;

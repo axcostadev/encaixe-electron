@@ -40,7 +40,7 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
     infestado_lado_so: true,
     pecas_par: '',
     conjugacao: '',
-    ftls: 4,
+    fls: 4,
     agrupamento_tamanhos: ['34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44'],
   });
 
@@ -101,10 +101,10 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
       nextY = maxY + 1;
     }
 
-    // Concatenar FTLS automaticamente ao pecas_par
-    const ftlsValue = newComponent.ftls || 4;
+    // Concatenar FLS automaticamente ao pecas_par
+    const flsValue = newComponent.fls || 4;
     const pecasParBase = newComponent.pecas_par || '';
-    const pecasParComFtls = pecasParBase ? `${pecasParBase}/${ftlsValue} FTLS` : `${ftlsValue} FTLS`;
+    const pecasParComFtls = pecasParBase ? `${pecasParBase}/${flsValue} FLS` : `${flsValue} FLS`;
 
     createComponent({
       nome_operacao: newComponent.nome_operacao || '',
@@ -114,7 +114,7 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
       infestado_lado_so: newComponent.infestado_lado_so ?? true,
       pecas_par: pecasParComFtls,
       conjugacao: newComponent.conjugacao || '',
-      ftls: ftlsValue,
+      fls: flsValue,
       agrupamento_tamanhos: newComponent.agrupamento_tamanhos || ['34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44'],
       position_x: nextX,
       position_y: nextY,
@@ -129,7 +129,7 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
       infestado_lado_so: true,
       pecas_par: '',
       conjugacao: '',
-      ftls: 4,
+      fls: 4,
       agrupamento_tamanhos: ['34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44'],
     });
     setShowNewComponentForm(false);
@@ -254,16 +254,16 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
                   />
                 </div>
 
-                {/* FTLS - Quantidade de Folhas */}
+                {/* FLS - Quantidade de Folhas */}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">
-                    FTLS (Qtd. Folhas)
+                    FLS (Qtd. Folhas)
                   </label>
                   <input
                     type="number"
                     min="1"
-                    value={newComponent.ftls || 4}
-                    onChange={(e) => setNewComponent(prev => ({ ...prev, ftls: parseInt(e.target.value) || 4 }))}
+                    value={newComponent.fls || 4}
+                    onChange={(e) => setNewComponent(prev => ({ ...prev, fls: parseInt(e.target.value) || 4 }))}
                     placeholder="Ex: 4"
                     className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground"
                   />
@@ -290,7 +290,7 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
               {/* Peças por Par */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  Peças por Par <span className="text-muted-foreground text-xs">(FTLS será adicionado automaticamente)</span>
+                  Peças por Par <span className="text-muted-foreground text-xs">(FLS será adicionado automaticamente)</span>
                 </label>
                 <input
                   type="text"

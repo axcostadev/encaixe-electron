@@ -13,11 +13,11 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
   const [components, setComponents] = useState<OperationComponent[]>([]);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [hideFtls, setHideFtls] = useState(false);
+  const [hideFls, setHideFls] = useState(false);
   
-  // Visualizador não pode ver FTLS
+  // Visualizador não pode ver FLS
   const isViewer = user?.role === 'viewer';
-  const canSeeFtls = !isViewer;
+  const canSeeFls = !isViewer;
 
   useEffect(() => {
     const data = handbookDatabase.getAllComponents();
@@ -131,19 +131,19 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
 
-          {/* Botão Ocultar FTLS (somente para quem pode ver) */}
-          {canSeeFtls && (
+          {/* Botão Ocultar FLS (somente para quem pode ver) */}
+          {canSeeFls && (
             <button
-              onClick={() => setHideFtls(!hideFtls)}
+              onClick={() => setHideFls(!hideFls)}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                hideFtls 
+                hideFls 
                   ? 'bg-orange-600 text-white hover:bg-orange-700' 
                   : 'bg-muted text-foreground hover:bg-muted-foreground/20 border border-border'
               }`}
-              title={hideFtls ? 'Mostrar FTLS' : 'Ocultar FTLS na impressão'}
+              title={hideFls ? 'Mostrar FLS' : 'Ocultar FLS na impressão'}
             >
-              {hideFtls ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              <span className="font-medium text-sm">{hideFtls ? 'FTLS Oculto' : 'Ocultar FTLS'}</span>
+              {hideFls ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <span className="font-medium text-sm">{hideFls ? 'FLS Oculto' : 'Ocultar FLS'}</span>
             </button>
           )}
 
@@ -224,7 +224,7 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
                 <div key={`${rowIndex}-${colIndex}`} className="min-h-48 relative">
                   {component ? (
                     <div className="relative">
-                      <ViewOnlyCard component={component} showFtls={canSeeFtls && !hideFtls} />
+                      <ViewOnlyCard component={component} showFls={canSeeFls && !hideFls} />
                       <div className="absolute top-1 left-1 text-base font-bold text-white bg-black/50 px-1 rounded">
                         {rowIndex + 1}:{colIndex + 1}
                       </div>
@@ -255,12 +255,12 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
 };
 
 // Componente de visualização somente leitura
-const ViewOnlyCard: React.FC<{ component: OperationComponent; showFtls?: boolean }> = ({ component, showFtls = true }) => {
-  // Função para formatar pecas_par ocultando FTLS se necessário
+const ViewOnlyCard: React.FC<{ component: OperationComponent; showFls?: boolean }> = ({ component, showFls = true }) => {
+  // Função para formatar pecas_par ocultando FLS se necessário
   const formatPecasPar = () => {
-    if (showFtls) return component.pecas_par;
-    // Remove a parte de FTLS do texto (ex: "1 PLACA/2 PEÇAS/4 FTLS" -> "1 PLACA/2 PEÇAS")
-    return component.pecas_par.replace(/\/?\d+\s*FTLS?/gi, '').replace(/\/+$/, '').trim();
+    if (showFls) return component.pecas_par;
+    // Remove a parte de FLS do texto (ex: "1 PLACA/2 PEÇAS/4 FLS" -> "1 PLACA/2 PEÇAS")
+    return component.pecas_par.replace(/\/?\d+\s*FLS?/gi, '').replace(/\/+$/, '').trim();
   };
 
   return (
