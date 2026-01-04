@@ -67,7 +67,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { RoleForm, RoleList, Role, UserPermissions } from "@renderer/components/roles"
-import { activityLogger, ActivityLog, ActivityAction } from "@renderer/services/activityLogger"
+import { activityLogger, ActivityLog } from "@renderer/services/activityLogger"
 
 // Permissões padrão para fallback
 const DEFAULT_PERMISSIONS: UserPermissions = {

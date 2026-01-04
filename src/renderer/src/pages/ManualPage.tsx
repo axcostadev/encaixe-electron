@@ -8,7 +8,7 @@ import { HandbookModel, Brand } from '@renderer/types/handbook';
 import { useAuth } from '@renderer/contexts/AuthContext';
 import { toast } from 'sonner';
 import { activityLogger } from '@renderer/services/activityLogger';
-import { ModelGridSkeleton, Spinner } from '@renderer/components/ui/Skeleton';
+import { ModelGridSkeleton } from '@renderer/components/ui/skeleton';
 import { 
   Book, 
   Edit3, 
@@ -24,8 +24,7 @@ import {
   SortDesc,
   Copy,
   Download,
-  Upload,
-  ArrowUpDown
+  Upload
 } from 'lucide-react';
 
 type TabType = 'modelos' | 'edicao' | 'visualizacao';
