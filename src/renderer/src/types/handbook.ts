@@ -1,5 +1,15 @@
+export interface Brand {
+  id: string;
+  nome: string;
+  logo_url?: string;
+  cor?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface OperationComponent {
   id: string;
+  modelo_id: string;
   nome_operacao: string;
   materiais_operacao: string;
   setores_posteriores: string[];
@@ -27,6 +37,7 @@ export interface EditableField {
 
 export interface HandbookModel {
   id: string;
+  marca_id: string;
   nome_modelo: string;
   tamanhos: number[];
   numero_projeto: string;

@@ -3,7 +3,7 @@ import { HandbookDragDropGrid } from '@renderer/components/handbook/HandbookDrag
 import { HandbookViewer } from '@renderer/components/handbook/HandbookViewer';
 import { HandbookModelForm } from '@renderer/components/handbook/HandbookModelForm';
 import { handbookDatabase } from '@renderer/database/handbookDatabase';
-import { HandbookModel } from '@renderer/types/handbook';
+import { HandbookModel, Brand } from '@renderer/types/handbook';
 import { useAuth } from '@renderer/contexts/AuthContext';
 import { 
   Book, 
@@ -13,7 +13,8 @@ import {
   FolderOpen,
   Settings,
   FileText,
-  X
+  X,
+  Tag
 } from 'lucide-react';
 
 type TabType = 'modelos' | 'edicao' | 'visualizacao';
@@ -22,20 +23,64 @@ const ManualPage: React.FC = () => {
   const { hasPermission } = useAuth();
   const canEdit = hasPermission('canEditManual');
   
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [selectedBrand, setSelectedBrand] = useState<Brand | undefined>();
   const [models, setModels] = useState<HandbookModel[]>([]);
   const [selectedModel, setSelectedModel] = useState<HandbookModel | undefined>();
   const [showForm, setShowForm] = useState(false);
   const [editingModel, setEditingModel] = useState<HandbookModel | undefined>();
   const [activeTab, setActiveTab] = useState<TabType>('modelos');
+  const [showBrandForm, setShowBrandForm] = useState(false);
+  const [newBrandName, setNewBrandName] = useState('');
+  const [newBrandColor, setNewBrandColor] = useState('#1e40af');
+
+  const loadBrands = useCallback(() => {
+    const loadedBrands = handbookDatabase.getAllBrands();
+    setBrands(loadedBrands);
+    // Selecionar primeira marca se nenhuma estiver selecionada
+    if (loadedBrands.length > 0 && !selectedBrand) {
+      setSelectedBrand(loadedBrands[0]);
+    }
+  }, [selectedBrand]);
 
   const loadModels = useCallback(() => {
-    const loadedModels = handbookDatabase.getAllModels();
-    setModels(loadedModels);
+    if (selectedBrand) {
+      const loadedModels = handbookDatabase.getModelsByBrand(selectedBrand.id);
+      setModels(loadedModels);
+    } else {
+      setModels([]);
+    }
+  }, [selectedBrand]);
+
+  useEffect(() => {
+    loadBrands();
   }, []);
 
   useEffect(() => {
     loadModels();
-  }, [loadModels]);
+    // Limpar modelo selecionado ao trocar de marca
+    setSelectedModel(undefined);
+  }, [selectedBrand, loadModels]);
+
+  const handleSelectBrand = (brand: Brand) => {
+    setSelectedBrand(brand);
+    setSelectedModel(undefined);
+    setShowForm(false);
+    setEditingModel(undefined);
+  };
+
+  const handleCreateBrand = () => {
+    if (!newBrandName.trim()) return;
+    handbookDatabase.createBrand({
+      nome: newBrandName.toUpperCase().trim(),
+      cor: newBrandColor
+    });
+    setNewBrandName('');
+    setNewBrandColor('#1e40af');
+    setShowBrandForm(false);
+    loadBrands();
+  };
+
 
   const handleSelectModel = (model: HandbookModel) => {
     setSelectedModel(model);
@@ -44,6 +89,10 @@ const ManualPage: React.FC = () => {
   };
 
   const handleCreateNew = () => {
+    if (!selectedBrand) {
+      alert('Selecione uma marca primeiro!');
+      return;
+    }
     setEditingModel(undefined);
     setShowForm(true);
   };
@@ -64,13 +113,26 @@ const ManualPage: React.FC = () => {
   const handleSaveModel = (modelData: Omit<HandbookModel, 'id' | 'created_at' | 'componentes'>) => {
     if (editingModel) {
       handbookDatabase.updateModel(editingModel.id, modelData);
+      loadModels();
+      setShowForm(false);
+      setEditingModel(undefined);
     } else {
-      handbookDatabase.createModel(modelData);
+      // Criar novo modelo
+      const newModel = handbookDatabase.createModel({
+        ...modelData,
+        marca_id: selectedBrand!.id
+      });
+      
+      loadModels();
+      setShowForm(false);
+      setEditingModel(undefined);
+      
+      // Selecionar o modelo criado e ir para aba de edição automaticamente
+      if (newModel) {
+        setSelectedModel(newModel);
+        setActiveTab('edicao');
+      }
     }
-    
-    loadModels();
-    setShowForm(false);
-    setEditingModel(undefined);
   };
 
   const handleCancelForm = () => {
@@ -142,6 +204,84 @@ const ManualPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Abas de Marcas */}
+        <div className="p-3 border-b border-border">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Marcas</span>
+            {canEdit && (
+              <button
+                onClick={() => setShowBrandForm(!showBrandForm)}
+                className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                title="Nova Marca"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          
+          {/* Formulário nova marca */}
+          {showBrandForm && canEdit && (
+            <div className="mb-3 p-2 bg-muted rounded-lg space-y-2">
+              <input
+                type="text"
+                value={newBrandName}
+                onChange={(e) => setNewBrandName(e.target.value)}
+                placeholder="Nome da marca"
+                className="w-full px-2 py-1 text-sm bg-background border border-border rounded"
+              />
+              <div className="flex gap-2">
+                <input
+                  type="color"
+                  value={newBrandColor}
+                  onChange={(e) => setNewBrandColor(e.target.value)}
+                  className="w-8 h-8 rounded cursor-pointer"
+                />
+                <button
+                  onClick={handleCreateBrand}
+                  disabled={!newBrandName.trim()}
+                  className="flex-1 px-2 py-1 text-xs bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50"
+                >
+                  Criar
+                </button>
+                <button
+                  onClick={() => setShowBrandForm(false)}
+                  className="px-2 py-1 text-xs bg-muted-foreground/20 rounded hover:bg-muted-foreground/30"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Lista de marcas como abas */}
+          <div className="flex flex-wrap gap-1">
+            {brands.map(brand => (
+              <div key={brand.id} className="relative group">
+                <button
+                  onClick={() => handleSelectBrand(brand)}
+                  style={{ 
+                    backgroundColor: selectedBrand?.id === brand.id ? brand.cor : 'transparent',
+                    borderColor: brand.cor 
+                  }}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all ${
+                    selectedBrand?.id === brand.id
+                      ? 'text-white'
+                      : 'text-foreground hover:bg-muted'
+                  }`}
+                >
+                  {brand.nome}
+                </button>
+              </div>
+            ))}
+          </div>
+          
+          {brands.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-2">
+              Nenhuma marca cadastrada
+            </p>
+          )}
+        </div>
+
         {/* Navegação por abas */}
         <nav className="flex-1 p-3">
           <div className="space-y-1">
@@ -171,6 +311,14 @@ const ManualPage: React.FC = () => {
                 <FileText className="w-4 h-4 text-primary" />
                 <span className="text-xs font-medium text-primary">MODELO ATIVO</span>
               </div>
+              {selectedBrand && (
+                <span 
+                  className="inline-block px-2 py-0.5 text-xs font-semibold text-white rounded mb-2"
+                  style={{ backgroundColor: selectedBrand.cor }}
+                >
+                  {selectedBrand.nome}
+                </span>
+              )}
               <h3 className="font-semibold text-foreground text-sm truncate">
                 {selectedModel.nome_modelo}
               </h3>
@@ -226,13 +374,25 @@ const ManualPage: React.FC = () => {
           </div>
           
           {activeTab === 'modelos' && canEdit && (
-            <button
-              onClick={handleCreateNew}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Novo Modelo
-            </button>
+            <div className="flex items-center gap-3">
+              {selectedBrand && (
+                <span 
+                  className="px-3 py-1 text-sm font-semibold text-white rounded-lg"
+                  style={{ backgroundColor: selectedBrand.cor }}
+                >
+                  {selectedBrand.nome}
+                </span>
+              )}
+              <button
+                onClick={handleCreateNew}
+                disabled={!selectedBrand}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={!selectedBrand ? 'Selecione uma marca primeiro' : 'Novo Modelo'}
+              >
+                <Plus className="w-4 h-4" />
+                Novo Modelo
+              </button>
+            </div>
           )}
         </div>
 
@@ -240,7 +400,13 @@ const ManualPage: React.FC = () => {
         <div className="flex-1 overflow-auto">
           {activeTab === 'modelos' && (
             <div className="p-6">
-              {showForm ? (
+              {!selectedBrand ? (
+                <div className="text-center py-12">
+                  <Tag className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+                  <h3 className="text-lg font-semibold text-muted-foreground mb-2">Selecione uma marca</h3>
+                  <p className="text-muted-foreground">Escolha uma marca no menu acima para ver seus modelos</p>
+                </div>
+              ) : showForm ? (
                 <div className="max-w-2xl mx-auto">
                   <HandbookModelForm
                     model={editingModel}
@@ -259,6 +425,7 @@ const ManualPage: React.FC = () => {
                     onGoToEdit={handleGoToEdit}
                     onGoToView={handleGoToView}
                     canEdit={canEdit}
+                    selectedBrand={selectedBrand}
                   />
                 </div>
               )}
@@ -288,6 +455,7 @@ interface ModelosGridProps {
   onGoToEdit: () => void;
   onGoToView: () => void;
   canEdit: boolean;
+  selectedBrand?: Brand;
 }
 
 const ModelosGrid: React.FC<ModelosGridProps> = ({
@@ -297,13 +465,16 @@ const ModelosGrid: React.FC<ModelosGridProps> = ({
   onDeleteModel,
   onGoToEdit,
   onGoToView,
-  canEdit
+  canEdit,
+  selectedBrand
 }) => {
   if (models.length === 0) {
     return (
       <div className="text-center py-12">
         <FolderOpen className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
-        <h3 className="text-lg font-semibold text-muted-foreground mb-2">Nenhum modelo cadastrado</h3>
+        <h3 className="text-lg font-semibold text-muted-foreground mb-2">
+          Nenhum modelo em {selectedBrand?.nome || 'esta marca'}
+        </h3>
         <p className="text-muted-foreground">Clique em "Novo Modelo" para começar</p>
       </div>
     );

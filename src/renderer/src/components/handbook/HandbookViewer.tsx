@@ -20,9 +20,14 @@ export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel })
   const canSeeFls = !isViewer;
 
   useEffect(() => {
-    const data = handbookDatabase.getAllComponents();
-    setComponents(data);
-  }, []);
+    // Carregar componentes apenas do modelo selecionado
+    if (selectedModel) {
+      const data = handbookDatabase.getComponentsByModel(selectedModel.id);
+      setComponents(data);
+    } else {
+      setComponents([]);
+    }
+  }, [selectedModel]);
 
   const handleZoom = (delta: number) => {
     setZoomLevel(prev => Math.max(50, Math.min(200, prev + delta)));

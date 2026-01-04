@@ -21,7 +21,7 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
     createComponent,
     deleteComponent,
     undo, redo, canUndo, canRedo
-  } = useHandbookDragDrop();
+  } = useHandbookDragDrop(selectedModel?.id);
 
   const [zoomLevel, setZoomLevel] = React.useState(100);
   const [isPanning, setIsPanning] = React.useState(false);
@@ -86,7 +86,7 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
 
   // Funções para novo componente
   const handleCreateComponent = () => {
-    if (!newComponent.nome_operacao) return;
+    if (!newComponent.nome_operacao || !selectedModel) return;
     
     // Encontrar próxima posição disponível
     const maxX = components.length > 0 ? Math.max(...components.map(c => c.position_x)) : -1;
@@ -107,6 +107,7 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
     const pecasParComFtls = pecasParBase ? `${pecasParBase}/${flsValue} FLS` : `${flsValue} FLS`;
 
     createComponent({
+      modelo_id: selectedModel.id,
       nome_operacao: newComponent.nome_operacao || '',
       materiais_operacao: newComponent.materiais_operacao || '',
       setores_posteriores: newComponent.setores_posteriores || [],
@@ -429,8 +430,9 @@ export const HandbookDragDropGrid: React.FC<HandbookDragDropGridProps> = ({ sele
               {/* Botão Novo Componente */}
               <button
                 onClick={() => setShowNewComponentForm(true)}
-                className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                title="Novo Componente"
+                disabled={!selectedModel}
+                className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={selectedModel ? "Novo Componente" : "Selecione um modelo primeiro"}
               >
                 <Plus className="w-4 h-4" />
                 <span className="text-sm font-medium">Novo Componente</span>

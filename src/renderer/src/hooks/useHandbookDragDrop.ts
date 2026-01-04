@@ -2,19 +2,26 @@ import { useState, useCallback } from 'react';
 import { OperationComponent } from '@renderer/types/handbook';
 import { handbookDatabase } from '@renderer/database/handbookDatabase';
 
-export const useHandbookDragDrop = () => {
+export const useHandbookDragDrop = (modeloId?: string) => {
   const [components, setComponents] = useState<OperationComponent[]>([]);
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const [history, setHistory] = useState<OperationComponent[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
   const loadComponents = useCallback(() => {
-    const data = handbookDatabase.getAllComponents();
+    // Se não houver modelo selecionado, não carrega nenhum componente
+    if (!modeloId) {
+      setComponents([]);
+      setHistory([[]]);
+      setHistoryIndex(0);
+      return;
+    }
+    const data = handbookDatabase.getComponentsByModel(modeloId);
     setComponents(data);
     // reset history
     setHistory([data.map(d => ({ ...d }))]);
     setHistoryIndex(0);
-  }, []);
+  }, [modeloId]);
 
   const handleDragStart = useCallback((id: string) => {
     setDraggedItem(id);
