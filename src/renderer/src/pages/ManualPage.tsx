@@ -111,7 +111,7 @@ const ManualPage: React.FC = () => {
     }
   };
 
-  const handleSaveModel = (modelData: Omit<HandbookModel, 'id' | 'created_at' | 'componentes'>) => {
+  const handleSaveModel = (modelData: Omit<HandbookModel, 'id' | 'created_at' | 'componentes' | 'marca_id'>) => {
     if (editingModel) {
       handbookDatabase.updateModel(editingModel.id, modelData);
       loadModels();

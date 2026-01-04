@@ -4,7 +4,7 @@ import { Save, X, Plus, Minus } from 'lucide-react';
 
 interface HandbookModelFormProps {
   model?: HandbookModel;
-  onSave: (model: Omit<HandbookModel, 'id' | 'created_at' | 'componentes'>) => void;
+  onSave: (model: Omit<HandbookModel, 'id' | 'created_at' | 'componentes' | 'marca_id'>) => void;
   onCancel: () => void;
 }
 
