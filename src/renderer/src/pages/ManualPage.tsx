@@ -33,6 +33,7 @@ const ManualPage: React.FC = () => {
   const [showBrandForm, setShowBrandForm] = useState(false);
   const [newBrandName, setNewBrandName] = useState('');
   const [newBrandColor, setNewBrandColor] = useState('#1e40af');
+  const [modelSearch, setModelSearch] = useState('');
 
   const loadBrands = useCallback(() => {
     const loadedBrands = handbookDatabase.getAllBrands();
@@ -416,8 +417,17 @@ const ManualPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="max-w-4xl mx-auto">
+                  <div className="mb-4">
+                    <input
+                      type="text"
+                      value={modelSearch}
+                      onChange={(e) => setModelSearch(e.target.value)}
+                      placeholder="Pesquisar modelos..."
+                      className="w-full max-w-sm px-3 py-2 bg-background border border-border rounded-lg text-foreground"
+                    />
+                  </div>
                   <ModelosGrid
-                    models={models}
+                    models={models.filter(m => m.nome_modelo.toLowerCase().includes(modelSearch.toLowerCase()))}
                     selectedModel={selectedModel}
                     onSelectModel={handleSelectModel}
                     onEditModel={handleEditModel}
