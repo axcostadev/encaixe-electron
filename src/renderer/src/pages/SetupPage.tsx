@@ -86,6 +86,7 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
 	canCreateEncaixe: false,
 	canViewManual: false,
 	canEditManual: false,
+	canViewFls: false,
 	canViewEconomia: false,
 	canAccessSetup: false,
 	canManageUsers: false,

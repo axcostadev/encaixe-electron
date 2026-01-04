@@ -9,15 +9,14 @@ interface HandbookViewerProps {
 }
 
 export const HandbookViewer: React.FC<HandbookViewerProps> = ({ selectedModel }) => {
-  const { user } = useAuth();
+  const { hasPermission } = useAuth();
   const [components, setComponents] = useState<OperationComponent[]>([]);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hideFls, setHideFls] = useState(false);
   
-  // Visualizador não pode ver FLS
-  const isViewer = user?.role === 'viewer';
-  const canSeeFls = !isViewer;
+  // Verificar permissão canViewFls
+  const canSeeFls = hasPermission('canViewFls');
 
   useEffect(() => {
     // Carregar componentes apenas do modelo selecionado
