@@ -14,7 +14,14 @@ export type ActivityAction =
   | 'update_component'
   | 'delete_component'
   | 'move_component'
-  | 'copy_component';
+  | 'copy_component'
+  // Ações de Encaixe
+  | 'search_of'
+  | 'search_artigo'
+  | 'generate_encaixe'
+  | 'batch_generate_encaixe'
+  | 'add_to_list'
+  | 'create_apelido';
 
 export interface ActivityLog {
   id: string;
@@ -22,7 +29,7 @@ export interface ActivityLog {
   userId: number;
   username: string;
   action: ActivityAction;
-  entityType: 'brand' | 'model' | 'component';
+  entityType: 'brand' | 'model' | 'component' | 'encaixe' | 'of' | 'apelido';
   entityId: string;
   entityName: string;
   details?: Record<string, unknown>;
@@ -31,6 +38,13 @@ export interface ActivityLog {
     brandName?: string;
     modelId?: string;
     modelName?: string;
+    // Metadata para Encaixe
+    of?: string;
+    artigo?: string;
+    componente?: string;
+    maquina?: string;
+    apelido?: string;
+    filePath?: string;
   };
 }
 
@@ -71,7 +85,7 @@ class ActivityLogger {
   log(
     user: User | null,
     action: ActivityAction,
-    entityType: 'brand' | 'model' | 'component',
+    entityType: 'brand' | 'model' | 'component' | 'encaixe' | 'of' | 'apelido',
     entityId: string,
     entityName: string,
     details?: Record<string, unknown>,
@@ -152,6 +166,61 @@ class ActivityLogger {
     return this.log(user, 'copy_component', 'component', componentId, componentName, { fromModel, toModel });
   }
 
+  // Métodos de log para Encaixe
+  logSearchOF(user: User | null, of: string, resultCount: number) {
+    return this.log(user, 'search_of', 'of', of, `OF ${of}`, { resultCount }, { of });
+  }
+
+  logSearchArtigo(user: User | null, artigo: string, resultCount: number) {
+    return this.log(user, 'search_artigo', 'encaixe', artigo, `Artigo ${artigo}`, { resultCount }, { artigo });
+  }
+
+  logGenerateEncaixe(
+    user: User | null, 
+    of: string, 
+    componente: string, 
+    apelido: string, 
+    maquina: string, 
+    filePath?: string
+  ) {
+    return this.log(
+      user, 
+      'generate_encaixe', 
+      'encaixe', 
+      `${of}-${apelido}`, 
+      `Encaixe ${of}-${apelido}`, 
+      { componente, maquina, filePath },
+      { of, componente, apelido, maquina, filePath }
+    );
+  }
+
+  logBatchGenerateEncaixe(user: User | null, totalItems: number, sucessos: number, erros: number) {
+    return this.log(
+      user,
+      'batch_generate_encaixe',
+      'encaixe',
+      `batch-${Date.now()}`,
+      `Lote de ${totalItems} encaixes`,
+      { totalItems, sucessos, erros }
+    );
+  }
+
+  logAddToList(user: User | null, of: string, componente: string, apelido: string, maquina: string) {
+    return this.log(
+      user,
+      'add_to_list',
+      'encaixe',
+      `${of}-${apelido}`,
+      `${of}-${apelido} na lista`,
+      { componente, maquina },
+      { of, componente, apelido, maquina }
+    );
+  }
+
+  logCreateApelido(user: User | null, componente: string, apelido: string) {
+    return this.log(user, 'create_apelido', 'apelido', componente, apelido, { componente });
+  }
+
   // Consultas
   getAllLogs(): ActivityLog[] {
     return [...this.logs].reverse(); // Mais recentes primeiro
@@ -161,7 +230,7 @@ class ActivityLogger {
     return this.logs.filter(l => l.userId === userId).reverse();
   }
 
-  getLogsByEntity(entityType: 'brand' | 'model' | 'component', entityId?: string): ActivityLog[] {
+  getLogsByEntity(entityType: 'brand' | 'model' | 'component' | 'encaixe' | 'of' | 'apelido', entityId?: string): ActivityLog[] {
     return this.logs
       .filter(l => l.entityType === entityType && (entityId ? l.entityId === entityId : true))
       .reverse();
@@ -205,6 +274,13 @@ class ActivityLogger {
       delete_component: 'Excluiu componente',
       move_component: 'Moveu componente',
       copy_component: 'Copiou componente',
+      // Ações de Encaixe
+      search_of: 'Buscou OF',
+      search_artigo: 'Buscou Artigo',
+      generate_encaixe: 'Gerou encaixe',
+      batch_generate_encaixe: 'Gerou lote',
+      add_to_list: 'Adicionou à lista',
+      create_apelido: 'Criou apelido',
     };
     return labels[action] || action;
   }
@@ -225,6 +301,13 @@ class ActivityLogger {
       delete_component: 'Trash2',
       move_component: 'Move',
       copy_component: 'Copy',
+      // Ações de Encaixe
+      search_of: 'Search',
+      search_artigo: 'Search',
+      generate_encaixe: 'FileOutput',
+      batch_generate_encaixe: 'Files',
+      add_to_list: 'ListPlus',
+      create_apelido: 'Tag',
     };
     return icons[action] || 'Activity';
   }
@@ -236,15 +319,20 @@ class ActivityLogger {
     if (action.includes('update') || action.includes('move')) return 'text-blue-500';
     if (action.includes('duplicate') || action.includes('copy')) return 'text-purple-500';
     if (action.includes('export') || action.includes('import')) return 'text-orange-500';
+    if (action.includes('encaixe') || action.includes('generate')) return 'text-cyan-500';
+    if (action.includes('search')) return 'text-yellow-500';
     return 'text-muted-foreground';
   }
 
   // Formatar tipo de entidade para exibição
-  static formatEntityType(entityType: 'brand' | 'model' | 'component'): string {
-    const labels: Record<'brand' | 'model' | 'component', string> = {
+  static formatEntityType(entityType: 'brand' | 'model' | 'component' | 'encaixe' | 'of' | 'apelido'): string {
+    const labels: Record<'brand' | 'model' | 'component' | 'encaixe' | 'of' | 'apelido', string> = {
       brand: 'Marca',
       model: 'Modelo',
       component: 'Componente',
+      encaixe: 'Encaixe',
+      of: 'OF',
+      apelido: 'Apelido',
     };
     return labels[entityType] || entityType;
   }
@@ -254,7 +342,7 @@ class ActivityLogger {
     return ActivityLogger.formatAction(action);
   }
 
-  formatEntityType(entityType: 'brand' | 'model' | 'component'): string {
+  formatEntityType(entityType: 'brand' | 'model' | 'component' | 'encaixe' | 'of' | 'apelido'): string {
     return ActivityLogger.formatEntityType(entityType);
   }
 }

@@ -64,6 +64,8 @@ import {
 	Search,
 	Download,
 	Filter,
+	Scissors,
+	Book,
 } from "lucide-react"
 import { toast } from "sonner"
 import { RoleForm, RoleList, Role, UserPermissions } from "@renderer/components/roles"
@@ -159,8 +161,9 @@ export default function SetupPage() {
 	// Estados para aba de Auditoria
 	const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
 	const [logSearch, setLogSearch] = useState("")
-	const [logFilter, setLogFilter] = useState<'all' | 'brand' | 'model' | 'component'>('all')
+	const [logFilter, setLogFilter] = useState<'all' | 'brand' | 'model' | 'component' | 'encaixe' | 'of' | 'apelido'>('all')
 	const [logActionFilter, setLogActionFilter] = useState<string>('all')
+	const [auditSubTab, setAuditSubTab] = useState<'encaixe' | 'manual'>('encaixe')
 
 	// Form state
 	const [formData, setFormData] = useState({
@@ -225,8 +228,26 @@ export default function SetupPage() {
 		}
 	}, [activeTab])
 
+	// Tipos de entidade por categoria
+	const encaixeEntityTypes = ['encaixe', 'of', 'apelido']
+	const manualEntityTypes = ['brand', 'model', 'component']
+
+	// Filtrar logs por sub-aba (encaixe ou manual)
+	const logsForCurrentTab = activityLogs.filter(log => {
+		if (auditSubTab === 'encaixe') {
+			return encaixeEntityTypes.includes(log.entityType) || 
+				log.action.includes('encaixe') || 
+				log.action.includes('generate') ||
+				log.action === 'search_of' ||
+				log.action === 'add_to_list' ||
+				log.action === 'create_apelido'
+		} else {
+			return manualEntityTypes.includes(log.entityType)
+		}
+	})
+
 	// Filtrar logs
-	const filteredLogs = activityLogs.filter(log => {
+	const filteredLogs = logsForCurrentTab.filter(log => {
 		// Filtro por busca
 		const searchLower = logSearch.toLowerCase()
 		const matchesSearch = !logSearch || 
@@ -250,7 +271,7 @@ export default function SetupPage() {
 		const url = URL.createObjectURL(blob)
 		const a = document.createElement('a')
 		a.href = url
-		a.download = `auditoria_${new Date().toISOString().split('T')[0]}.json`
+		a.download = `auditoria_${auditSubTab}_${new Date().toISOString().split('T')[0]}.json`
 		a.click()
 		URL.revokeObjectURL(url)
 		toast.success('Logs exportados com sucesso!')
@@ -817,7 +838,7 @@ export default function SetupPage() {
 										Log de Auditoria
 									</CardTitle>
 									<CardDescription>
-										Histórico de todas as ações realizadas no sistema Manual
+										Histórico de todas as ações realizadas no sistema
 									</CardDescription>
 								</div>
 								<div className="flex gap-2">
@@ -851,6 +872,49 @@ export default function SetupPage() {
 							</div>
 						</CardHeader>
 						<CardContent className="space-y-4">
+							{/* Sub-abas: Encaixe e Manual */}
+							<div className="flex gap-2 border-b pb-2">
+								<button
+									onClick={() => setAuditSubTab('encaixe')}
+									className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors ${
+										auditSubTab === 'encaixe'
+											? 'bg-primary text-primary-foreground'
+											: 'bg-muted hover:bg-muted/80 text-muted-foreground'
+									}`}
+								>
+									<Scissors className="w-4 h-4" />
+									Encaixe
+									<span className={`ml-1 px-2 py-0.5 text-xs rounded-full ${
+										auditSubTab === 'encaixe' ? 'bg-primary-foreground/20' : 'bg-background'
+									}`}>
+										{activityLogs.filter(l => 
+											['encaixe', 'of', 'apelido'].includes(l.entityType) || 
+											l.action.includes('encaixe') || 
+											l.action.includes('generate') ||
+											l.action === 'search_of' ||
+											l.action === 'add_to_list' ||
+											l.action === 'create_apelido'
+										).length}
+									</span>
+								</button>
+								<button
+									onClick={() => setAuditSubTab('manual')}
+									className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors ${
+										auditSubTab === 'manual'
+											? 'bg-primary text-primary-foreground'
+											: 'bg-muted hover:bg-muted/80 text-muted-foreground'
+									}`}
+								>
+									<Book className="w-4 h-4" />
+									Manual
+									<span className={`ml-1 px-2 py-0.5 text-xs rounded-full ${
+										auditSubTab === 'manual' ? 'bg-primary-foreground/20' : 'bg-background'
+									}`}>
+										{activityLogs.filter(l => ['brand', 'model', 'component'].includes(l.entityType)).length}
+									</span>
+								</button>
+							</div>
+
 							{/* Filtros */}
 							<div className="flex flex-wrap gap-4">
 								<div className="flex-1 min-w-[200px]">
@@ -864,64 +928,123 @@ export default function SetupPage() {
 										/>
 									</div>
 								</div>
-								<Select value={logFilter} onValueChange={(v) => setLogFilter(v as any)}>
-									<SelectTrigger className="w-[150px]">
-										<Filter className="w-4 h-4 mr-2" />
-										<SelectValue placeholder="Tipo" />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="all">Todos</SelectItem>
-										<SelectItem value="brand">Marcas</SelectItem>
-										<SelectItem value="model">Modelos</SelectItem>
-										<SelectItem value="component">Componentes</SelectItem>
-									</SelectContent>
-								</Select>
-								<Select value={logActionFilter} onValueChange={setLogActionFilter}>
-									<SelectTrigger className="w-[180px]">
-										<SelectValue placeholder="Ação" />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="all">Todas ações</SelectItem>
-										<SelectItem value="create_brand">Criar marca</SelectItem>
-										<SelectItem value="delete_brand">Excluir marca</SelectItem>
-										<SelectItem value="create_model">Criar modelo</SelectItem>
-										<SelectItem value="update_model">Atualizar modelo</SelectItem>
-										<SelectItem value="delete_model">Excluir modelo</SelectItem>
-										<SelectItem value="duplicate_model">Duplicar modelo</SelectItem>
-										<SelectItem value="export_model">Exportar modelo</SelectItem>
-										<SelectItem value="import_model">Importar modelo</SelectItem>
-										<SelectItem value="create_component">Criar componente</SelectItem>
-										<SelectItem value="update_component">Atualizar componente</SelectItem>
-										<SelectItem value="delete_component">Excluir componente</SelectItem>
-									</SelectContent>
-								</Select>
+								{auditSubTab === 'encaixe' ? (
+									<>
+										<Select value={logFilter} onValueChange={(v) => setLogFilter(v as any)}>
+											<SelectTrigger className="w-[150px]">
+												<Filter className="w-4 h-4 mr-2" />
+												<SelectValue placeholder="Tipo" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="all">Todos</SelectItem>
+												<SelectItem value="encaixe">Encaixes</SelectItem>
+												<SelectItem value="of">OFs</SelectItem>
+												<SelectItem value="apelido">Apelidos</SelectItem>
+											</SelectContent>
+										</Select>
+										<Select value={logActionFilter} onValueChange={setLogActionFilter}>
+											<SelectTrigger className="w-[180px]">
+												<SelectValue placeholder="Ação" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="all">Todas ações</SelectItem>
+												<SelectItem value="search_of">Buscar OF</SelectItem>
+												<SelectItem value="generate_encaixe">Gerar encaixe</SelectItem>
+												<SelectItem value="batch_generate_encaixe">Gerar lote</SelectItem>
+												<SelectItem value="add_to_list">Adicionar à lista</SelectItem>
+												<SelectItem value="create_apelido">Criar apelido</SelectItem>
+											</SelectContent>
+										</Select>
+									</>
+								) : (
+									<>
+										<Select value={logFilter} onValueChange={(v) => setLogFilter(v as any)}>
+											<SelectTrigger className="w-[150px]">
+												<Filter className="w-4 h-4 mr-2" />
+												<SelectValue placeholder="Tipo" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="all">Todos</SelectItem>
+												<SelectItem value="brand">Marcas</SelectItem>
+												<SelectItem value="model">Modelos</SelectItem>
+												<SelectItem value="component">Componentes</SelectItem>
+											</SelectContent>
+										</Select>
+										<Select value={logActionFilter} onValueChange={setLogActionFilter}>
+											<SelectTrigger className="w-[180px]">
+												<SelectValue placeholder="Ação" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="all">Todas ações</SelectItem>
+												<SelectItem value="create_brand">Criar marca</SelectItem>
+												<SelectItem value="delete_brand">Excluir marca</SelectItem>
+												<SelectItem value="create_model">Criar modelo</SelectItem>
+												<SelectItem value="update_model">Atualizar modelo</SelectItem>
+												<SelectItem value="delete_model">Excluir modelo</SelectItem>
+												<SelectItem value="duplicate_model">Duplicar modelo</SelectItem>
+												<SelectItem value="export_model">Exportar modelo</SelectItem>
+												<SelectItem value="import_model">Importar modelo</SelectItem>
+												<SelectItem value="create_component">Criar componente</SelectItem>
+												<SelectItem value="update_component">Atualizar componente</SelectItem>
+												<SelectItem value="delete_component">Excluir componente</SelectItem>
+											</SelectContent>
+										</Select>
+									</>
+								)}
 							</div>
 
-							{/* Estatísticas */}
-							<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-								<div className="bg-muted/50 rounded-lg p-3 text-center">
-									<div className="text-2xl font-bold text-foreground">{activityLogs.length}</div>
-									<div className="text-xs text-muted-foreground">Total de logs</div>
-								</div>
-								<div className="bg-green-500/10 rounded-lg p-3 text-center">
-									<div className="text-2xl font-bold text-green-600">
-										{activityLogs.filter(l => l.action.includes('create')).length}
+							{/* Estatísticas por sub-aba */}
+							{auditSubTab === 'encaixe' ? (
+								<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+									<div className="bg-muted/50 rounded-lg p-3 text-center">
+										<div className="text-2xl font-bold text-foreground">{logsForCurrentTab.length}</div>
+										<div className="text-xs text-muted-foreground">Total</div>
 									</div>
-									<div className="text-xs text-muted-foreground">Criações</div>
-								</div>
-								<div className="bg-blue-500/10 rounded-lg p-3 text-center">
-									<div className="text-2xl font-bold text-blue-600">
-										{activityLogs.filter(l => l.action.includes('update')).length}
+									<div className="bg-cyan-500/10 rounded-lg p-3 text-center">
+										<div className="text-2xl font-bold text-cyan-600">
+											{logsForCurrentTab.filter(l => l.action === 'generate_encaixe').length}
+										</div>
+										<div className="text-xs text-muted-foreground">Encaixes Gerados</div>
 									</div>
-									<div className="text-xs text-muted-foreground">Atualizações</div>
-								</div>
-								<div className="bg-red-500/10 rounded-lg p-3 text-center">
-									<div className="text-2xl font-bold text-red-600">
-										{activityLogs.filter(l => l.action.includes('delete')).length}
+									<div className="bg-purple-500/10 rounded-lg p-3 text-center">
+										<div className="text-2xl font-bold text-purple-600">
+											{logsForCurrentTab.filter(l => l.action === 'batch_generate_encaixe').length}
+										</div>
+										<div className="text-xs text-muted-foreground">Lotes</div>
 									</div>
-									<div className="text-xs text-muted-foreground">Exclusões</div>
+									<div className="bg-amber-500/10 rounded-lg p-3 text-center">
+										<div className="text-2xl font-bold text-amber-600">
+											{logsForCurrentTab.filter(l => l.action === 'search_of').length}
+										</div>
+										<div className="text-xs text-muted-foreground">Buscas OF</div>
+									</div>
 								</div>
-							</div>
+							) : (
+								<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+									<div className="bg-muted/50 rounded-lg p-3 text-center">
+										<div className="text-2xl font-bold text-foreground">{logsForCurrentTab.length}</div>
+										<div className="text-xs text-muted-foreground">Total</div>
+									</div>
+									<div className="bg-green-500/10 rounded-lg p-3 text-center">
+										<div className="text-2xl font-bold text-green-600">
+											{logsForCurrentTab.filter(l => l.action.includes('create')).length}
+										</div>
+										<div className="text-xs text-muted-foreground">Criações</div>
+									</div>
+									<div className="bg-blue-500/10 rounded-lg p-3 text-center">
+										<div className="text-2xl font-bold text-blue-600">
+											{logsForCurrentTab.filter(l => l.action.includes('update')).length}
+										</div>
+										<div className="text-xs text-muted-foreground">Atualizações</div>
+									</div>
+									<div className="bg-red-500/10 rounded-lg p-3 text-center">
+										<div className="text-2xl font-bold text-red-600">
+											{logsForCurrentTab.filter(l => l.action.includes('delete')).length}
+										</div>
+										<div className="text-xs text-muted-foreground">Exclusões</div>
+									</div>
+								</div>
+							)}
 
 							{/* Tabela de logs */}
 							<div className="border rounded-lg">
@@ -940,8 +1063,8 @@ export default function SetupPage() {
 										{filteredLogs.length === 0 ? (
 											<TableRow>
 												<TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-													{activityLogs.length === 0 
-														? 'Nenhuma atividade registrada ainda'
+													{logsForCurrentTab.length === 0 
+														? `Nenhuma atividade de ${auditSubTab === 'encaixe' ? 'encaixe' : 'manual'} registrada ainda`
 														: 'Nenhum resultado encontrado para os filtros aplicados'
 													}
 												</TableCell>
@@ -964,6 +1087,9 @@ export default function SetupPage() {
 															${log.action.includes('delete') ? 'bg-red-500/20 text-red-600 border-red-500/30' : ''}
 															${log.action.includes('duplicate') ? 'bg-purple-500/20 text-purple-600 border-purple-500/30' : ''}
 															${log.action.includes('export') || log.action.includes('import') ? 'bg-amber-500/20 text-amber-600 border-amber-500/30' : ''}
+															${log.action.includes('generate') || log.action.includes('encaixe') ? 'bg-cyan-500/20 text-cyan-600 border-cyan-500/30' : ''}
+															${log.action === 'search_of' ? 'bg-amber-500/20 text-amber-600 border-amber-500/30' : ''}
+															${log.action === 'add_to_list' ? 'bg-indigo-500/20 text-indigo-600 border-indigo-500/30' : ''}
 														`}>
 															{activityLogger.formatAction(log.action)}
 														</Badge>
@@ -980,7 +1106,13 @@ export default function SetupPage() {
 														{log.metadata?.brandName && (
 															<span>Marca: {log.metadata.brandName}</span>
 														)}
-														{log.details && typeof log.details === 'object' && (
+														{log.metadata?.maquina && (
+															<span>Máquina: {log.metadata.maquina}</span>
+														)}
+														{log.metadata?.of && !log.entityName.includes(log.metadata.of) && (
+															<span>OF: {log.metadata.of}</span>
+														)}
+														{log.details && typeof log.details === 'object' && !log.metadata?.maquina && (
 															<span title={JSON.stringify(log.details)}>
 																{Object.keys(log.details).length} campo(s)
 															</span>

@@ -4,6 +4,8 @@ import { Alert, AlertDescription } from "@renderer/components/ui/alert"
 import { useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@renderer/components/ui/table"
 import { useEncaixe } from "@renderer/hooks/useEncaixe"
+import { useAuth } from "@renderer/contexts/AuthContext"
+import { activityLogger } from "@renderer/services/activityLogger"
 import { ListaAutomaticoItem } from "@renderer/pages/EncaixePage"
 import { Trash2, Play, ListX } from "lucide-react"
 
@@ -14,6 +16,7 @@ interface ProcessamentoArquivosTabProps {
 }
 
 export function ProcessamentoArquivosTab({ lista, onRemover, onLimpar }: ProcessamentoArquivosTabProps) {
+	const { user } = useAuth()
 	const [message, setMessage] = useState('')
 	const [processando, setProcessando] = useState(false)
 	const [progresso, setProgresso] = useState(0)
@@ -44,6 +47,8 @@ export function ProcessamentoArquivosTab({ lista, onRemover, onLimpar }: Process
 				)
 
 				if (savePath) {
+					// Log individual de cada encaixe gerado
+					activityLogger.logGenerateEncaixe(user, item.of, item.componente, item.apelido, item.maquina, savePath)
 					sucessos++
 				}
 			} catch (err) {
@@ -53,6 +58,9 @@ export function ProcessamentoArquivosTab({ lista, onRemover, onLimpar }: Process
 
 			setProgresso(Math.round(((i + 1) / lista.length) * 100))
 		}
+
+		// Log de auditoria para geração em lote
+		activityLogger.logBatchGenerateEncaixe(user, lista.length, sucessos, erros)
 
 		setProcessando(false)
 		setMessage(`Processamento concluído! ${sucessos} arquivo(s) gerado(s)${erros > 0 ? `, ${erros} erro(s)` : ''}`)

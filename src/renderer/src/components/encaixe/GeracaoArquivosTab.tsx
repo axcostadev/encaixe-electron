@@ -26,6 +26,8 @@ import {
 import { useState, useEffect } from "react"
 import { Alert, AlertDescription } from "@renderer/components/ui/alert"
 import { useEncaixe } from "@renderer/hooks/useEncaixe"
+import { useAuth } from "@renderer/contexts/AuthContext"
+import { activityLogger } from "@renderer/services/activityLogger"
 import { PedidoComelz, PedidoEmma, ModelDataLectra } from "@renderer/types"
 import {
 	Dialog,
@@ -92,6 +94,7 @@ type QtyItem = {
 }
 
 export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (item: ListaAutomaticoItem) => void }) {
+	const { user } = useAuth()
 	const [ofSearch, setOfSearch] = useState("")
 	const [artigoSearch, setArtigoSearch] = useState("")
 	const [gradePares, setGradePares] = useState<GradePar[]>([])
@@ -194,6 +197,9 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 		setGradePares(result)
 		setParesPorCorTamanho([]) // Limpa os pares por tamanho
 
+		// Log de auditoria para busca de OF
+		activityLogger.logSearchOF(user, ofSearch, result.length)
+
 		if (result.length === 0) {
 			setMessage("OF não encontrada nos arquivos CTF/CTC")
 		} else {
@@ -274,6 +280,8 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 		)
 
 		if (success) {
+			// Log de auditoria para criação de apelido
+			activityLogger.logCreateApelido(user, componenteParaApelido, novoApelido.trim())
 			// Atualizar mapa de apelidos local
 			setApelidosMap((prev) => ({
 				...prev,
@@ -380,6 +388,9 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 				maquina: maquinaSelecionada,
 				dados: dados,
 			})
+
+			// Log de auditoria para adicionar na lista
+			activityLogger.logAddToList(user, ofSearch, componenteSelecionado, apelidoSelecionado, maquinaSelecionada)
 
 			setMessage(`Item adicionado à lista: ${ofSearch}-${apelidoSelecionado}`)
 		} catch (err) {
@@ -488,6 +499,15 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 			)
 
 			if (savePath) {
+				// Log de auditoria para geração de encaixe
+				activityLogger.logGenerateEncaixe(
+					user,
+					ofSearch,
+					componenteSelecionado || '',
+					apelidoSelecionado,
+					maquinaSelecionada,
+					savePath
+				)
 				setMessage(`Arquivo gerado com sucesso: ${savePath}`)
 			} else {
 				setMessage("Exportação cancelada")
