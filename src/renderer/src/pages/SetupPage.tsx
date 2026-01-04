@@ -60,9 +60,14 @@ import {
 	RefreshCw,
 	Plus,
 	Lock,
+	History,
+	Search,
+	Download,
+	Filter,
 } from "lucide-react"
 import { toast } from "sonner"
 import { RoleForm, RoleList, Role, UserPermissions } from "@renderer/components/roles"
+import { activityLogger, ActivityLog, ActivityAction } from "@renderer/services/activityLogger"
 
 // Permissões padrão para fallback
 const DEFAULT_PERMISSIONS: UserPermissions = {
@@ -151,6 +156,12 @@ export default function SetupPage() {
 	const [selectedRole, setSelectedRole] = useState<Role | null>(null)
 	const [activeTab, setActiveTab] = useState("usuarios")
 
+	// Estados para aba de Auditoria
+	const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
+	const [logSearch, setLogSearch] = useState("")
+	const [logFilter, setLogFilter] = useState<'all' | 'brand' | 'model' | 'component'>('all')
+	const [logActionFilter, setLogActionFilter] = useState<string>('all')
+
 	// Form state
 	const [formData, setFormData] = useState({
 		username: "",
@@ -206,6 +217,53 @@ export default function SetupPage() {
 		loadUsers()
 		loadRoles()
 	}, [loadUsers, loadRoles])
+
+	// Carregar logs quando a aba de auditoria for selecionada
+	useEffect(() => {
+		if (activeTab === 'auditoria') {
+			setActivityLogs(activityLogger.getAllLogs())
+		}
+	}, [activeTab])
+
+	// Filtrar logs
+	const filteredLogs = activityLogs.filter(log => {
+		// Filtro por busca
+		const searchLower = logSearch.toLowerCase()
+		const matchesSearch = !logSearch || 
+			log.entityName.toLowerCase().includes(searchLower) ||
+			log.username.toLowerCase().includes(searchLower) ||
+			activityLogger.formatAction(log.action).toLowerCase().includes(searchLower)
+		
+		// Filtro por tipo de entidade
+		const matchesEntity = logFilter === 'all' || log.entityType === logFilter
+		
+		// Filtro por ação
+		const matchesAction = logActionFilter === 'all' || log.action === logActionFilter
+		
+		return matchesSearch && matchesEntity && matchesAction
+	})
+
+	// Exportar logs para JSON
+	const handleExportLogs = () => {
+		const data = JSON.stringify(filteredLogs, null, 2)
+		const blob = new Blob([data], { type: 'application/json' })
+		const url = URL.createObjectURL(blob)
+		const a = document.createElement('a')
+		a.href = url
+		a.download = `auditoria_${new Date().toISOString().split('T')[0]}.json`
+		a.click()
+		URL.revokeObjectURL(url)
+		toast.success('Logs exportados com sucesso!')
+	}
+
+	// Limpar todos os logs
+	const handleClearLogs = () => {
+		if (confirm('Tem certeza que deseja limpar todos os logs de auditoria? Esta ação não pode ser desfeita.')) {
+			activityLogger.clearLogs()
+			setActivityLogs([])
+			toast.success('Logs limpos com sucesso!')
+		}
+	}
 
 	const resetForm = () => {
 		setFormData({
@@ -436,7 +494,7 @@ export default function SetupPage() {
 			</div>
 
 			<Tabs value={activeTab} onValueChange={setActiveTab}>
-				<TabsList className="grid w-full max-w-lg grid-cols-3">
+				<TabsList className="grid w-full max-w-2xl grid-cols-4">
 					<TabsTrigger value="usuarios" className="flex items-center gap-2">
 						<Users className="w-4 h-4" />
 						Usuários
@@ -448,6 +506,10 @@ export default function SetupPage() {
 					<TabsTrigger value="permissoes" className="flex items-center gap-2">
 						<Lock className="w-4 h-4" />
 						Matriz
+					</TabsTrigger>
+					<TabsTrigger value="auditoria" className="flex items-center gap-2">
+						<History className="w-4 h-4" />
+						Auditoria
 					</TabsTrigger>
 				</TabsList>
 
@@ -738,6 +800,203 @@ export default function SetupPage() {
 											</Card>
 										)
 									})}
+								</div>
+							)}
+						</CardContent>
+					</Card>
+				</TabsContent>
+
+				{/* Tab Auditoria */}
+				<TabsContent value="auditoria" className="space-y-4">
+					<Card>
+						<CardHeader>
+							<div className="flex items-center justify-between">
+								<div>
+									<CardTitle className="flex items-center gap-2">
+										<History className="w-5 h-5" />
+										Log de Auditoria
+									</CardTitle>
+									<CardDescription>
+										Histórico de todas as ações realizadas no sistema Manual
+									</CardDescription>
+								</div>
+								<div className="flex gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => setActivityLogs(activityLogger.getAllLogs())}
+									>
+										<RefreshCw className="w-4 h-4 mr-2" />
+										Atualizar
+									</Button>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={handleExportLogs}
+										disabled={filteredLogs.length === 0}
+									>
+										<Download className="w-4 h-4 mr-2" />
+										Exportar
+									</Button>
+									<Button
+										variant="destructive"
+										size="sm"
+										onClick={handleClearLogs}
+										disabled={activityLogs.length === 0}
+									>
+										<Trash2 className="w-4 h-4 mr-2" />
+										Limpar
+									</Button>
+								</div>
+							</div>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							{/* Filtros */}
+							<div className="flex flex-wrap gap-4">
+								<div className="flex-1 min-w-[200px]">
+									<div className="relative">
+										<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+										<Input
+											placeholder="Buscar por nome, usuário ou ação..."
+											value={logSearch}
+											onChange={(e) => setLogSearch(e.target.value)}
+											className="pl-10"
+										/>
+									</div>
+								</div>
+								<Select value={logFilter} onValueChange={(v) => setLogFilter(v as any)}>
+									<SelectTrigger className="w-[150px]">
+										<Filter className="w-4 h-4 mr-2" />
+										<SelectValue placeholder="Tipo" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="all">Todos</SelectItem>
+										<SelectItem value="brand">Marcas</SelectItem>
+										<SelectItem value="model">Modelos</SelectItem>
+										<SelectItem value="component">Componentes</SelectItem>
+									</SelectContent>
+								</Select>
+								<Select value={logActionFilter} onValueChange={setLogActionFilter}>
+									<SelectTrigger className="w-[180px]">
+										<SelectValue placeholder="Ação" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="all">Todas ações</SelectItem>
+										<SelectItem value="create_brand">Criar marca</SelectItem>
+										<SelectItem value="delete_brand">Excluir marca</SelectItem>
+										<SelectItem value="create_model">Criar modelo</SelectItem>
+										<SelectItem value="update_model">Atualizar modelo</SelectItem>
+										<SelectItem value="delete_model">Excluir modelo</SelectItem>
+										<SelectItem value="duplicate_model">Duplicar modelo</SelectItem>
+										<SelectItem value="export_model">Exportar modelo</SelectItem>
+										<SelectItem value="import_model">Importar modelo</SelectItem>
+										<SelectItem value="create_component">Criar componente</SelectItem>
+										<SelectItem value="update_component">Atualizar componente</SelectItem>
+										<SelectItem value="delete_component">Excluir componente</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+
+							{/* Estatísticas */}
+							<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+								<div className="bg-muted/50 rounded-lg p-3 text-center">
+									<div className="text-2xl font-bold text-foreground">{activityLogs.length}</div>
+									<div className="text-xs text-muted-foreground">Total de logs</div>
+								</div>
+								<div className="bg-green-500/10 rounded-lg p-3 text-center">
+									<div className="text-2xl font-bold text-green-600">
+										{activityLogs.filter(l => l.action.includes('create')).length}
+									</div>
+									<div className="text-xs text-muted-foreground">Criações</div>
+								</div>
+								<div className="bg-blue-500/10 rounded-lg p-3 text-center">
+									<div className="text-2xl font-bold text-blue-600">
+										{activityLogs.filter(l => l.action.includes('update')).length}
+									</div>
+									<div className="text-xs text-muted-foreground">Atualizações</div>
+								</div>
+								<div className="bg-red-500/10 rounded-lg p-3 text-center">
+									<div className="text-2xl font-bold text-red-600">
+										{activityLogs.filter(l => l.action.includes('delete')).length}
+									</div>
+									<div className="text-xs text-muted-foreground">Exclusões</div>
+								</div>
+							</div>
+
+							{/* Tabela de logs */}
+							<div className="border rounded-lg">
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead className="w-[180px]">Data/Hora</TableHead>
+											<TableHead className="w-[120px]">Usuário</TableHead>
+											<TableHead className="w-[150px]">Ação</TableHead>
+											<TableHead className="w-[100px]">Tipo</TableHead>
+											<TableHead>Entidade</TableHead>
+											<TableHead className="w-[200px]">Detalhes</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{filteredLogs.length === 0 ? (
+											<TableRow>
+												<TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+													{activityLogs.length === 0 
+														? 'Nenhuma atividade registrada ainda'
+														: 'Nenhum resultado encontrado para os filtros aplicados'
+													}
+												</TableCell>
+											</TableRow>
+										) : (
+											filteredLogs.slice(0, 100).map((log) => (
+												<TableRow key={log.id}>
+													<TableCell className="font-mono text-xs">
+														{new Date(log.timestamp).toLocaleString('pt-BR')}
+													</TableCell>
+													<TableCell>
+														<Badge variant="outline" className="font-normal">
+															{log.username}
+														</Badge>
+													</TableCell>
+													<TableCell>
+														<Badge className={`
+															${log.action.includes('create') ? 'bg-green-500/20 text-green-600 border-green-500/30' : ''}
+															${log.action.includes('update') ? 'bg-blue-500/20 text-blue-600 border-blue-500/30' : ''}
+															${log.action.includes('delete') ? 'bg-red-500/20 text-red-600 border-red-500/30' : ''}
+															${log.action.includes('duplicate') ? 'bg-purple-500/20 text-purple-600 border-purple-500/30' : ''}
+															${log.action.includes('export') || log.action.includes('import') ? 'bg-amber-500/20 text-amber-600 border-amber-500/30' : ''}
+														`}>
+															{activityLogger.formatAction(log.action)}
+														</Badge>
+													</TableCell>
+													<TableCell>
+														<span className="text-xs text-muted-foreground">
+															{activityLogger.formatEntityType(log.entityType)}
+														</span>
+													</TableCell>
+													<TableCell className="font-medium">
+														{log.entityName}
+													</TableCell>
+													<TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+														{log.metadata?.brandName && (
+															<span>Marca: {log.metadata.brandName}</span>
+														)}
+														{log.details && typeof log.details === 'object' && (
+															<span title={JSON.stringify(log.details)}>
+																{Object.keys(log.details).length} campo(s)
+															</span>
+														)}
+													</TableCell>
+												</TableRow>
+											))
+										)}
+									</TableBody>
+								</Table>
+							</div>
+
+							{/* Paginação info */}
+							{filteredLogs.length > 100 && (
+								<div className="text-center text-sm text-muted-foreground">
+									Mostrando 100 de {filteredLogs.length} registros. Exporte para ver todos.
 								</div>
 							)}
 						</CardContent>

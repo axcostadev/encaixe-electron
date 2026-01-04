@@ -380,6 +380,134 @@ export class HandbookDatabaseManager {
     this.brands = this.brands.filter(b => b.id !== id);
     this.saveBrandsToStorage();
   }
+
+  // Duplicar modelo com todos os componentes
+  duplicateModel(modelId: string): HandbookModel | null {
+    const originalModel = this.getModelById(modelId);
+    if (!originalModel) return null;
+
+    // Criar novo modelo com nome modificado
+    const newModel = this.createModel({
+      nome_modelo: `${originalModel.nome_modelo} (Cópia)`,
+      numero_projeto: originalModel.numero_projeto,
+      numero_artigo: originalModel.numero_artigo,
+      forma: originalModel.forma,
+      tamanhos: [...originalModel.tamanhos],
+      marca_id: originalModel.marca_id
+    });
+
+    // Copiar todos os componentes
+    const originalComponents = this.getComponentsByModel(modelId);
+    originalComponents.forEach(comp => {
+      this.createComponent({
+        modelo_id: newModel.id,
+        nome_operacao: comp.nome_operacao,
+        materiais_operacao: comp.materiais_operacao,
+        setores_posteriores: [...comp.setores_posteriores],
+        setor_atual: comp.setor_atual,
+        foto_desenho_url: comp.foto_desenho_url,
+        infestado_lado_so: comp.infestado_lado_so,
+        pecas_par: comp.pecas_par,
+        conjugacao: comp.conjugacao,
+        agrupamento_tamanhos: [...comp.agrupamento_tamanhos],
+        position_x: comp.position_x,
+        position_y: comp.position_y,
+        field_order: comp.field_order ? [...comp.field_order] : undefined,
+        fls: comp.fls
+      });
+    });
+
+    return newModel;
+  }
+
+  // Exportar modelo para JSON
+  exportModelToJSON(modelId: string): string | null {
+    const model = this.getModelById(modelId);
+    if (!model) return null;
+
+    const components = this.getComponentsByModel(modelId);
+    
+    const exportData = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      model: {
+        nome_modelo: model.nome_modelo,
+        numero_projeto: model.numero_projeto,
+        numero_artigo: model.numero_artigo,
+        forma: model.forma,
+        tamanhos: model.tamanhos
+      },
+      components: components.map(c => ({
+        nome_operacao: c.nome_operacao,
+        materiais_operacao: c.materiais_operacao,
+        setores_posteriores: c.setores_posteriores,
+        setor_atual: c.setor_atual,
+        foto_desenho_url: c.foto_desenho_url,
+        infestado_lado_so: c.infestado_lado_so,
+        pecas_par: c.pecas_par,
+        conjugacao: c.conjugacao,
+        agrupamento_tamanhos: c.agrupamento_tamanhos,
+        position_x: c.position_x,
+        position_y: c.position_y,
+        field_order: c.field_order,
+        fls: c.fls
+      }))
+    };
+
+    return JSON.stringify(exportData, null, 2);
+  }
+
+  // Importar modelo de JSON
+  importModelFromJSON(json: string, marcaId?: string): HandbookModel | null {
+    try {
+      const data = JSON.parse(json);
+      
+      if (!data.model || !data.components) {
+        return null;
+      }
+
+      // Usar marca fornecida ou não definir (será necessário selecionar)
+      if (!marcaId) return null;
+
+      const newModel = this.createModel({
+        nome_modelo: `${data.model.nome_modelo} (Importado)`,
+        numero_projeto: data.model.numero_projeto,
+        numero_artigo: data.model.numero_artigo,
+        forma: data.model.forma,
+        tamanhos: data.model.tamanhos || [],
+        marca_id: marcaId
+      });
+
+      // Importar componentes
+      data.components.forEach((comp: Record<string, unknown>) => {
+        this.createComponent({
+          modelo_id: newModel.id,
+          nome_operacao: comp.nome_operacao as string || '',
+          materiais_operacao: comp.materiais_operacao as string || '',
+          setores_posteriores: comp.setores_posteriores as string[] || [],
+          setor_atual: comp.setor_atual as string || 'COMELZ',
+          foto_desenho_url: comp.foto_desenho_url as string,
+          infestado_lado_so: comp.infestado_lado_so as boolean ?? true,
+          pecas_par: comp.pecas_par as string || '',
+          conjugacao: comp.conjugacao as string || '',
+          agrupamento_tamanhos: comp.agrupamento_tamanhos as string[] || [],
+          position_x: comp.position_x as number || 0,
+          position_y: comp.position_y as number || 0,
+          field_order: comp.field_order as string[],
+          fls: comp.fls as number
+        });
+      });
+
+      return newModel;
+    } catch {
+      return null;
+    }
+  }
+
+  // Obter contagem de componentes por modelo
+  getComponentCountByModel(modelId: string): number {
+    return this.components.filter(c => c.modelo_id === modelId).length;
+  }
 }
 
 export const handbookDatabase = new HandbookDatabaseManager();
