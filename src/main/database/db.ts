@@ -225,75 +225,77 @@ export function initDatabase(): void {
 
 	const database = db!
 
-	// Criar tabela de usuários com role
-	database.run(`
-		CREATE TABLE IF NOT EXISTS users (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			username TEXT UNIQUE NOT NULL,
-			password TEXT NOT NULL,
-			email TEXT,
-			role TEXT DEFAULT 'viewer',
-			active INTEGER DEFAULT 1,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		)
-	`)
+	// Usar serialize para garantir que as operações executem em ordem
+	database.serialize(() => {
+		// Criar tabela de usuários com role
+		database.run(`
+			CREATE TABLE IF NOT EXISTS users (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				username TEXT UNIQUE NOT NULL,
+				password TEXT NOT NULL,
+				email TEXT,
+				role TEXT DEFAULT 'viewer',
+				active INTEGER DEFAULT 1,
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			)
+		`)
 
-	// Criar tabela de roles (papéis de permissão)
-	database.run(`
-		CREATE TABLE IF NOT EXISTS roles (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT UNIQUE NOT NULL,
-			display_name TEXT NOT NULL,
-			description TEXT,
-			permissions TEXT NOT NULL,
-			is_system INTEGER DEFAULT 0,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		)
-	`, (err) => {
-		if (err) {
-			console.error("Erro ao criar tabela roles:", err)
-		} else {
-			// Inserir roles padrão do sistema se não existirem
-			SYSTEM_ROLES.forEach(role => {
-				database.run(
-					`INSERT OR IGNORE INTO roles (name, display_name, description, permissions, is_system) VALUES (?, ?, ?, ?, ?)`,
-					[role.name, role.displayName, role.description, JSON.stringify(role.permissions), 1],
-					(insertErr) => {
-						if (insertErr && !insertErr.message.includes("UNIQUE")) {
-							console.error(`Erro ao inserir role ${role.name}:`, insertErr)
+		// Adicionar coluna role se não existir (migração para bancos antigos)
+		database.run(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'viewer'`, (err) => {
+			if (err && !err.message.includes("duplicate column")) {
+				// Ignora erro se coluna já existe
+			}
+		})
+
+		// Adicionar coluna active se não existir (migração para bancos antigos)
+		database.run(`ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1`, (err) => {
+			if (err && !err.message.includes("duplicate column")) {
+				// Ignora erro se coluna já existe
+			}
+		})
+
+		// Criar tabela de roles (papéis de permissão)
+		database.run(`
+			CREATE TABLE IF NOT EXISTS roles (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				name TEXT UNIQUE NOT NULL,
+				display_name TEXT NOT NULL,
+				description TEXT,
+				permissions TEXT NOT NULL,
+				is_system INTEGER DEFAULT 0,
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			)
+		`, (err) => {
+			if (err) {
+				console.error("Erro ao criar tabela roles:", err)
+			} else {
+				// Inserir roles padrão do sistema se não existirem
+				SYSTEM_ROLES.forEach(role => {
+					database.run(
+						`INSERT OR IGNORE INTO roles (name, display_name, description, permissions, is_system) VALUES (?, ?, ?, ?, ?)`,
+						[role.name, role.displayName, role.description, JSON.stringify(role.permissions), 1],
+						(insertErr) => {
+							if (insertErr && !insertErr.message.includes("UNIQUE")) {
+								console.error(`Erro ao inserir role ${role.name}:`, insertErr)
+							}
 						}
-					}
-				)
-			})
+					)
+				})
 
-			// Migração: Atualizar roles do sistema existentes com novas permissões
-			SYSTEM_ROLES.forEach(role => {
-				database.run(
-					`UPDATE roles SET permissions = ? WHERE name = ? AND is_system = 1`,
-					[JSON.stringify(role.permissions), role.name],
-					(updateErr) => {
-						if (updateErr) {
-							console.error(`Erro ao atualizar role ${role.name}:`, updateErr)
+				// Migração: Atualizar roles do sistema existentes com novas permissões
+				SYSTEM_ROLES.forEach(role => {
+					database.run(
+						`UPDATE roles SET permissions = ? WHERE name = ? AND is_system = 1`,
+						[JSON.stringify(role.permissions), role.name],
+						(updateErr) => {
+							if (updateErr) {
+								console.error(`Erro ao atualizar role ${role.name}:`, updateErr)
+							}
 						}
-					}
-				)
-			})
-		}
-	})
-
-	// Adicionar coluna role se não existir (migração)
-	database.run(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'viewer'`, (err) => {
-		if (err && !err.message.includes("duplicate column")) {
-			// Ignora erro se coluna já existe
-		}
-	})
-
-	// Adicionar coluna active se não existir (migração)
-	database.run(`ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1`, (err) => {
-		if (err && !err.message.includes("duplicate column")) {
-			// Ignora erro se coluna já existe
-		}
-	})
+					)
+				})
+			}
+		})
 
 	// Criar tabela de Modelos
 	database.run(`
@@ -413,6 +415,8 @@ export function initDatabase(): void {
 	database.run(
 		"UPDATE users SET role = 'admin' WHERE username = 'admin' AND (role IS NULL OR role = '')",
 	)
+
+	}) // Fim do serialize
 }
 
 export function getDatabase(): sqlite3.Database {
