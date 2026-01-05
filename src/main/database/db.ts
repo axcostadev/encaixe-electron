@@ -411,9 +411,9 @@ export function initDatabase(): void {
 		},
 	)
 
-	// Atualizar admin existente para ter role admin
+	// Garantir que admin sempre tenha role 'admin' (corrige bancos existentes)
 	database.run(
-		"UPDATE users SET role = 'admin' WHERE username = 'admin' AND (role IS NULL OR role = '')",
+		"UPDATE users SET role = 'admin' WHERE username = 'admin'",
 	)
 
 	}) // Fim do serialize
