@@ -29,13 +29,21 @@ npm run dev
 
 ### Build
 ```bash
-# Windows
+# Windows — Instalador (NSIS): cria um .exe com processo de instalação
 npm run build:win
 
-# macOS
+# Windows — Versão portátil em pasta: gera uma pasta com o executável e dependências
+# Resultado (exemplo): dist/win-unpacked/cutting-room.exe
+npm run build:unpack
+
+# Windows — Executável portátil único: .exe self-contained sem instalador
+# Resultado (exemplo): dist/cutting-room-<version>-portable.exe
+npm run build:portable
+
+# macOS — Gera pacotes para macOS (.dmg / .app)
 npm run build:mac
 
-# Linux
+# Linux — Gera AppImage, snap e deb conforme configuração
 npm run build:linux
 ```
 
