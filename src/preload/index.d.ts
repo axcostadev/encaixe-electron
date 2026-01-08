@@ -71,6 +71,10 @@ interface CadastroInfo {
 	camada: string
 	espacamento: string
 	comprimentoMax: string
+	tamanhos?: number[]
+	setorId?: number
+	setorNome?: string
+	tamanhosRanges?: { tamanhoInicial: number; tamanhoFinal: number }[]
 }
 
 interface User {

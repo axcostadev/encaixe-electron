@@ -41,8 +41,11 @@ export async function parseCTF(caminho) {
     let grade = '';
     const mCodGradeFromModel = /([A-Z]+)(\d+)/.exec(modelo);
     if (mCodGradeFromModel) {
-      codigoCor = mCodGradeFromModel[1];
-      grade = mCodGradeFromModel[2];
+      const letras = mCodGradeFromModel[1];  // "PTRL"
+      const numeros = mCodGradeFromModel[2]; // "4739"
+      // Código de cor = letras + números (exceto os 2 últimos que são a grade)
+      codigoCor = letras + numeros.slice(0, -2); // "PTRL47"
+      grade = mCodGradeFromModel[2]; // Manter grade original
     }
 
     const linhaObj = { of: numeroOff, artigo, modelo, codigoCor, grade, pares: quantidadePares };
@@ -100,8 +103,11 @@ export async function parseCTC(caminho) {
     let grade = '';
     const mCodGradeFromModel = /([A-Z]+)(\d+)/.exec(modelo);
     if (mCodGradeFromModel) {
-      codigoCor = mCodGradeFromModel[1];
-      grade = mCodGradeFromModel[2];
+      const letras = mCodGradeFromModel[1];  // "PTRL"
+      const numeros = mCodGradeFromModel[2]; // "4739"
+      // Código de cor = letras + números (exceto os 2 últimos que são a grade)
+      codigoCor = letras + numeros.slice(0, -2); // "PTRL47"
+      grade = mCodGradeFromModel[2]; // Manter grade original
     }
 
     let especificacaoTecnica = '';

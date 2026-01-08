@@ -730,6 +730,9 @@ export interface CadastroInfo {
 	espacamento: string
 	comprimentoMax: string
 	tamanhos?: number[] // lista de tamanhos individuais cadastrados
+	setorId?: number // ID do setor (máquina)
+	setorNome?: string // Nome do setor (EMMA, LECTRA, COMELZ)
+	tamanhosRanges?: { tamanhoInicial: number; tamanhoFinal: number }[] // Ranges originais dos tamanhos
 }
 
 /**
@@ -809,7 +812,7 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 
 		const loadComponentesForModelo = (modelo: ModeloRow): void => {
 			database.all(
-				"SELECT id, modelo_id, numero_tecido, nome, modelo_cor_id, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda FROM componentes WHERE modelo_id = ? ORDER BY id",
+				"SELECT id, modelo_id, numero_tecido, nome, modelo_cor_id, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda, setor_id FROM componentes WHERE modelo_id = ? ORDER BY id",
 				[modelo.id],
 				async (err: Error | null, compRows: ComponenteRow[]) => {
 					if (err || !compRows || compRows.length === 0) {
@@ -836,25 +839,41 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 								matMap.set(m.id, { artigo: m.artigo, largura: m.largura })
 							}
 
-							// Load modelo_cores for reference
+							// Load setores for reference
 							database.all(
-								"SELECT id, cor_abreviada, cor_completa FROM modelo_cores WHERE modelo_id = ?",
-								[modelo.id],
+								"SELECT id, nome FROM setores",
+								[],
 								(
-									corErr: Error | null,
-									cores: Array<{
-										id: number
-										cor_abreviada: string
-										cor_completa: string
-									}>,
+									setorErr: Error | null,
+									setoresRows: Array<{ id: number; nome: string }>,
 								) => {
-									if (corErr) {
-										console.log("[models] error loading cores:", corErr)
+									if (setorErr) {
+										console.log("[models] error loading setores:", setorErr)
 									}
-									const corMap = new Map<number, string>()
-									for (const c of cores || []) {
-										corMap.set(c.id, c.cor_abreviada)
+									const setorMap = new Map<number, string>()
+									for (const s of setoresRows || []) {
+										setorMap.set(s.id, s.nome)
 									}
+
+									// Load modelo_cores for reference
+									database.all(
+										"SELECT id, cor_abreviada, cor_completa FROM modelo_cores WHERE modelo_id = ?",
+										[modelo.id],
+										(
+											corErr: Error | null,
+											cores: Array<{
+												id: number
+												cor_abreviada: string
+												cor_completa: string
+											}>,
+										) => {
+											if (corErr) {
+												console.log("[models] error loading cores:", corErr)
+											}
+											const corMap = new Map<number, string>()
+											for (const c of cores || []) {
+												corMap.set(c.id, c.cor_abreviada)
+											}
 
 									// Load tamanhos for each componente
 									const resultPromises = compRows.map((comp) => {
@@ -903,15 +922,21 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 																.map((cid) => corMap.get(Number(cid)) || cid)
 																.join(",")
 
-															// Build tamanhos array and string
+															// Build tamanhos array, ranges, and string
 															let tamanhosStr = ""
 															const tamanhosArray: number[] = []
+															const tamanhosRanges: { tamanhoInicial: number; tamanhoFinal: number }[] = []
 															if (tamRows && tamRows.length > 0) {
 																for (const t of tamRows) {
 																	if (
 																		typeof t.tamanho_inicial === "number" &&
 																		typeof t.tamanho_final === "number"
 																	) {
+																		// Salvar os ranges originais
+																		tamanhosRanges.push({
+																			tamanhoInicial: t.tamanho_inicial,
+																			tamanhoFinal: t.tamanho_final
+																		})
 																		for (
 																			let n = t.tamanho_inicial;
 																			n <= t.tamanho_final;
@@ -936,6 +961,12 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 															const mat = comp.material_id
 																? matMap.get(comp.material_id)
 																: null
+															
+															// Get setor name
+															const setorNome = comp.setor_id
+																? setorMap.get(comp.setor_id) || ""
+																: ""
+															
 															const info: CadastroInfo = {
 																artigo: modelo.artigo,
 																modelo: modelo.nome,
@@ -951,6 +982,9 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 																espacamento: String(comp.espacamento || ""),
 																comprimentoMax: String(comp.comp_maximo || ""),
 																tamanhos: tamanhosArray.sort((a, b) => a - b),
+																setorId: comp.setor_id,
+																setorNome: setorNome.toUpperCase(),
+																tamanhosRanges: tamanhosRanges,
 															}
 
 															resComp(info)
@@ -979,6 +1013,8 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 						},
 					)
 				},
+			)
+		},
 			)
 		}
 

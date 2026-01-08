@@ -21,7 +21,10 @@ interface CadastroInfo {
 	camada: string
 	espacamento: string
 	comprimentoMax: string
-	tamanhos?: number[] // lista de tamanhos individuais cadastrados
+	tamanhos?: number[]
+	setorId?: number
+	setorNome?: string
+	tamanhosRanges?: { tamanhoInicial: number; tamanhoFinal: number }[]
 }
 
 interface GradePar {

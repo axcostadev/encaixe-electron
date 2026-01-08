@@ -28,7 +28,12 @@ import { Alert, AlertDescription } from "@renderer/components/ui/alert"
 import { useEncaixe } from "@renderer/hooks/useEncaixe"
 import { useAuth } from "@renderer/contexts/AuthContext"
 import { activityLogger } from "@renderer/services/activityLogger"
-import { PedidoComelz, PedidoEmma, ModelDataLectra } from "@renderer/types"
+import {
+	PedidoComelz,
+	PedidoEmma,
+	ModelDataLectra,
+	QtyRuleComelz,
+} from "@renderer/types"
 import {
 	Dialog,
 	DialogContent,
@@ -63,7 +68,10 @@ type CadastroInfo = {
 	camada: string
 	espacamento: string
 	comprimentoMax: string
-	tamanhos?: number[] // lista de tamanhos individuais cadastrados
+	tamanhos?: number[]
+	setorId?: number
+	setorNome?: string
+	tamanhosRanges?: { tamanhoInicial: number; tamanhoFinal: number }[]
 }
 
 // Mapeamento de pares por tamanho para cada cor
@@ -91,6 +99,59 @@ type QtyItem = {
 	material_plies_up: number
 	material_plies_down: number
 	material_margin: number
+}
+
+/**
+ * Realiza o cálculo de folhas/encaixe baseado nos parâmetros do componente.
+ * Usado para Lectra e Comelz.
+ *
+ * @param pares Número total de pares para o tamanho/range
+ * @param placaPar Número de peças por par (placa par)
+ * @param conjugacaoNavalha Valor da conjugação de navalhas
+ * @param camadas Número de camadas
+ * @returns Resultado do cálculo, arredondado para cima
+ */
+function calcularFolhas(
+	pares: number,
+	placaPar: number,
+	conjugacaoNavalha: number,
+	camadas: number
+): number {
+	// Evitar divisão por zero
+	if (conjugacaoNavalha === 0 || camadas === 0) {
+		console.error("Erro: 'conjugacaoNavalha' ou 'camadas' não pode ser zero.")
+		return 0
+	}
+
+	// Cálculo: ((pares x placaPar) / conjugacaoNavalha) / camadas
+	const resultadoBruto = (pares * placaPar) / conjugacaoNavalha / camadas
+	return Math.ceil(resultadoBruto)
+}
+
+/**
+ * Agrupa os pares por ranges de tamanhos e retorna o último tamanho de cada range com os pares somados.
+ * Exemplo: Range 34-35 com 40 pares em 34 e 50 pares em 35 = { tamanho: 35, pares: 90 }
+ */
+function agruparParesPorRanges(
+	paresPorTamanho: { [tamanho: number]: number },
+	tamanhosRanges: { tamanhoInicial: number; tamanhoFinal: number }[]
+): { tamanho: number; pares: number }[] {
+	const resultado: { tamanho: number; pares: number }[] = []
+
+	for (const range of tamanhosRanges) {
+		let totalPares = 0
+		// Soma todos os pares dentro do range
+		for (let tam = range.tamanhoInicial; tam <= range.tamanhoFinal; tam++) {
+			totalPares += paresPorTamanho[tam] || 0
+		}
+		// Usa o tamanho final como o tamanho principal
+		resultado.push({
+			tamanho: range.tamanhoFinal,
+			pares: totalPares,
+		})
+	}
+
+	return resultado
 }
 
 export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (item: ListaAutomaticoItem) => void }) {
@@ -211,6 +272,15 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 					: "COR" + primeiroArtigo
 				setArtigoSearch(artigoComCOR)
 
+				// Extrair as cores únicas da OF (código cor sem os números no início)
+				// Ex: "9169 PTRL4" -> pega "PTRL4"
+				const coresDaOF = [...new Set(result.map((g) => {
+					const codigoCor = g.codigoCor || ""
+					// Extrai a parte alfabética do código de cor (ex: "9169 PTRL4" -> "PTRL4")
+					const partes = codigoCor.split(" ")
+					return partes.length > 1 ? partes[partes.length - 1].toUpperCase() : codigoCor.toUpperCase()
+				}))].filter(c => c.length > 0)
+
 				// Buscar cadastros automaticamente após preencher o artigo
 				setCadastrosInfo([])
 				setComponenteSelecionado(null)
@@ -218,10 +288,27 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 				if (cadastros.length === 0) {
 					setMessage("Nenhum cadastro encontrado para o artigo informado")
 				} else {
-					setCadastrosInfo(cadastros)
-					// Se houver tamanhos no primeiro cadastro, inicializa os pares
-					if (cadastros[0]?.tamanhos && cadastros[0].tamanhos.length > 0) {
-						inicializarParesPorTamanho(result, cadastros[0].tamanhos)
+					// Filtrar componentes que têm pelo menos uma das cores da OF
+					const cadastrosFiltrados = cadastros.filter((cadastro) => {
+						if (!cadastro.cor) return false
+						// As cores do componente estão separadas por vírgula
+						const coresDoComponente = cadastro.cor.split(",").map(c => c.trim().toUpperCase())
+						// Verifica se alguma cor da OF está nas cores do componente
+						return coresDaOF.some(corOF => coresDoComponente.includes(corOF))
+					})
+
+					if (cadastrosFiltrados.length === 0) {
+						setMessage(`Nenhum componente encontrado para as cores da OF: ${coresDaOF.join(", ")}`)
+						// Mostrar todos os cadastros como fallback
+						setCadastrosInfo(cadastros)
+					} else {
+						setCadastrosInfo(cadastrosFiltrados)
+					}
+					
+					// Se houver tamanhos no primeiro cadastro filtrado, inicializa os pares
+					const primeiroCadastro = cadastrosFiltrados.length > 0 ? cadastrosFiltrados[0] : cadastros[0]
+					if (primeiroCadastro?.tamanhos && primeiroCadastro.tamanhos.length > 0) {
+						inicializarParesPorTamanho(result, primeiroCadastro.tamanhos)
 					}
 				}
 			}
@@ -237,6 +324,18 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 		const cadastro = cadastrosInfo.find((c) => c.componente === nomeComponente)
 		if (cadastro?.tamanhos && cadastro.tamanhos.length > 0) {
 			inicializarParesPorTamanho(gradePares, cadastro.tamanhos)
+		}
+		
+		// Auto-selecionar máquina baseado no setor do componente
+		if (cadastro?.setorNome) {
+			const setorUpper = cadastro.setorNome.toUpperCase()
+			if (setorUpper.includes("EMMA")) {
+				setMaquinaSelecionada("Emma")
+			} else if (setorUpper.includes("LECTRA")) {
+				setMaquinaSelecionada("Lectra")
+			} else if (setorUpper.includes("COMELZ")) {
+				setMaquinaSelecionada("Comelz")
+			}
 		}
 	}
 
@@ -329,29 +428,59 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 			// Converter de acordo com a máquina selecionada
 			if (maquinaSelecionada === "Emma") {
 				if (paresPorCorTamanho.length > 0) {
-					const tamanhos = cadastroSelecionado.tamanhos || []
 					const qtyItems: QtyItem[] = []
 
 					for (const corData of paresPorCorTamanho) {
-						for (const tam of tamanhos) {
-							const pares = corData.pares[tam] || 0
-							if (pares > 0) {
-								qtyItems.push({
-									part_name: cadastroSelecionado.componente || cadastroSelecionado.artigo,
-									part_size: String(Number(tam).toFixed(2)),
-									mirror: false,
-									parts: pares,
-									angle: 90,
-									toler: 10,
-									material_name: cadastroSelecionado.material || "",
-									material_x: 1.41,
-									material_y: parseFloat(cadastroSelecionado.largura) || 10,
-									material_unit: "m",
-									part_space: parseFloat(cadastroSelecionado.espacamento) || 1.5,
-									material_plies_up: parseInt(cadastroSelecionado.camada) || 12,
-									material_plies_down: 0,
-									material_margin: 0,
-								})
+						// Agrupar pares por ranges de tamanhos (se houver ranges definidos)
+						if (cadastroSelecionado.tamanhosRanges && cadastroSelecionado.tamanhosRanges.length > 0) {
+							const paresAgrupados = agruparParesPorRanges(
+								corData.pares,
+								cadastroSelecionado.tamanhosRanges
+							)
+							
+							for (const item of paresAgrupados) {
+								if (item.pares > 0) {
+									qtyItems.push({
+										part_name: cadastroSelecionado.componente || cadastroSelecionado.artigo,
+										part_size: String(Number(item.tamanho).toFixed(2)),
+										mirror: false,
+										parts: item.pares,
+										angle: 90,
+										toler: 10,
+										material_name: cadastroSelecionado.material || "",
+										material_x: 1.41,
+										material_y: parseFloat(cadastroSelecionado.largura) || 10,
+										material_unit: "m",
+										part_space: parseFloat(cadastroSelecionado.espacamento) || 1.5,
+										material_plies_up: parseInt(cadastroSelecionado.camada) || 12,
+										material_plies_down: 0,
+										material_margin: 0,
+									})
+								}
+							}
+						} else {
+							// Sem ranges, usar tamanhos individuais
+							const tamanhos = cadastroSelecionado.tamanhos || []
+							for (const tam of tamanhos) {
+								const pares = corData.pares[tam] || 0
+								if (pares > 0) {
+									qtyItems.push({
+										part_name: cadastroSelecionado.componente || cadastroSelecionado.artigo,
+										part_size: String(Number(tam).toFixed(2)),
+										mirror: false,
+										parts: pares,
+										angle: 90,
+										toler: 10,
+										material_name: cadastroSelecionado.material || "",
+										material_x: 1.41,
+										material_y: parseFloat(cadastroSelecionado.largura) || 10,
+										material_unit: "m",
+										part_space: parseFloat(cadastroSelecionado.espacamento) || 1.5,
+										material_plies_up: parseInt(cadastroSelecionado.camada) || 12,
+										material_plies_down: 0,
+										material_margin: 0,
+									})
+								}
 							}
 						}
 					}
@@ -370,9 +499,87 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 					dados = await converterParaEmma(cadastroSelecionado)
 				}
 			} else if (maquinaSelecionada === "Comelz") {
-				dados = await converterParaComelz(cadastroSelecionado)
+				// Gerar dados Comelz com cálculo de folhas
+				if (paresPorCorTamanho.length > 0 && cadastroSelecionado.tamanhosRanges) {
+					const placaPar = parseInt(cadastroSelecionado.placaPorPar) || 1
+					const conjugNavalha = parseInt(cadastroSelecionado.conjugNavalha) || 1
+					const camadas = parseInt(cadastroSelecionado.camada) || 1
+					
+					const qtyRules: QtyRuleComelz[] = []
+					
+					for (const corData of paresPorCorTamanho) {
+						const paresAgrupados = agruparParesPorRanges(
+							corData.pares,
+							cadastroSelecionado.tamanhosRanges
+						)
+						
+						for (const item of paresAgrupados) {
+							if (item.pares > 0) {
+								const folhas = calcularFolhas(item.pares, placaPar, conjugNavalha, camadas)
+								
+								qtyRules.push({
+									part_name: cadastroSelecionado.componente || cadastroSelecionado.artigo,
+									part_size: String(item.tamanho),
+									fitting: "",
+									mirror: false,
+									parts: folhas,
+									material: cadastroSelecionado.material || "",
+									items: item.pares,
+								})
+							}
+						}
+					}
+					
+					const pastaArtigoComelz = `${cadastroSelecionado.artigo} - ${cadastroSelecionado.modelo}`
+					const modelPathComelz = `\\\\modserver\\models\\COMELZ\\${pastaArtigoComelz}\\${cadastroSelecionado.componente}.cmz`
+					
+					dados = {
+						id: ofSearch,
+						date: new Date().toISOString().split("T")[0].replace(/-/g, ""),
+						note: `OF: ${ofSearch}`,
+						customer: "VULCABRAS",
+						split_materials: false,
+						model: modelPathComelz,
+						qty: qtyRules,
+					} as PedidoComelz
+				} else {
+					dados = await converterParaComelz(cadastroSelecionado)
+				}
 			} else if (maquinaSelecionada === "Lectra") {
-				dados = await converterParaLectra(cadastroSelecionado)
+				// Gerar dados Lectra com cálculo de folhas
+				if (paresPorCorTamanho.length > 0 && cadastroSelecionado.tamanhosRanges) {
+					const placaPar = parseInt(cadastroSelecionado.placaPorPar) || 1
+					const conjugNavalha = parseInt(cadastroSelecionado.conjugNavalha) || 1
+					const camadas = parseInt(cadastroSelecionado.camada) || 1
+					
+					const modelDataArray: ModelDataLectra[] = []
+					
+					for (const corData of paresPorCorTamanho) {
+						const paresAgrupados = agruparParesPorRanges(
+							corData.pares,
+							cadastroSelecionado.tamanhosRanges
+						)
+						
+						for (const item of paresAgrupados) {
+							if (item.pares > 0) {
+								const folhas = calcularFolhas(item.pares, placaPar, conjugNavalha, camadas)
+								
+								modelDataArray.push({
+									codigo: cadastroSelecionado.componente || cadastroSelecionado.artigo,
+									tamanho: item.tamanho,
+									a: folhas,
+									b: 0,
+									c: 0,
+									d: 0,
+								})
+							}
+						}
+					}
+					
+					dados = modelDataArray
+				} else {
+					dados = await converterParaLectra(cadastroSelecionado)
+				}
 			}
 
 			if (!dados) {
@@ -433,32 +640,59 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 			if (maquinaSelecionada === "Emma") {
 				// Gerar JSON Emma usando os pares por tamanho preenchidos
 				if (paresPorCorTamanho.length > 0) {
-					const tamanhos = cadastroSelecionado.tamanhos || []
 					const qtyItems: QtyItem[] = []
 
 					for (const corData of paresPorCorTamanho) {
-						for (const tam of tamanhos) {
-							const pares = corData.pares[tam] || 0
-							if (pares > 0) {
-								qtyItems.push({
-									part_name:
-										cadastroSelecionado.componente ||
-										cadastroSelecionado.artigo,
-									part_size: String(Number(tam).toFixed(2)),
-									mirror: false,
-									parts: pares,
-									angle: 90,
-									toler: 10,
-									material_name: cadastroSelecionado.material || "",
-									material_x: 1.41,
-									material_y: parseFloat(cadastroSelecionado.largura) || 10,
-									material_unit: "m",
-									part_space:
-										parseFloat(cadastroSelecionado.espacamento) || 1.5,
-									material_plies_up: parseInt(cadastroSelecionado.camada) || 12,
-									material_plies_down: 0,
-									material_margin: 0,
-								})
+						// Agrupar pares por ranges de tamanhos (se houver ranges definidos)
+						if (cadastroSelecionado.tamanhosRanges && cadastroSelecionado.tamanhosRanges.length > 0) {
+							const paresAgrupados = agruparParesPorRanges(
+								corData.pares,
+								cadastroSelecionado.tamanhosRanges
+							)
+							
+							for (const item of paresAgrupados) {
+								if (item.pares > 0) {
+									qtyItems.push({
+										part_name: cadastroSelecionado.componente || cadastroSelecionado.artigo,
+										part_size: String(Number(item.tamanho).toFixed(2)),
+										mirror: false,
+										parts: item.pares,
+										angle: 90,
+										toler: 10,
+										material_name: cadastroSelecionado.material || "",
+										material_x: 1.41,
+										material_y: parseFloat(cadastroSelecionado.largura) || 10,
+										material_unit: "m",
+										part_space: parseFloat(cadastroSelecionado.espacamento) || 1.5,
+										material_plies_up: parseInt(cadastroSelecionado.camada) || 12,
+										material_plies_down: 0,
+										material_margin: 0,
+									})
+								}
+							}
+						} else {
+							// Sem ranges, usar tamanhos individuais
+							const tamanhos = cadastroSelecionado.tamanhos || []
+							for (const tam of tamanhos) {
+								const pares = corData.pares[tam] || 0
+								if (pares > 0) {
+									qtyItems.push({
+										part_name: cadastroSelecionado.componente || cadastroSelecionado.artigo,
+										part_size: String(Number(tam).toFixed(2)),
+										mirror: false,
+										parts: pares,
+										angle: 90,
+										toler: 10,
+										material_name: cadastroSelecionado.material || "",
+										material_x: 1.41,
+										material_y: parseFloat(cadastroSelecionado.largura) || 10,
+										material_unit: "m",
+										part_space: parseFloat(cadastroSelecionado.espacamento) || 1.5,
+										material_plies_up: parseInt(cadastroSelecionado.camada) || 12,
+										material_plies_down: 0,
+										material_margin: 0,
+									})
+								}
 							}
 						}
 					}
@@ -478,9 +712,91 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 					dados = await converterParaEmma(cadastroSelecionado)
 				}
 			} else if (maquinaSelecionada === "Comelz") {
-				dados = await converterParaComelz(cadastroSelecionado)
+				// Gerar dados Comelz com cálculo de folhas usando os parâmetros do componente
+				if (paresPorCorTamanho.length > 0 && cadastroSelecionado.tamanhosRanges) {
+					const placaPar = parseInt(cadastroSelecionado.placaPorPar) || 1
+					const conjugNavalha = parseInt(cadastroSelecionado.conjugNavalha) || 1
+					const camadas = parseInt(cadastroSelecionado.camada) || 1
+					
+					const qtyRules: QtyRuleComelz[] = []
+					
+					for (const corData of paresPorCorTamanho) {
+						// Agrupar pares por ranges de tamanhos
+						const paresAgrupados = agruparParesPorRanges(
+							corData.pares,
+							cadastroSelecionado.tamanhosRanges
+						)
+						
+						for (const item of paresAgrupados) {
+							if (item.pares > 0) {
+								// Calcular o número de folhas/encaixe
+								const folhas = calcularFolhas(item.pares, placaPar, conjugNavalha, camadas)
+								
+								qtyRules.push({
+									part_name: cadastroSelecionado.componente || cadastroSelecionado.artigo,
+									part_size: String(item.tamanho),
+									fitting: "",
+									mirror: false,
+									parts: folhas,
+									material: cadastroSelecionado.material || "",
+									items: item.pares,
+								})
+							}
+						}
+					}
+					
+					const pastaArtigoComelz = `${cadastroSelecionado.artigo} - ${cadastroSelecionado.modelo}`
+					const modelPathComelz = `\\\\modserver\\models\\COMELZ\\${pastaArtigoComelz}\\${cadastroSelecionado.componente}.cmz`
+					
+					dados = {
+						id: ofSearch,
+						date: new Date().toISOString().split("T")[0].replace(/-/g, ""),
+						note: `OF: ${ofSearch}`,
+						customer: "VULCABRAS",
+						split_materials: false,
+						model: modelPathComelz,
+						qty: qtyRules,
+					} as PedidoComelz
+				} else {
+					dados = await converterParaComelz(cadastroSelecionado)
+				}
 			} else if (maquinaSelecionada === "Lectra") {
-				dados = await converterParaLectra(cadastroSelecionado)
+				// Gerar dados Lectra com cálculo de folhas usando os parâmetros do componente
+				if (paresPorCorTamanho.length > 0 && cadastroSelecionado.tamanhosRanges) {
+					const placaPar = parseInt(cadastroSelecionado.placaPorPar) || 1
+					const conjugNavalha = parseInt(cadastroSelecionado.conjugNavalha) || 1
+					const camadas = parseInt(cadastroSelecionado.camada) || 1
+					
+					const modelDataArray: ModelDataLectra[] = []
+					
+					for (const corData of paresPorCorTamanho) {
+						// Agrupar pares por ranges de tamanhos
+						const paresAgrupados = agruparParesPorRanges(
+							corData.pares,
+							cadastroSelecionado.tamanhosRanges
+						)
+						
+						for (const item of paresAgrupados) {
+							if (item.pares > 0) {
+								// Calcular o número de folhas/encaixe
+								const folhas = calcularFolhas(item.pares, placaPar, conjugNavalha, camadas)
+								
+								modelDataArray.push({
+									codigo: cadastroSelecionado.componente || cadastroSelecionado.artigo,
+									tamanho: item.tamanho,
+									a: folhas,
+									b: 0,
+									c: 0,
+									d: 0,
+								})
+							}
+						}
+					}
+					
+					dados = modelDataArray
+				} else {
+					dados = await converterParaLectra(cadastroSelecionado)
+				}
 			}
 
 			if (!dados) {
@@ -643,6 +959,20 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 												? cad.tamanhos.join(", ")
 												: "Nenhum tamanho cadastrado"}
 										</p>
+										<p>
+											<strong>Setor/Máquina:</strong>{" "}
+											<span className={cad.setorNome ? "text-primary font-semibold" : "text-muted-foreground"}>
+												{cad.setorNome || "Não definido"}
+											</span>
+										</p>
+										{cad.tamanhosRanges && cad.tamanhosRanges.length > 0 && (
+											<p>
+												<strong>Ranges de Tamanhos:</strong>{" "}
+												{cad.tamanhosRanges
+													.map((r) => `${r.tamanhoInicial}-${r.tamanhoFinal}`)
+													.join(", ")}
+											</p>
+										)}
 									</div>
 								))}
 							</div>
@@ -659,8 +989,12 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 													: "outline"
 											}
 											onClick={() => selecionarComponente(cad.componente)}
+											className="flex flex-col items-start"
 										>
-											Componente: {cad.componente}
+											<span>Componente: {cad.componente}</span>
+											{cad.setorNome && (
+												<span className="text-xs opacity-70">({cad.setorNome})</span>
+											)}
 										</Button>
 									))}
 								</div>
