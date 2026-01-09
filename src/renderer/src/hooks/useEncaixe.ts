@@ -240,6 +240,7 @@ export function useEncaixe() {
 			formato: "comelz" | "emma" | "lectra",
 			dados: any,
 			nomeArquivo?: string,
+			options?: { espacamento?: number; sentidoMaterial?: string; largura?: number },
 		): Promise<string | null> => {
 			setLoading(true)
 			setError(null)
@@ -272,6 +273,7 @@ export function useEncaixe() {
 						dados,
 						savePath,
 						nomeArquivo || "MARKER_" + Date.now(),
+						options,
 					)
 				}
 

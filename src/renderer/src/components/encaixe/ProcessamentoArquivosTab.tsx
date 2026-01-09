@@ -39,11 +39,26 @@ export function ProcessamentoArquivosTab({ lista, onRemover, onLimpar }: Process
 		for (let i = 0; i < lista.length; i++) {
 			const item = lista[i]
 			try {
-				const nomeArquivo = `${item.of}-${item.apelido}`
+				// Para Lectra: formato OF_APELIDO (ex: 435020476_PLACA_DO_FORRO_DA_ESPUMA)
+				const apelidoFormatado = item.apelido.replace(/\s+/g, '_').toUpperCase()
+				const nomeArquivo = item.maquina.toLowerCase() === "lectra"
+					? `${item.of}_${apelidoFormatado}`
+					: `${item.of}-${item.apelido}`
+				
+				// Preparar options para Lectra (espacamento, sentidoMaterial, largura)
+				const lectraOptions = item.maquina.toLowerCase() === "lectra" 
+					? {
+						espacamento: parseFloat(item.espacamento || "1.5"),
+						sentidoMaterial: item.sentidoMaterial || "S",
+						largura: parseFloat(item.largura || "1350"),
+					}
+					: undefined
+				
 				const savePath = await exportarArquivo(
 					item.maquina.toLowerCase() as "comelz" | "emma" | "lectra",
 					item.dados,
 					nomeArquivo,
+					lectraOptions,
 				)
 
 				if (savePath) {

@@ -72,6 +72,7 @@ type CadastroInfo = {
 	setorId?: number
 	setorNome?: string
 	tamanhosRanges?: { tamanhoInicial: number; tamanhoFinal: number }[]
+	sentidoMaterial?: string
 }
 
 // Mapeamento de pares por tamanho para cada cor
@@ -565,8 +566,11 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 								const folhas = calcularFolhas(item.pares, placaPar, conjugNavalha, camadas)
 								
 								modelDataArray.push({
-									codigo: cadastroSelecionado.componente || cadastroSelecionado.artigo,
+									// model_variant: artigo do modelo (ex: COR43245330)
+									codigo: cadastroSelecionado.artigo || cadastroSelecionado.componente,
+									// model_size: numeração/tamanho
 									tamanho: item.tamanho,
+									// model_quantity e model_fully_marked_number: pares (folhas)
 									a: folhas,
 									b: 0,
 									c: 0,
@@ -587,13 +591,16 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 				return
 			}
 
-			// Adicionar à lista
+			// Adicionar à lista com dados extras do cadastro para Lectra
 			onAdicionarLista({
 				of: ofSearch,
 				componente: componenteSelecionado,
 				apelido: apelidoSelecionado,
 				maquina: maquinaSelecionada,
 				dados: dados,
+				espacamento: cadastroSelecionado.espacamento,
+				sentidoMaterial: cadastroSelecionado.sentidoMaterial,
+				largura: cadastroSelecionado.largura,
 			})
 
 			// Log de auditoria para adicionar na lista
@@ -782,8 +789,11 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 								const folhas = calcularFolhas(item.pares, placaPar, conjugNavalha, camadas)
 								
 								modelDataArray.push({
-									codigo: cadastroSelecionado.componente || cadastroSelecionado.artigo,
+									// model_variant: artigo do modelo (ex: COR43245330)
+									codigo: cadastroSelecionado.artigo || cadastroSelecionado.componente,
+									// model_size: numeração/tamanho
 									tamanho: item.tamanho,
+									// model_quantity e model_fully_marked_number: pares (folhas)
 									a: folhas,
 									b: 0,
 									c: 0,
@@ -805,13 +815,27 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 			}
 
 			// Usar o apelido selecionado no nome do arquivo
-			const nomeArquivo = `${ofSearch}-${apelidoSelecionado}`
+			// Para Lectra: formato OF_APELIDO (ex: 435020476_PLACA_DO_FORRO_DA_ESPUMA)
+			const apelidoFormatado = apelidoSelecionado.replace(/\s+/g, '_').toUpperCase()
+			const nomeArquivo = maquinaSelecionada.toLowerCase() === "lectra" 
+				? `${ofSearch}_${apelidoFormatado}`
+				: `${ofSearch}-${apelidoSelecionado}`
+
+			// Preparar options para Lectra
+			const lectraOptions = maquinaSelecionada.toLowerCase() === "lectra" && cadastroSelecionado
+				? {
+					espacamento: parseFloat(cadastroSelecionado.espacamento || "1.5"),
+					sentidoMaterial: cadastroSelecionado.sentidoMaterial || "S",
+					largura: parseFloat(cadastroSelecionado.largura || "1350"),
+				}
+				: undefined
 
 			// Exportar arquivo com nome personalizado (OF-APELIDO)
 			const savePath = await exportarArquivo(
 				maquinaSelecionada.toLowerCase() as "comelz" | "emma" | "lectra",
 				dados,
 				nomeArquivo,
+				lectraOptions,
 			)
 
 			if (savePath) {

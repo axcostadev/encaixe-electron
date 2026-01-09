@@ -733,6 +733,7 @@ export interface CadastroInfo {
 	setorId?: number // ID do setor (máquina)
 	setorNome?: string // Nome do setor (EMMA, LECTRA, COMELZ)
 	tamanhosRanges?: { tamanhoInicial: number; tamanhoFinal: number }[] // Ranges originais dos tamanhos
+	sentidoMaterial?: string // Sentido do material (S, N, U)
 }
 
 /**
@@ -820,23 +821,23 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 						return resolve([])
 					}
 
-					// Load materiais for reference
+					// Load materiais for reference (including sentido)
 					database.all(
-						"SELECT id, artigo, largura FROM materiais",
+						"SELECT id, artigo, largura, sentido FROM materiais",
 						[],
 						(
 							matErr: Error | null,
-							materiais: Array<{ id: number; artigo: string; largura: number }>,
+							materiais: Array<{ id: number; artigo: string; largura: number; sentido: string }>,
 						) => {
 							if (matErr) {
 								console.log("[models] error loading materiais:", matErr)
 							}
 							const matMap = new Map<
 								number,
-								{ artigo: string; largura: number }
+								{ artigo: string; largura: number; sentido: string }
 							>()
 							for (const m of materiais || []) {
-								matMap.set(m.id, { artigo: m.artigo, largura: m.largura })
+								matMap.set(m.id, { artigo: m.artigo, largura: m.largura, sentido: m.sentido || "S" })
 							}
 
 							// Load setores for reference
@@ -985,6 +986,7 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 																setorId: comp.setor_id,
 																setorNome: setorNome.toUpperCase(),
 																tamanhosRanges: tamanhosRanges,
+																sentidoMaterial: mat?.sentido || "S",
 															}
 
 															resComp(info)

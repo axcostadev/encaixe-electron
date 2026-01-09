@@ -95,6 +95,7 @@ interface CadastroInfo {
 	setorId?: number
 	setorNome?: string
 	tamanhosRanges?: { tamanhoInicial: number; tamanhoFinal: number }[]
+	sentidoMaterial?: string
 }
 
 // Custom APIs for renderer
@@ -264,8 +265,12 @@ const api = {
 	exportAPI2: {
 		exportEmma: (pedidoObj: PedidoEmma, caminho: string) =>
 			ipcRenderer.invoke("export-emma", pedidoObj, caminho),
-		exportLectra: (modelos: unknown, caminho: string, markerName: string) =>
-			ipcRenderer.invoke("export-lectra", modelos, caminho, markerName),
+		exportLectra: (
+			modelos: unknown,
+			caminho: string,
+			markerName: string,
+			options?: { espacamento?: number; sentidoMaterial?: string; largura?: number },
+		) => ipcRenderer.invoke("export-lectra", modelos, caminho, markerName, options),
 	},
 	conversorAPI: {
 		toComelz: (parsedCTF: unknown, parsedCTC: unknown, options: unknown) =>

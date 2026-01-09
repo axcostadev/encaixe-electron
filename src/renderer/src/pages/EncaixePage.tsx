@@ -10,6 +10,10 @@ export type ListaAutomaticoItem = {
 	apelido: string
 	maquina: string
 	dados: any
+	// Dados extras para exportação Lectra
+	espacamento?: string
+	sentidoMaterial?: string
+	largura?: string
 }
 
 export default function EncaixePage() {

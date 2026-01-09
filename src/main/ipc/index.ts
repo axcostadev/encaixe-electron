@@ -707,8 +707,9 @@ export function setupIPC(): void {
 			modelos: ModelDataLectra[],
 			caminho: string,
 			markerName: string,
+			options?: { espacamento?: number; sentidoMaterial?: string; largura?: number },
 		) => {
-			return await exportadorLectra.exportarMkx(modelos, caminho, markerName)
+			return await exportadorLectra.exportarMkx(modelos, caminho, markerName, options || {})
 		},
 	)
 

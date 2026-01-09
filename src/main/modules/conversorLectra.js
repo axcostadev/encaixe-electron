@@ -36,9 +36,34 @@ export function converterParaModelData(parsedCTF = [], parsedCTC = [], options =
   return modelos
 }
 
+/**
+ * Converte o sentido do material para o formato fabric_constraint_name do Lectra
+ * @param {string} sentido - 'S', 'N' ou 'U'
+ * @returns {string} fabric_constraint_name
+ */
+function sentidoParaFabricConstraint(sentido) {
+  switch ((sentido || '').toUpperCase()) {
+    case 'S':
+      return 'S-SENTIDO'
+    case 'N':
+      return 'N-SEM SENTIDO'
+    case 'U':
+      return 'U-UNICO'
+    default:
+      return 'S-SENTIDO'
+  }
+}
+
 export function gerarMKX(modelos = [], options = {}) {
   const lines = []
   const add = (k, v) => lines.push(`${k}=${v}`)
+
+  // Espaçamento - usa o valor do cadastro ou padrão 1.5
+  const espacamento = options.espacamento ?? options.marker_global_space ?? 1.5
+  const espacamentoFormatado = Number(espacamento).toFixed(4)
+
+  // Sentido do material - converte para fabric_constraint_name
+  const fabricConstraint = options.fabric_constraint_name ?? sentidoParaFabricConstraint(options.sentidoMaterial)
 
   lines.push('begin_of_marker')
   add('unit_number_in_meter', options.unit_number_in_meter ?? 1000)
@@ -51,11 +76,12 @@ export function gerarMKX(modelos = [], options = {}) {
   add('marker_criticity', options.marker_criticity ?? 'undefined')
   add('marker_criticity_percentage', options.marker_criticity_percentage ?? 0.0)
   add('marker_quality', options.marker_quality ?? 'undefined')
-  add('marker_global_space', options.marker_global_space ?? 1.5)
-  add('marker_global_space_top', options.marker_global_space_top ?? 1.5)
-  add('marker_global_space_bottom', options.marker_global_space_bottom ?? 1.5)
-  add('marker_global_space_right', options.marker_global_space_right ?? 1.5)
-  add('marker_global_space_left', options.marker_global_space_left ?? 1.5)
+  // Espaçamento das peças - todos usam o mesmo valor do cadastro
+  add('marker_global_space', espacamentoFormatado)
+  add('marker_global_space_top', espacamentoFormatado)
+  add('marker_global_space_bottom', espacamentoFormatado)
+  add('marker_global_space_right', espacamentoFormatado)
+  add('marker_global_space_left', espacamentoFormatado)
   add('marker_move_tolerance', options.marker_move_tolerance ?? 0.0)
   add('marker_number_overlaps', options.marker_number_overlaps ?? 0)
   add('marker_fine_rotation', options.marker_fine_rotation ?? 0)
@@ -68,7 +94,8 @@ export function gerarMKX(modelos = [], options = {}) {
   add('width_spacing_bottom', options.width_spacing_bottom ?? 0)
   add('width_spacing_top', options.width_spacing_top ?? 0)
   add('fabric_packaging', options.fabric_packaging ?? 'simple_ply')
-  add('fabric_constraint_name', options.fabric_constraint_name ?? 'S-SENTIDO')
+  // Sentido do material
+  add('fabric_constraint_name', fabricConstraint)
   add('fabric_type', options.fabric_type ?? 9)
   add('oversewing', options.oversewing ?? 0.0)
   add('weft_origin', options.weft_origin ?? 0.0)
@@ -86,6 +113,7 @@ export function gerarMKX(modelos = [], options = {}) {
   add('angle_number', options.angle_number ?? 0)
   add('internal_points_number', options.internal_points_number ?? 0)
 
+  // Data e hora de criação - mesmo valor para criação e modificação
   const now = new Date()
   const dd = String(now.getDate()).padStart(2, '0')
   const mm = String(now.getMonth() + 1).padStart(2, '0')
@@ -103,14 +131,18 @@ export function gerarMKX(modelos = [], options = {}) {
   add('marked_pieces_number', options.marked_pieces_number ?? markedPiecesNumber)
   add('non_marked_pieces_number', options.non_marked_pieces_number ?? 0)
 
+  // Seção de modelos - cada tamanho/pares gera um bloco
   for (const m of modelos) {
     lines.push('begin_of_model')
     add('model_format', options.model_format ?? 'xch')
     add('model_file_name_extension', options.model_file_name_extension ?? 'xch')
+    // model_variant: artigo (ex: COR43245330)
     add('model_variant', m.codigo || '')
+    // model_size: numeração/tamanho (ex: 38)
     add('model_size', m.tamanho || '')
     add('model_direction_reverse', options.model_direction_reverse ?? 'normal')
     add('model_group', options.model_group ?? 1)
+    // model_quantity e model_fully_marked_number: pares (mesmo valor)
     add('model_quantity', m.a ?? 0)
     add('model_type', options.model_type ?? 'normal')
     add('model_fully_marked_number', m.a ?? 0)
@@ -127,7 +159,7 @@ export function gerarMKX(modelos = [], options = {}) {
  * Converte parsedCTF/parsedCTC + cadastro/options para o conteúdo .mkx
  * @param {Array} parsedCTF
  * @param {Array} parsedCTC
- * @param {Object} cadastro - { artigo, cor, material, id }
+ * @param {Object} cadastro - { artigo, cor, material, id, of, apelido, espacamento, sentidoMaterial }
  * @param {Object} options - override de campos MKX
  * @returns {string} conteúdo MKX
  */
@@ -135,20 +167,33 @@ export function converterParaMKX(parsedCTF = [], parsedCTC = [], cadastro = {}, 
   // Gera array de modelos usando a função existente
   const modelos = converterParaModelData(parsedCTF, parsedCTC, options)
 
-  // Monta marker_name padrão: artigo_cor ou id
-  const artigo = (cadastro && cadastro.artigo) || ''
-  const cor = (cadastro && cadastro.cor) || ''
-  const cadId = (cadastro && cadastro.id) || ''
-  const markerNameDefault = artigo ? (artigo + (cor ? '_' + cor : '')) : cadId
+  // Monta marker_name: OF + _ + apelido (ex: 435020476_PLACA_DO_FORRO_DA_ESPUMA)
+  const of = (cadastro && cadastro.of) || (cadastro && cadastro.id) || ''
+  const apelido = (cadastro && cadastro.apelido) || (cadastro && cadastro.componente) || ''
+  // Formata o apelido: substitui espaços por underscore e converte para maiúsculo
+  const apelidoFormatado = apelido.replace(/\s+/g, '_').toUpperCase()
+  const markerNameDefault = of ? (of + (apelidoFormatado ? '_' + apelidoFormatado : '')) : apelidoFormatado
+
+  // Espaçamento do cadastro
+  const espacamento = (cadastro && cadastro.espacamento) || options.espacamento || 1.5
+
+  // Sentido do material - vem do material associado ao componente
+  const sentidoMaterial = (cadastro && cadastro.sentidoMaterial) || options.sentidoMaterial || 'S'
+
+  // Largura do material
+  const largura = (cadastro && cadastro.largura) || options.width_value || 1350
 
   const mkxOptions = Object.assign(
     {
       marker_name: options.marker_name ?? markerNameDefault,
-      marker_code: options.marker_code ?? (cadastro && cadastro.id) ?? '',
-      // permite sobrescrever meta-dados importantes pelo options
-      width_value: options.width_value ?? 1350,
+      marker_code: options.marker_code ?? '',
+      // Espaçamento das peças do cadastro
+      espacamento: espacamento,
+      // Sentido do material
+      sentidoMaterial: sentidoMaterial,
+      // Largura do material
+      width_value: largura,
       width_max_length: options.width_max_length ?? 3900,
-      fabric_constraint_name: options.fabric_constraint_name ?? 'S-SENTIDO',
     },
     options,
   )
