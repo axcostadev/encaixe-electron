@@ -65,7 +65,7 @@ export function gerarMKX(modelos = [], options = {}) {
   // Sentido do material - converte para fabric_constraint_name
   const fabricConstraint = options.fabric_constraint_name ?? sentidoParaFabricConstraint(options.sentidoMaterial)
 
-  lines.push('begin_of_marker')
+  lines.push('**\nbegin_of_marker')
   add('unit_number_in_meter', options.unit_number_in_meter ?? 1000)
   add('unit_number_in_degree', options.unit_number_in_degree ?? 60)
   add('format_marker', options.format_marker ?? 'plx')
