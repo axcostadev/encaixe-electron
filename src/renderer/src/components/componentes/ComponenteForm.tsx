@@ -368,12 +368,8 @@ export function ComponenteForm({
 
 								{coresModelo.length > 0 && (
 									<div className="space-y-3">
-										<Label>Cores Disponíveis</Label>
 										<div className="flex items-center justify-between">
-											<p className="text-sm text-muted-foreground">
-												{formData.coresDisponiveis.length} de{" "}
-												{coresModelo.length} selecionada(s)
-											</p>
+											<Label>Cores Disponíveis</Label>
 											<Button
 												type="button"
 												variant="outline"
@@ -385,35 +381,52 @@ export function ComponenteForm({
 													: "Marcar todas"}
 											</Button>
 										</div>
-										<div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-muted/50 rounded-lg border">
-											{coresModelo.map((cor) => (
-												<div
-													key={cor.id}
-													className="flex items-center space-x-2"
-												>
-													<Checkbox
-														id={`cor-${cor.id}`}
-														checked={formData.coresDisponiveis.includes(
-															cor.id.toString(),
-														)}
-														onCheckedChange={(checked) =>
+										<p className="text-sm text-muted-foreground">
+											{formData.coresDisponiveis.length} de{" "}
+											{coresModelo.length} selecionada(s)
+										</p>
+										<div className="max-h-[200px] overflow-y-auto rounded-lg border bg-muted/30">
+											<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1 p-2">
+												{coresModelo.map((cor) => (
+													<div
+														key={cor.id}
+														className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors hover:bg-accent/50 ${
+															formData.coresDisponiveis.includes(cor.id.toString())
+																? "bg-primary/10 border border-primary/30"
+																: "bg-background border border-transparent"
+														}`}
+														onClick={() =>
 															handleCorToggle(
 																cor.id.toString(),
-																checked as boolean,
+																!formData.coresDisponiveis.includes(cor.id.toString()),
 															)
 														}
-													/>
-													<label
-														htmlFor={`cor-${cor.id}`}
-														className="text-sm font-medium leading-none cursor-pointer"
 													>
-														<span className="font-mono text-xs text-muted-foreground mr-1">
-															[{cor.abreviacao}]
-														</span>
-														{cor.nome}
-													</label>
-												</div>
-											))}
+														<Checkbox
+															id={`cor-${cor.id}`}
+															checked={formData.coresDisponiveis.includes(
+																cor.id.toString(),
+															)}
+															onCheckedChange={(checked) =>
+																handleCorToggle(
+																	cor.id.toString(),
+																	checked as boolean,
+																)
+															}
+															className="pointer-events-none"
+														/>
+														<label
+															htmlFor={`cor-${cor.id}`}
+															className="text-sm leading-none cursor-pointer flex-1 truncate"
+														>
+															<span className="font-mono text-xs text-muted-foreground mr-1">
+																[{cor.abreviacao}]
+															</span>
+															<span className="font-medium">{cor.nome}</span>
+														</label>
+													</div>
+												))}
+											</div>
 										</div>
 									</div>
 								)}
