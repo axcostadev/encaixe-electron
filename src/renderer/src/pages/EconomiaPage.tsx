@@ -51,12 +51,92 @@ export default function EconomiaPage() {
 
   // Busca Dados (file search) state
   const [searchTerm, setSearchTerm] = useState<string>('')
-  const [selectedFileName, setSelectedFileName] = useState<string>('')
-  const [selectedFileContent, setSelectedFileContent] = useState<string>('')
+  const [selectedFileName, setSelectedFileName] = useState<string>('CGC.txt')
+  const [cgcFilePath, setCgcFilePath] = useState<string | null>(null)
   const [searchResults, setSearchResults] = useState<{ line: number; text: string; parsed?: Record<string,string> }[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
-  const [includeToday, setIncludeToday] = useState<boolean>(true)
-  const [additionalTerms, setAdditionalTerms] = useState<string>('')
+
+  // Função para buscar no arquivo CGC
+  const handleSearchCGC = async () => {
+    setSearchLoading(true)
+    try {
+      const result = await (window as any).api.economia.searchCGC(cgcFilePath, searchTerm)
+      if (result.error) {
+        console.error('Erro na busca:', result.error)
+        setSearchResults([])
+      } else {
+        // Converter para o formato esperado pela tabela
+        const formattedResults = result.results.map((r: any, idx: number) => ({
+          line: idx + 1,
+          text: '',
+          parsed: {
+            'Data': r.data || '',
+            'Artigo': r.artigo || '',
+            'DATA FASE': r.data || '',
+            'Ordem': r.ordem || '',
+            'Modelo': r.modelo || '',
+            'Material': r.material || '',
+            'Cor/Espessura': r.cor_espessura || '',
+            'PREÇO': r.preco?.toString() || '',
+            'Previsto': r.previsto?.toString() || '',
+            'Encaixe': r.encaixe?.toString() || '',
+            'Dif': r.dif?.toString() || '',
+            '%': r.porcent?.toString() || '',
+            'Economia (R$)': '',
+            'Periodo (Ano/Mês)': r.data ? `${r.data.split('-')[0]}/${r.data.split('-')[1]}` : ''
+          }
+        }))
+        setSearchResults(formattedResults)
+        if (result.filePath) {
+          setCgcFilePath(result.filePath)
+          setSelectedFileName(result.filePath.split(/[/\\]/).pop() || 'CGC.txt')
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao buscar:', err)
+      setSearchResults([])
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+
+  // Função para selecionar arquivo
+  const handleSelectFile = async () => {
+    setSearchLoading(true)
+    try {
+      const result = await (window as any).api.economia.searchCGC(null, '')
+      if (result.filePath) {
+        setCgcFilePath(result.filePath)
+        setSelectedFileName(result.filePath.split(/[/\\]/).pop() || 'CGC.txt')
+        // Converter para o formato esperado pela tabela
+        const formattedResults = result.results.map((r: any, idx: number) => ({
+          line: idx + 1,
+          text: '',
+          parsed: {
+            'Data': r.data || '',
+            'Artigo': r.artigo || '',
+            'DATA FASE': r.data || '',
+            'Ordem': r.ordem || '',
+            'Modelo': r.modelo || '',
+            'Material': r.material || '',
+            'Cor/Espessura': r.cor_espessura || '',
+            'PREÇO': r.preco?.toString() || '',
+            'Previsto': r.previsto?.toString() || '',
+            'Encaixe': r.encaixe?.toString() || '',
+            'Dif': r.dif?.toString() || '',
+            '%': r.porcent?.toString() || '',
+            'Economia (R$)': '',
+            'Periodo (Ano/Mês)': r.data ? `${r.data.split('-')[0]}/${r.data.split('-')[1]}` : ''
+          }
+        }))
+        setSearchResults(formattedResults)
+      }
+    } catch (err) {
+      console.error('Erro ao selecionar arquivo:', err)
+    } finally {
+      setSearchLoading(false)
+    }
+  }
 
   const fieldsList = [
     'Data','Artigo','DATA FASE','Ordem','Modelo','Material','Cor/Espessura','PREÇO','Previsto','Encaixe','Dif','%','Economia (R$)','Periodo (Ano/Mês)'
@@ -365,143 +445,159 @@ export default function EconomiaPage() {
         </>
       )}
       {tab === 'busca' && (
-        <div className="busca-panel">
-          <h2 className="busca-title">Busca Dados</h2>
-
-          <div className="busca-row">
-            <label className="busca-field">
-              <span className="busca-label">Termo de busca</span>
-              <input className="busca-input" value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)} placeholder="Digite número da OFF" />
-            </label>
-
-            <label className="busca-field">
-              <span className="busca-label">Termos adicionais (vírgula separado)</span>
-              <input className="busca-input" value={additionalTerms} onChange={(e)=>setAdditionalTerms(e.target.value)} placeholder="ex: artigo, ordem" />
-            </label>
-
-            <label className="busca-field-inline">
-              <input type="checkbox" checked={includeToday} onChange={(e)=>setIncludeToday(e.target.checked)} />
-              <span className="busca-label-inline">Incluir data de hoje</span>
-            </label>
-
-            <label className="busca-field">
-              <span className="busca-label">Arquivo .txt</span>
-              <input className="busca-file" type="file" accept=".txt" onChange={(e:any)=>{
-                const f = e.target.files && e.target.files[0]
-                if (!f) return
-                setSelectedFileName(f.name)
-                const reader = new FileReader()
-                reader.onload = () => setSelectedFileContent(String(reader.result || ''))
-                reader.onerror = () => { setSelectedFileContent(''); console.error('Erro ao ler arquivo') }
-                reader.readAsText(f, 'utf-8')
-              }} />
-            </label>
-
-            <div className="busca-actions">
-              <button className="busca-button" onClick={()=>{
-                if (!selectedFileContent) { alert('Selecione um arquivo .txt primeiro') ; return }
-                setSearchLoading(true)
-                setTimeout(()=>{
-                  // build required terms
-                  const termMain = (searchTerm||'').trim()
-                  const extras = (additionalTerms||'').split(',').map(s=>s.trim()).filter(Boolean)
-                  const requireTerms = [] as string[]
-                  if (termMain) requireTerms.push(termMain.toLowerCase())
-                  extras.forEach(t=> requireTerms.push(t.toLowerCase()))
-
-                  // date formats for today
-                  const today = new Date()
-                  const dd = String(today.getDate()).padStart(2,'0')
-                  const mm = String(today.getMonth()+1).padStart(2,'0')
-                  const yyyy = String(today.getFullYear())
-                  const dateCandidates = [
-                    `${dd}/${mm}/${yyyy}`,
-                    `${dd}-${mm}-${yyyy}`,
-                    `${yyyy}-${mm}-${dd}`,
-                    `${yyyy}/${mm}/${dd}`,
-                    `${yyyy}/${mm}`,
-                    today.toLocaleDateString()
-                  ].map(s=>s.toLowerCase())
-
-                  const lines = selectedFileContent.split(/\r?\n/)
-                  const results:{line:number;text:string; parsed?:Record<string,string>}[] = []
-
-                  // try detect header and delimiter
-                  const firstNonEmptyIdx = lines.findIndex(l=>l && l.trim().length>0)
-                  const headerLine = firstNonEmptyIdx >=0 ? lines[firstNonEmptyIdx] : ''
-                  let delim = '\t'
-                  if (headerLine.includes('\t')) delim='\t'
-                  else if (headerLine.includes(';')) delim=';'
-                  else if (headerLine.includes(',')) delim=','
-                  else delim='\t'
-                  const headerCols = headerLine ? headerLine.split(delim).map(h=>h.trim()) : []
-                  const headerMap = new Map<string,number>()
-                  headerCols.forEach((h,i)=> headerMap.set(h.toLowerCase(), i))
-
-                  lines.forEach((ln,idx)=>{
-                    const low = ln.toLowerCase()
-                    // date requirement
-                    const dateOk = includeToday ? dateCandidates.some(d=> low.includes(d)) : true
-                    if (!dateOk) return
-                    // require all terms if any
-                    const termsOk = requireTerms.length === 0 ? true : requireTerms.every(t => low.includes(t))
-                    if (!termsOk) return
-
-                    // build parsed mapping if we have columns
-                    let parsed: Record<string,string> | undefined = undefined
-                    if (headerCols.length > 0) {
-                      const cols = ln.split(delim).map(c=>c.trim())
-                      parsed = {}
-                      headerCols.forEach((h,i)=> parsed![h] = cols[i] ?? '')
-                    }
-                    results.push({line: idx+1, text: ln, parsed})
-                  })
-                  setSearchResults(results)
-                  setSearchLoading(false)
-                }, 10)
-              }} style={{padding:'8px 12px', borderRadius:8, background:'#1f6feb', color:'#fff', border:'none', cursor:'pointer'}}>Buscar no arquivo</button>
-              <button className="busca-clear" onClick={()=>{ setSelectedFileName(''); setSelectedFileContent(''); setSearchResults([]) }}>Limpar</button>
+        <div className="busca-container">
+          {/* Header */}
+          <div className="busca-header">
+            <div className="busca-header-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+            </div>
+            <div>
+              <h2 className="busca-header-title">Busca de Dados CGC</h2>
+              <p className="busca-header-subtitle">Pesquise por OF, artigo ou material no arquivo CGC</p>
             </div>
           </div>
 
-          <div style={{marginBottom:12}}>
-            <div style={{fontSize:13, color:'#e6f0ff'}}>Arquivo selecionado: <strong style={{color:'#fff'}}>{selectedFileName || 'Nenhum'}</strong></div>
-            <div style={{fontSize:13, color:'#e6f0ff'}}>Resultados: <strong style={{color:'#fff'}}>{searchLoading ? 'Buscando...' : `${searchResults.length} ocorrência(s)`}</strong></div>
+          {/* Search Controls */}
+          <div className="busca-controls">
+            <div className="busca-input-group">
+              <label className="busca-input-label">Número da OF</label>
+              <div className="busca-input-wrapper">
+                <svg className="busca-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input 
+                  className="busca-input-field" 
+                  value={searchTerm} 
+                  onChange={(e)=>setSearchTerm(e.target.value)} 
+                  placeholder="Ex: 435018688"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSearchCGC()
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            
+            <div className="busca-button-group">
+              <button 
+                className="busca-btn busca-btn-primary" 
+                onClick={handleSearchCGC}
+                disabled={searchLoading}
+              >
+                {searchLoading ? (
+                  <>
+                    <svg className="busca-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
+                    Buscando...
+                  </>
+                ) : (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8"/>
+                      <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    Buscar
+                  </>
+                )}
+              </button>
+              <button 
+                className="busca-btn busca-btn-secondary" 
+                onClick={handleSelectFile}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14,2 14,8 20,8"/>
+                </svg>
+                Selecionar Arquivo
+              </button>
+              {searchResults.length > 0 && (
+                <button 
+                  className="busca-btn busca-btn-ghost" 
+                  onClick={()=>{ setSearchResults([]); setSearchTerm('') }}
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
           </div>
 
-          <div style={{display:'flex', gap:8, marginBottom:8, flexWrap:'wrap'}}>
-            {fieldsList.map(f=> (
-              <label key={f} style={{display:'flex', alignItems:'center', gap:6}}>
-                <input type="checkbox" checked={selectedFields.includes(f)} onChange={(e)=>{
-                  if (e.target.checked) setSelectedFields(s=>Array.from(new Set([...s,f])))
-                  else setSelectedFields(s=>s.filter(x=>x!==f))
-                }} />
-                <span style={{fontSize:12,color:'#e6f0ff'}}>{f}</span>
-              </label>
-            ))}
+          {/* Status Bar */}
+          <div className="busca-status-bar">
+            <div className="busca-status-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+              </svg>
+              <span>{selectedFileName || 'CGC.txt (padrão)'}</span>
+            </div>
+            <div className="busca-status-divider" />
+            <div className="busca-status-item busca-status-results">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              </svg>
+              <span><strong>{searchResults.length}</strong> resultado(s) encontrado(s)</span>
+            </div>
           </div>
 
-          <div style={{maxHeight:320, overflow:'auto', background:'rgba(255,255,255,0.03)', padding:12, borderRadius:8}}>
+          {/* Column Selector */}
+          <div className="busca-columns">
+            <span className="busca-columns-label">Colunas visíveis:</span>
+            <div className="busca-columns-list">
+              {fieldsList.map(f=> (
+                <label key={f} className={`busca-column-chip ${selectedFields.includes(f) ? 'active' : ''}`}>
+                  <input 
+                    type="checkbox" 
+                    checked={selectedFields.includes(f)} 
+                    onChange={(e)=>{
+                      if (e.target.checked) setSelectedFields(s=>Array.from(new Set([...s,f])))
+                      else setSelectedFields(s=>s.filter(x=>x!==f))
+                    }}
+                  />
+                  {f}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Results Table */}
+          <div className="busca-results">
             {searchLoading ? (
-              <div>Buscando...</div>
+              <div className="busca-loading">
+                <svg className="busca-spinner-large" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                <span>Processando arquivo CGC...</span>
+              </div>
             ) : searchResults.length === 0 ? (
-              <div style={{color:'#bfdbfe'}}>Nenhum resultado encontrado</div>
+              <div className="busca-empty">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.35-4.35"/>
+                </svg>
+                <h3>Nenhum resultado</h3>
+                <p>Digite o número da OF e clique em Buscar</p>
+              </div>
             ) : (
-              // if parsed exists and selectedFields, show table
-              <div style={{overflowX:'auto'}}>
-                <table style={{width:'100%', borderCollapse:'collapse'}}>
+              <div className="busca-table-wrapper">
+                <table className="busca-table">
                   <thead>
                     <tr>
-                      <th style={{textAlign:'left', padding:8, color:'#9fb7ff'}}>Ln</th>
-                      {selectedFields.map(f=> <th key={f} style={{textAlign:'left', padding:8, color:'#9fb7ff'}}>{f}</th>)}
+                      <th>#</th>
+                      {selectedFields.map(f=> <th key={f}>{f}</th>)}
                     </tr>
                   </thead>
                   <tbody>
-                    {searchResults.map(r=> (
-                      <tr key={r.line} style={{borderTop:'1px solid rgba(255,255,255,0.03)'}}>
-                        <td style={{padding:8, verticalAlign:'top'}}>{r.line}</td>
+                    {searchResults.map((r, idx)=> (
+                      <tr key={`${r.line}-${idx}`}>
+                        <td className="busca-row-num">{idx + 1}</td>
                         {selectedFields.map(f=> (
-                          <td key={f} style={{padding:8, verticalAlign:'top'}}>{(r.parsed && (r.parsed[f] ?? r.parsed[f.toLowerCase()] ?? r.parsed[f.replace(/\s+/g,'')])) || r.text}</td>
+                          <td key={f}>{(r.parsed && (r.parsed[f] ?? r.parsed[f.toLowerCase()] ?? r.parsed[f.replace(/\s+/g,'')])) || '-'}</td>
                         ))}
                       </tr>
                     ))}

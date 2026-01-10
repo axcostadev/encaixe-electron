@@ -974,4 +974,41 @@ export function setupIPC(): void {
 			return { headers: [], error: (err as any)?.message || String(err) }
 		}
 	})
+
+	// Handler para buscar dados do CGC por termo (OF, artigo, etc)
+	ipcMain.handle("economia-search-cgc", async (_event, filePath?: string, searchTerm?: string) => {
+		try {
+			let pathToRead = filePath
+			if (!pathToRead) {
+				const res = await dialog.showOpenDialog({
+					properties: ["openFile"],
+					filters: [{ name: "CGC Files", extensions: ["txt", "TXT"] }],
+					title: "Selecionar arquivo CGC",
+				})
+				if (res.canceled) return { results: [], filePath: null }
+				pathToRead = res.filePaths[0]
+			}
+
+			const registros = await cgcParser.parseCGC(pathToRead)
+			
+			// Se há termo de busca, filtrar
+			let filtered = registros
+			if (searchTerm && searchTerm.trim()) {
+				const term = searchTerm.trim().toLowerCase()
+				filtered = registros.filter((r: any) => {
+					const text = JSON.stringify(r).toLowerCase()
+					return text.includes(term)
+				})
+			}
+
+			return { 
+				results: filtered, 
+				total: registros.length,
+				filePath: pathToRead 
+			}
+		} catch (err) {
+			console.error("[IPC] economia-search-cgc error:", err)
+			return { results: [], error: (err as any)?.message || String(err) }
+		}
+	})
 }
