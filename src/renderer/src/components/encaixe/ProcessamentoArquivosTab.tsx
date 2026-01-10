@@ -7,7 +7,7 @@ import { useEncaixe } from "@renderer/hooks/useEncaixe"
 import { useAuth } from "@renderer/contexts/AuthContext"
 import { activityLogger } from "@renderer/services/activityLogger"
 import { ListaAutomaticoItem } from "@renderer/pages/EncaixePage"
-import { Trash2, Play, ListX, FolderOpen } from "lucide-react"
+import { Trash2, ListX, FolderOpen } from "lucide-react"
 
 interface ProcessamentoArquivosTabProps {
 	lista: ListaAutomaticoItem[]

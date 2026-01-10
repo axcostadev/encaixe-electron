@@ -14,7 +14,7 @@ interface CadastroInfo {
 	material: string
 	cor: string
 	largura: string
-	tipoTecido: number
+	numeroTecido?: string
 	paresCriac: string
 	conjugNavalha: string
 	placaPorPar: string

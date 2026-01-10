@@ -960,7 +960,7 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 											<strong>Largura:</strong> {cad.largura}
 										</p>
 										<p>
-											<strong>Tipo Tecido:</strong> {String(cad.tipoTecido)}
+											<strong>Número Tecido:</strong> {cad.numeroTecido || "—"}
 										</p>
 										<p>
 											<strong>Pares Criac:</strong> {cad.paresCriac}
