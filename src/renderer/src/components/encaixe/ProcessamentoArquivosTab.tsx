@@ -7,7 +7,7 @@ import { useEncaixe } from "@renderer/hooks/useEncaixe"
 import { useAuth } from "@renderer/contexts/AuthContext"
 import { activityLogger } from "@renderer/services/activityLogger"
 import { ListaAutomaticoItem } from "@renderer/pages/EncaixePage"
-import { Trash2, Play, ListX } from "lucide-react"
+import { Trash2, Play, ListX, FolderOpen } from "lucide-react"
 
 interface ProcessamentoArquivosTabProps {
 	lista: ListaAutomaticoItem[]
@@ -21,7 +21,7 @@ export function ProcessamentoArquivosTab({ lista, onRemover, onLimpar }: Process
 	const [processando, setProcessando] = useState(false)
 	const [progresso, setProgresso] = useState(0)
 
-	const { exportarArquivo } = useEncaixe()
+	const { exportarArquivoDireto, selecionarPastaDestino } = useEncaixe()
 
 	async function gerarTodosArquivos() {
 		if (lista.length === 0) {
@@ -29,9 +29,18 @@ export function ProcessamentoArquivosTab({ lista, onRemover, onLimpar }: Process
 			return
 		}
 
+		// Primeiro, seleciona a pasta de destino
+		setMessage('Selecione a pasta de destino para os arquivos...')
+		const pastaDestino = await selecionarPastaDestino()
+		
+		if (!pastaDestino) {
+			setMessage('Operação cancelada - nenhuma pasta selecionada')
+			return
+		}
+
 		setProcessando(true)
 		setProgresso(0)
-		setMessage('Iniciando geração dos arquivos...')
+		setMessage(`Gerando arquivos em: ${pastaDestino}`)
 
 		let sucessos = 0
 		let erros = 0
@@ -41,22 +50,28 @@ export function ProcessamentoArquivosTab({ lista, onRemover, onLimpar }: Process
 			try {
 				// Para Lectra: formato OF_APELIDO (ex: 435020476_PLACA_DO_FORRO_DA_ESPUMA)
 				const apelidoFormatado = item.apelido.replace(/\s+/g, '_').toUpperCase()
+				const extensao = item.maquina.toLowerCase() === "lectra" ? "mkx" : "json"
 				const nomeArquivo = item.maquina.toLowerCase() === "lectra"
 					? `${item.of}_${apelidoFormatado}`
 					: `${item.of}-${item.apelido}`
 				
-				// Preparar options para Lectra (espacamento, sentidoMaterial, largura)
+				// Caminho completo do arquivo
+				const caminhoCompleto = `${pastaDestino}\\${nomeArquivo}.${extensao}`
+				
+				// Preparar options para Lectra (espacamento, sentidoMaterial, largura, numeroTecido)
 				const lectraOptions = item.maquina.toLowerCase() === "lectra" 
 					? {
 						espacamento: parseFloat(item.espacamento || "1.5"),
 						sentidoMaterial: item.sentidoMaterial || "S",
 						largura: parseFloat(item.largura || "1350"),
+						fabric_type: item.numeroTecido ? parseInt(item.numeroTecido) : 9,
 					}
 					: undefined
 				
-				const savePath = await exportarArquivo(
+				const savePath = await exportarArquivoDireto(
 					item.maquina.toLowerCase() as "comelz" | "emma" | "lectra",
 					item.dados,
+					caminhoCompleto,
 					nomeArquivo,
 					lectraOptions,
 				)
@@ -65,6 +80,8 @@ export function ProcessamentoArquivosTab({ lista, onRemover, onLimpar }: Process
 					// Log individual de cada encaixe gerado
 					activityLogger.logGenerateEncaixe(user, item.of, item.componente, item.apelido, item.maquina, savePath)
 					sucessos++
+				} else {
+					erros++
 				}
 			} catch (err) {
 				console.error(`Erro ao gerar arquivo ${item.of}-${item.apelido}:`, err)
@@ -78,7 +95,7 @@ export function ProcessamentoArquivosTab({ lista, onRemover, onLimpar }: Process
 		activityLogger.logBatchGenerateEncaixe(user, lista.length, sucessos, erros)
 
 		setProcessando(false)
-		setMessage(`Processamento concluído! ${sucessos} arquivo(s) gerado(s)${erros > 0 ? `, ${erros} erro(s)` : ''}`)
+		setMessage(`Processamento concluído! ${sucessos} arquivo(s) gerado(s) em "${pastaDestino}"${erros > 0 ? `, ${erros} erro(s)` : ''}`)
 	}
 
 	return (
@@ -94,7 +111,7 @@ export function ProcessamentoArquivosTab({ lista, onRemover, onLimpar }: Process
 						)}
 					</CardTitle>
 					<CardDescription>
-						Arquivos adicionados para geração em lote
+						Arquivos adicionados para geração em lote - selecione uma pasta e todos serão gerados automaticamente
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
@@ -122,38 +139,46 @@ export function ProcessamentoArquivosTab({ lista, onRemover, onLimpar }: Process
 										</TableRow>
 									</TableHeader>
 									<TableBody>
-										{lista.map((item, idx) => (
-											<TableRow key={idx}>
-												<TableCell className="font-mono text-muted-foreground">
-													{idx + 1}
-												</TableCell>
-												<TableCell className="font-mono font-medium">
-													{item.of}
-												</TableCell>
-												<TableCell>{item.componente}</TableCell>
-												<TableCell className="font-semibold text-primary">
-													{item.apelido}
-												</TableCell>
-												<TableCell>
-													<span className="px-2 py-1 bg-muted rounded text-xs">
-														{item.maquina}
-													</span>
-												</TableCell>
-												<TableCell className="text-sm text-muted-foreground">
-													{item.of}-{item.apelido}.json
-												</TableCell>
-												<TableCell>
-													<Button
-														variant="ghost"
-														size="icon"
-														onClick={() => onRemover(idx)}
-														className="text-destructive hover:text-destructive hover:bg-destructive/10"
-													>
-														<Trash2 className="w-4 h-4" />
-													</Button>
-												</TableCell>
-											</TableRow>
-										))}
+										{lista.map((item, idx) => {
+											const extensao = item.maquina.toLowerCase() === "lectra" ? "mkx" : "json"
+											const apelidoFormatado = item.apelido.replace(/\s+/g, '_').toUpperCase()
+											const nomeArquivo = item.maquina.toLowerCase() === "lectra"
+												? `${item.of}_${apelidoFormatado}.${extensao}`
+												: `${item.of}-${item.apelido}.${extensao}`
+											
+											return (
+												<TableRow key={idx}>
+													<TableCell className="font-mono text-muted-foreground">
+														{idx + 1}
+													</TableCell>
+													<TableCell className="font-mono font-medium">
+														{item.of}
+													</TableCell>
+													<TableCell>{item.componente}</TableCell>
+													<TableCell className="font-semibold text-primary">
+														{item.apelido}
+													</TableCell>
+													<TableCell>
+														<span className="px-2 py-1 bg-muted rounded text-xs">
+															{item.maquina}
+														</span>
+													</TableCell>
+													<TableCell className="text-sm text-muted-foreground font-mono">
+														{nomeArquivo}
+													</TableCell>
+													<TableCell>
+														<Button
+															variant="ghost"
+															size="icon"
+															onClick={() => onRemover(idx)}
+															className="text-destructive hover:text-destructive hover:bg-destructive/10"
+														>
+															<Trash2 className="w-4 h-4" />
+														</Button>
+													</TableCell>
+												</TableRow>
+											)
+										})}
 									</TableBody>
 								</Table>
 							</div>
@@ -178,8 +203,8 @@ export function ProcessamentoArquivosTab({ lista, onRemover, onLimpar }: Process
 									disabled={processando || lista.length === 0}
 									className="flex-1"
 								>
-									<Play className="w-4 h-4 mr-2" />
-									{processando ? 'Processando...' : `Gerar Todos os Arquivos (${lista.length})`}
+									<FolderOpen className="w-4 h-4 mr-2" />
+									{processando ? 'Processando...' : `Selecionar Pasta e Gerar Todos (${lista.length})`}
 								</Button>
 								
 								<Button 

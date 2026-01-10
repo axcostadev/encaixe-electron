@@ -240,7 +240,7 @@ export function useEncaixe() {
 			formato: "comelz" | "emma" | "lectra",
 			dados: any,
 			nomeArquivo?: string,
-			options?: { espacamento?: number; sentidoMaterial?: string; largura?: number },
+			options?: { espacamento?: number; sentidoMaterial?: string; largura?: number; fabric_type?: number },
 		): Promise<string | null> => {
 			setLoading(true)
 			setError(null)
@@ -289,6 +289,52 @@ export function useEncaixe() {
 		[],
 	)
 
+	// Exportar arquivo direto (sem diálogo de salvar - para uso em lote)
+	const exportarArquivoDireto = useCallback(
+		async (
+			formato: "comelz" | "emma" | "lectra",
+			dados: any,
+			caminhoCompleto: string,
+			nomeArquivo: string,
+			options?: { espacamento?: number; sentidoMaterial?: string; largura?: number; fabric_type?: number },
+		): Promise<string | null> => {
+			try {
+				if (formato === "comelz") {
+					await (window as any).api.exportAPI.exportComelz(dados, caminhoCompleto)
+				} else if (formato === "emma") {
+					await (window as any).api.exportAPI2.exportEmma(dados, caminhoCompleto)
+				} else if (formato === "lectra") {
+					await (window as any).api.exportAPI2.exportLectra(
+						dados,
+						caminhoCompleto,
+						nomeArquivo || "MARKER_" + Date.now(),
+						options,
+					)
+				}
+				return caminhoCompleto
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err)
+				console.error("Erro ao exportar arquivo:", message)
+				return null
+			}
+		},
+		[],
+	)
+
+	// Selecionar pasta de destino para exportação em lote
+	const selecionarPastaDestino = useCallback(
+		async (): Promise<string | null> => {
+			try {
+				const result = await (window as any).api.electronAPI.selectDirectory()
+				return result || null
+			} catch (err) {
+				console.error("Erro ao selecionar pasta:", err)
+				return null
+			}
+		},
+		[],
+	)
+
 	// Cadastrar apelido
 	const cadastrarApelido = useCallback(
 		async (componente: string, apelido: string): Promise<boolean> => {
@@ -332,6 +378,8 @@ export function useEncaixe() {
 		converterParaEmma,
 		converterParaLectra,
 		exportarArquivo,
+		exportarArquivoDireto,
+		selecionarPastaDestino,
 		cadastrarApelido,
 		buscarApelido,
 	}

@@ -369,6 +369,7 @@ declare global {
 			componentes: ComponentesAPI
 			electronAPI: {
 				selectFile: () => Promise<string | null>
+				selectDirectory: () => Promise<string | null>
 				parseCTF: (filePath: string) => Promise<unknown>
 				parseCTC: (filePath: string) => Promise<unknown>
 				saveCTF: (lines: string[]) => Promise<unknown>
@@ -407,6 +408,7 @@ declare global {
 					modelos: unknown,
 					caminho: string,
 					markerName: string,
+					options?: { espacamento?: number; sentidoMaterial?: string; largura?: number; fabric_type?: number },
 				) => Promise<{ path: string }>
 			}
 			conversorAPI: {

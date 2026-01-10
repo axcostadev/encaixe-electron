@@ -734,6 +734,7 @@ export interface CadastroInfo {
 	setorNome?: string // Nome do setor (EMMA, LECTRA, COMELZ)
 	tamanhosRanges?: { tamanhoInicial: number; tamanhoFinal: number }[] // Ranges originais dos tamanhos
 	sentidoMaterial?: string // Sentido do material (S, N, U)
+	numeroTecido?: string // Número do tecido para fabric_type no Lectra
 }
 
 /**
@@ -987,6 +988,7 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 																setorNome: setorNome.toUpperCase(),
 																tamanhosRanges: tamanhosRanges,
 																sentidoMaterial: mat?.sentido || "S",
+																numeroTecido: comp.numero_tecido || "",
 															}
 
 															resComp(info)

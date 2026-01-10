@@ -232,6 +232,7 @@ const api = {
 	// APIs do electron-app
 	electronAPI: {
 		selectFile: () => ipcRenderer.invoke("select-file"),
+		selectDirectory: () => ipcRenderer.invoke("select-directory"),
 		parseCTF: (filePath: string) => ipcRenderer.invoke("parse-ctf", filePath),
 		parseCTC: (filePath: string) => ipcRenderer.invoke("parse-ctc", filePath),
 		saveCTF: (lines: string[]) => ipcRenderer.invoke("save-ctf", lines),
@@ -269,7 +270,7 @@ const api = {
 			modelos: unknown,
 			caminho: string,
 			markerName: string,
-			options?: { espacamento?: number; sentidoMaterial?: string; largura?: number },
+			options?: { espacamento?: number; sentidoMaterial?: string; largura?: number; fabric_type?: number },
 		) => ipcRenderer.invoke("export-lectra", modelos, caminho, markerName, options),
 	},
 	conversorAPI: {

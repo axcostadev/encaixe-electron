@@ -540,6 +540,16 @@ export function setupIPC(): void {
 		return result.filePaths[0]
 	})
 
+	// Directory selection
+	ipcMain.handle("select-directory", async () => {
+		const result = await dialog.showOpenDialog({
+			properties: ["openDirectory", "createDirectory"],
+			title: "Selecione a pasta de destino",
+		})
+		if (result.canceled) return null
+		return result.filePaths[0]
+	})
+
 	// Parse handlers
 	ipcMain.handle("parse-ctf", async (_event, filePath: string) => {
 		return await parser.parseCTF(filePath)
@@ -707,7 +717,7 @@ export function setupIPC(): void {
 			modelos: ModelDataLectra[],
 			caminho: string,
 			markerName: string,
-			options?: { espacamento?: number; sentidoMaterial?: string; largura?: number },
+			options?: { espacamento?: number; sentidoMaterial?: string; largura?: number; fabric_type?: number },
 		) => {
 			return await exportadorLectra.exportarMkx(modelos, caminho, markerName, options || {})
 		},

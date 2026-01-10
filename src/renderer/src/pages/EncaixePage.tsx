@@ -14,6 +14,7 @@ export type ListaAutomaticoItem = {
 	espacamento?: string
 	sentidoMaterial?: string
 	largura?: string
+	numeroTecido?: string // Número do tecido para fabric_type no Lectra
 }
 
 export default function EncaixePage() {

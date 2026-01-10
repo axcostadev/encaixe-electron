@@ -61,7 +61,6 @@ type CadastroInfo = {
 	material: string
 	cor: string
 	largura: string
-	tipoTecido: number
 	paresCriac: string
 	conjugNavalha: string
 	placaPorPar: string
@@ -73,6 +72,7 @@ type CadastroInfo = {
 	setorNome?: string
 	tamanhosRanges?: { tamanhoInicial: number; tamanhoFinal: number }[]
 	sentidoMaterial?: string
+	numeroTecido?: string // Número do tecido para fabric_type no Lectra
 }
 
 // Mapeamento de pares por tamanho para cada cor
@@ -602,6 +602,7 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 				espacamento: cadastroSelecionado.espacamento,
 				sentidoMaterial: cadastroSelecionado.sentidoMaterial,
 				largura: cadastroSelecionado.largura,
+				numeroTecido: cadastroSelecionado.numeroTecido,
 			})
 
 			// Log de auditoria para adicionar na lista
@@ -828,6 +829,7 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 					espacamento: parseFloat(cadastroSelecionado.espacamento || "1.5"),
 					sentidoMaterial: cadastroSelecionado.sentidoMaterial || "S",
 					largura: parseFloat(cadastroSelecionado.largura || "1350"),
+					fabric_type: cadastroSelecionado.numeroTecido ? parseInt(cadastroSelecionado.numeroTecido) : 9,
 				}
 				: undefined
 
@@ -1221,7 +1223,9 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 						<p className="text-sm text-muted-foreground mt-2">
 							Nome do arquivo:{" "}
 							<strong>
-								{ofSearch}-{apelidoSelecionado}.json
+								{maquinaSelecionada.toLowerCase() === "lectra"
+									? `${ofSearch}_${apelidoSelecionado.replace(/\s+/g, '_').toUpperCase()}.mkx`
+									: `${ofSearch}-${apelidoSelecionado}.json`}
 							</strong>
 						</p>
 					)}
