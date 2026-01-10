@@ -27,7 +27,7 @@ nsis:
   oneClick: false
   perMachine: false
 portable:
-  artifactName: ${name}-${version}-portable.${ext}
+  artifactName: ${name}-${version}-view.${ext}
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
