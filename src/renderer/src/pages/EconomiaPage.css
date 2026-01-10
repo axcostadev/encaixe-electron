@@ -1,0 +1,375 @@
+.economia-filters {
+  background: var(--economia-gradient);
+  color: #fff;
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+.economia-filters h3{color:#fff;margin:0 0 8px;font-weight:700}
+.economia-filters .filter-box{background:rgba(255,255,255,0.06);border-radius:8px;padding:8px;height:160px;overflow:auto}
+.economia-filters label{display:flex;align-items:center;padding:4px 6px;border-radius:6px;margin-bottom:4px}
+.economia-filters input[type="checkbox"]{width:14px;height:14px}
+.economia-filters label:hover{background:rgba(255,255,255,0.03)}
+.economia-filters .controls{display:flex;gap:8px;margin-top:8px}
+.economia-filters .controls button{padding:4px 8px}
+
+.economia-badges .econ-badge{background:linear-gradient(180deg,#e6f2ff,#d8eefe);border-radius:10px;padding:10px;display:flex;align-items:center;gap:10px}
+.economia-badges .badge-icon{width:48px;height:48px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.economia-badges .badge-amount{font-weight:700}
+
+/* layout: left narrow filters, right area with two square cards */
+.economia-charts-container{display:grid;grid-template-columns:180px 1fr;gap:18px;align-items:start}
+.economia-charts-container > .bg-card{background: var(--economia-gradient) !important;border-radius:14px;padding:18px;min-height:var(--panel-height);background-repeat:no-repeat;background-size:cover}
+.economia-charts-container > .economia-filters{min-height:var(--panel-height)}
+.charts-right{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.charts-right > .bg-card{min-height:var(--panel-height);background: var(--economia-gradient) !important;background-repeat:no-repeat;background-size:cover}
+.bg-card h3{font-weight:700;text-align:center;color:#ffffff}
+.chart-placeholder{padding:40px;text-align:center;color:#475569}
+
+/* responsive fallback for small screens */
+:root{
+  --economia-blue-start: #3b82c4;
+  --economia-blue-end: #2b6ea8;
+  --economia-gradient: linear-gradient(180deg,var(--economia-blue-start),var(--economia-blue-end));
+  /* lighter variant for cards */
+  --economia-light-start: #7fb7ea;
+  --economia-light-end: #5b97d6;
+  --economia-gradient-light: linear-gradient(180deg,var(--economia-light-start),var(--economia-light-end));
+  --panel-height: 720px;
+}
+
+@media (max-width: 767px){
+  .economia-charts-container{grid-template-columns:1fr}
+  .charts-right{grid-template-columns:1fr}
+  :root{--panel-height:360px}
+}
+
+/* ensure filters keep original blue gradient and white text */
+.economia-filters{background: linear-gradient(180deg,#3b82c4,#2b6ea8);color:#ffffff}
+.economia-filters h3{color:#ffffff}
+.economia-filters .font-medium{color:#ffffff}
+
+/* Busca Dados - New Professional Design */
+.busca-container {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border-radius: 16px;
+  padding: 24px;
+  color: #fff;
+  min-height: 500px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+}
+
+.busca-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.busca-header-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.busca-header-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.busca-header-subtitle {
+  font-size: 14px;
+  color: #94a3b8;
+  margin: 4px 0 0 0;
+}
+
+.busca-controls {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.busca-input-group {
+  flex: 1;
+  min-width: 280px;
+}
+
+.busca-input-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.busca-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.busca-input-icon {
+  position: absolute;
+  left: 14px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.busca-input-field {
+  width: 100%;
+  padding: 12px 14px 12px 44px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+.busca-input-field:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: rgba(255,255,255,0.08);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+}
+
+.busca-input-field::placeholder {
+  color: #64748b;
+}
+
+.busca-button-group {
+  display: flex;
+  gap: 10px;
+}
+
+.busca-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.busca-btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #fff;
+}
+
+.busca-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59,130,246,0.4);
+}
+
+.busca-btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.busca-btn-secondary {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #e2e8f0;
+}
+
+.busca-btn-secondary:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.busca-btn-ghost {
+  background: transparent;
+  color: #94a3b8;
+}
+
+.busca-btn-ghost:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.05);
+}
+
+.busca-spinner {
+  animation: spin 1s linear infinite;
+}
+
+.busca-spinner-large {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.busca-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.busca-status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.busca-status-results {
+  color: #22c55e;
+}
+
+.busca-status-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255,255,255,0.1);
+}
+
+.busca-columns {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.busca-columns-label {
+  font-size: 13px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.busca-columns-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.busca-column-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  font-size: 12px;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.busca-column-chip:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.busca-column-chip.active {
+  background: rgba(59,130,246,0.15);
+  border-color: rgba(59,130,246,0.3);
+  color: #60a5fa;
+}
+
+.busca-column-chip input {
+  display: none;
+}
+
+.busca-results {
+  background: rgba(0,0,0,0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 300px;
+}
+
+.busca-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px;
+  color: #94a3b8;
+}
+
+.busca-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px;
+  color: #64748b;
+}
+
+.busca-empty h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #94a3b8;
+}
+
+.busca-empty p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.busca-table-wrapper {
+  overflow-x: auto;
+  max-height: 400px;
+}
+
+.busca-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.busca-table thead {
+  position: sticky;
+  top: 0;
+  background: rgba(15,23,42,0.95);
+  z-index: 10;
+}
+
+.busca-table th {
+  text-align: left;
+  padding: 14px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.busca-table td {
+  padding: 12px;
+  font-size: 13px;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.busca-table tbody tr:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.busca-row-num {
+  color: #64748b;
+  font-weight: 500;
+  width: 50px;
+}
+

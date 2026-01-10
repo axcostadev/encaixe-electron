@@ -39,7 +39,9 @@ export function Home({ user, onLogout }: HomeProps): React.JSX.Element {
 						<div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-8 shadow-lg">
 							<div className="max-w-6xl mx-auto flex items-center justify-between">
 								<div>
-									<h1 className="text-4xl font-bold">Bem-vindo, {user.username}!</h1>
+									<h1 className="text-4xl font-bold">
+										Bem-vindo, {user.username}!
+									</h1>
 									<p className="text-blue-100 mt-2">{user.email}</p>
 								</div>
 								<button
@@ -58,7 +60,9 @@ export function Home({ user, onLogout }: HomeProps): React.JSX.Element {
 									className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer hover:bg-blue-50"
 								>
 									<div className="text-4xl mb-4">📋</div>
-									<h3 className="text-xl font-bold text-gray-800 mb-2">Modelos</h3>
+									<h3 className="text-xl font-bold text-gray-800 mb-2">
+										Modelos
+									</h3>
 									<p className="text-gray-600">
 										Cadastre e gerencie os modelos de produtos com suas cores
 									</p>
@@ -69,7 +73,9 @@ export function Home({ user, onLogout }: HomeProps): React.JSX.Element {
 									className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer hover:bg-blue-50"
 								>
 									<div className="text-4xl mb-4">🔧</div>
-									<h3 className="text-xl font-bold text-gray-800 mb-2">Componentes</h3>
+									<h3 className="text-xl font-bold text-gray-800 mb-2">
+										Componentes
+									</h3>
 									<p className="text-gray-600">
 										Defina os componentes dos modelos e seus materiais
 									</p>
@@ -80,7 +86,9 @@ export function Home({ user, onLogout }: HomeProps): React.JSX.Element {
 									className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer hover:bg-blue-50"
 								>
 									<div className="text-4xl mb-4">📏</div>
-									<h3 className="text-xl font-bold text-gray-800 mb-2">Tamanhos</h3>
+									<h3 className="text-xl font-bold text-gray-800 mb-2">
+										Tamanhos
+									</h3>
 									<p className="text-gray-600">
 										Configure os tamanhos disponíveis para cada componente
 									</p>
@@ -91,7 +99,9 @@ export function Home({ user, onLogout }: HomeProps): React.JSX.Element {
 									className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer hover:bg-blue-50"
 								>
 									<div className="text-4xl mb-4">🎨</div>
-									<h3 className="text-xl font-bold text-gray-800 mb-2">Materiais</h3>
+									<h3 className="text-xl font-bold text-gray-800 mb-2">
+										Materiais
+									</h3>
 									<p className="text-gray-600">
 										Cadastre e gerencie os materiais com todas as especificações
 									</p>
@@ -102,7 +112,9 @@ export function Home({ user, onLogout }: HomeProps): React.JSX.Element {
 									className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer hover:bg-blue-50"
 								>
 									<div className="text-4xl mb-4">🏭</div>
-									<h3 className="text-xl font-bold text-gray-800 mb-2">Setores</h3>
+									<h3 className="text-xl font-bold text-gray-800 mb-2">
+										Setores
+									</h3>
 									<p className="text-gray-600">
 										Gerencie os setores de produção do seu negócio
 									</p>
@@ -110,7 +122,9 @@ export function Home({ user, onLogout }: HomeProps): React.JSX.Element {
 							</div>
 
 							<div className="mt-12 bg-white rounded-lg shadow-lg p-6">
-								<h2 className="text-2xl font-bold text-gray-800 mb-4">Informações do Usuário</h2>
+								<h2 className="text-2xl font-bold text-gray-800 mb-4">
+									Informações do Usuário
+								</h2>
 								<div className="grid grid-cols-3 gap-6">
 									<div className="bg-gray-50 p-4 rounded-lg">
 										<p className="text-gray-600 text-sm font-medium">ID</p>
@@ -118,11 +132,15 @@ export function Home({ user, onLogout }: HomeProps): React.JSX.Element {
 									</div>
 									<div className="bg-gray-50 p-4 rounded-lg">
 										<p className="text-gray-600 text-sm font-medium">Usuário</p>
-										<p className="text-gray-900 text-lg font-bold">{user.username}</p>
+										<p className="text-gray-900 text-lg font-bold">
+											{user.username}
+										</p>
 									</div>
 									<div className="bg-gray-50 p-4 rounded-lg">
 										<p className="text-gray-600 text-sm font-medium">Email</p>
-										<p className="text-gray-900 text-lg font-bold">{user.email}</p>
+										<p className="text-gray-900 text-lg font-bold">
+											{user.email}
+										</p>
 									</div>
 								</div>
 							</div>

@@ -1,0 +1,23 @@
+<svg viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg">
+  <!-- Running shoe icon - clean flat style -->
+  <defs>
+    <linearGradient id="shoeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#c41e3a"/>
+      <stop offset="100%" style="stop-color:#8b1538"/>
+    </linearGradient>
+  </defs>
+  <!-- Main shoe body -->
+  <path d="M6 28 C6 18, 14 12, 28 10 C42 8, 54 12, 58 18 L58 26 C58 28, 56 30, 54 30 L10 30 C8 30, 6 28, 6 28 Z" fill="url(#shoeGrad)"/>
+  <!-- Sole -->
+  <path d="M8 30 L56 30 C58 30, 60 32, 60 34 L60 36 C60 38, 58 38, 56 38 L8 38 C6 38, 4 38, 4 36 L4 34 C4 32, 6 30, 8 30 Z" fill="#2d2d2d"/>
+  <!-- Midsole white stripe -->
+  <rect x="6" y="30" width="52" height="3" rx="1" fill="#f0f0f0"/>
+  <!-- Tongue -->
+  <ellipse cx="24" cy="12" rx="8" ry="4" fill="#f5f5f5"/>
+  <!-- Laces -->
+  <path d="M18 11 L22 15 M22 10 L26 14 M26 10 L30 14" stroke="#333" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- Side swoosh -->
+  <path d="M14 24 C24 18, 44 18, 52 22" stroke="#fff" stroke-width="3" fill="none" opacity="0.9" stroke-linecap="round"/>
+  <!-- Heel detail -->
+  <path d="M8 20 C10 16, 14 14, 18 14" stroke="#8b1538" stroke-width="2" fill="none"/>
+</svg>

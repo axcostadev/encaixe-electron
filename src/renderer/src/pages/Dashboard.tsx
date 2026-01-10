@@ -1,11 +1,25 @@
 import { Button } from "@renderer/components/ui/button"
 import { useApp } from "@renderer/contexts/AppContext"
-import { ArrowRight, Box, Layers, Package, Palette } from "lucide-react"
+import { useAuth } from "@renderer/contexts/AuthContext"
+import { ArrowRight, Box, Layers, LogOut, Package, Palette } from "lucide-react"
+import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 
 export function Dashboard() {
-	const { modelos, materiais } = useApp()
+	const { logout } = useAuth()
+	const { modelos, materiais, loadModelos } = useApp()
 	const navigate = useNavigate()
+
+	useEffect(() => {
+		async function load() {
+			try {
+				await loadModelos()
+			} catch {
+				// Ignore errors for now
+			}
+		}
+		load()
+	}, [loadModelos])
 
 	const totalCores = modelos.reduce((acc, m) => acc + m.cores.length, 0)
 	const totalComponentes = modelos.reduce(
@@ -51,10 +65,18 @@ export function Dashboard() {
 	return (
 		<div className="space-y-8">
 			<div className="animate-fade-in">
-				<h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-				<p className="text-muted-foreground mt-1">
-					Visão geral do sistema de gestão de modelos
-				</p>
+				<div className="flex items-center justify-between">
+					<div>
+						<h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+						<p className="text-muted-foreground mt-1">
+							Visão geral do sistema de gestão de modelos
+						</p>
+					</div>
+					<Button variant="outline" onClick={logout}>
+						<LogOut className="h-4 w-4 mr-2" />
+						Sair
+					</Button>
+				</div>
 			</div>
 
 			<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">

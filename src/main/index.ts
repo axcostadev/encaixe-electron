@@ -1,20 +1,43 @@
 import { electronApp, is, optimizer } from "@electron-toolkit/utils"
-import { app, BrowserWindow, ipcMain, shell } from "electron"
+import { app, BrowserWindow, ipcMain, shell, nativeImage } from "electron"
 import { join } from "path"
 import icon from "../../resources/icon.png?asset"
+import { existsSync } from "fs"
 import { setupIPC } from "./ipc"
 import { setupMenu } from "./menu"
+import { closeDatabase } from "./database"
 
 function createWindow(): void {
 	// Create the browser window.
 	const mainWindow = new BrowserWindow({
+		title: "cutting room",
 		width: 900,
 		height: 670,
 		show: false,
 		// mostrar menu por padrão (não esconder com Alt)
 		autoHideMenuBar: false,
-		menuBarVisible: true,
-		...(process.platform === "linux" ? { icon } : {}),
+		// set the window icon for Windows and Linux
+		...(function () {
+			if (process.platform === "win32") {
+				const icoPath = join(
+					__dirname,
+					"../../resources/view-cutting-machine.ico",
+				)
+				if (existsSync(icoPath)) return { icon: icoPath }
+				// fallback to packaged PNG/nativeImage if .ico not found
+				try {
+					return { icon: nativeImage.createFromDataURL(icon) }
+				} catch (_) {
+					return {}
+				}
+			}
+
+			if (process.platform === "linux") {
+				return { icon }
+			}
+
+			return {}
+		})(),
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
 			sandbox: false,
@@ -22,12 +45,48 @@ function createWindow(): void {
 	})
 
 	mainWindow.on("ready-to-show", () => {
+		// abrir a janela maximizada antes de mostrá-la
+		try {
+			mainWindow.maximize()
+		} catch (_) {
+			console.log("Failed to maximize window on ready-to-show")
+		}
 		mainWindow.show()
 	})
 
 	mainWindow.webContents.setWindowOpenHandler((details) => {
 		shell.openExternal(details.url)
 		return { action: "deny" }
+	})
+
+	// Diagnostics: forward renderer console messages and log load failures/crashes
+	mainWindow.webContents.on(
+		"console-message",
+		(_event, level, message, line, sourceId) => {
+			console.log(
+				`Renderer console (${level}) ${sourceId}:${line} - ${message}`,
+			)
+		},
+	)
+
+	mainWindow.webContents.on(
+		"did-fail-load",
+		(_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+			console.error("did-fail-load", {
+				errorCode,
+				errorDescription,
+				validatedURL,
+				isMainFrame,
+			})
+		},
+	)
+
+	mainWindow.webContents.on("render-process-gone", (_event, details) => {
+		console.error("Renderer process gone", details)
+	})
+
+	mainWindow.webContents.on("did-finish-load", () => {
+		console.log("Renderer finished load")
 	})
 
 	// HMR for renderer base on electron-vite cli.
@@ -43,8 +102,14 @@ function createWindow(): void {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-	// Set app user model id for windows
-	electronApp.setAppUserModelId("com.electron")
+	// Set app user model id for windows and app name
+	electronApp.setAppUserModelId("com.aincrad.cuttingroom")
+	try {
+		// set the app name (useful on macOS/Linux)
+		app.setName("cutting room")
+	} catch (_) {
+		console.log("Failed to set app name")
+	}
 
 	// Setup IPC handlers
 	setupIPC()
@@ -78,6 +143,10 @@ app.on("window-all-closed", () => {
 	if (process.platform !== "darwin") {
 		app.quit()
 	}
+})
+
+app.on("before-quit", () => {
+	closeDatabase()
 })
 
 // In this file you can include the rest of your app's specific main process

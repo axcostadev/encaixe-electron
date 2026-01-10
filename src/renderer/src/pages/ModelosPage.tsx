@@ -5,17 +5,33 @@ import { Button } from "@renderer/components/ui/button"
 import { useApp } from "@renderer/contexts/AppContext"
 import { Modelo } from "@renderer/types"
 import { Plus } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 export function ModelosPage() {
-	const { modelos, addModelo, updateModelo, deleteModelo } = useApp()
+	const { modelos, loadModelos, addModelo, updateModelo, deleteModelo } =
+		useApp()
 	const [formOpen, setFormOpen] = useState(false)
 	const [editingModelo, setEditingModelo] = useState<Modelo | null>(null)
 
-	function handleCreate(data: { artigo: string; nome: string }) {
-		addModelo(data)
-		toast.success("Modelo criado com sucesso!")
+	useEffect(() => {
+		async function load() {
+			try {
+				await loadModelos()
+			} catch {
+				toast.error("Erro ao carregar modelos")
+			}
+		}
+		load()
+	}, [loadModelos])
+
+	async function handleCreate(data: { artigo: string; nome: string }) {
+		try {
+			await addModelo(data)
+			toast.success("Modelo criado com sucesso!")
+		} catch (error) {
+			toast.error("Erro ao criar modelo: " + (error as Error).message)
+		}
 	}
 
 	function handleEdit(modelo: Modelo) {
@@ -23,16 +39,24 @@ export function ModelosPage() {
 		setFormOpen(true)
 	}
 
-	function handleUpdate(data: { artigo: string; nome: string }) {
+	async function handleUpdate(data: { artigo: string; nome: string }) {
 		if (editingModelo) {
-			updateModelo(editingModelo.id, data)
-			toast.success("Modelo atualizado com sucesso!")
+			try {
+				await updateModelo(editingModelo.id, data)
+				toast.success("Modelo atualizado com sucesso!")
+			} catch (error) {
+				toast.error("Erro ao atualizar modelo: " + (error as Error).message)
+			}
 		}
 	}
 
-	function handleDelete(id: string) {
-		deleteModelo(id)
-		toast.success("Modelo excluído com sucesso!")
+	async function handleDelete(id: number) {
+		try {
+			await deleteModelo(id)
+			toast.success("Modelo excluído com sucesso!")
+		} catch (error) {
+			toast.error("Erro ao excluir modelo: " + (error as Error).message)
+		}
 	}
 
 	function handleFormSubmit(data: { artigo: string; nome: string }) {

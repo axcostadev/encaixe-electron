@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: aincrad-app
+appId: br.dev.aincrad
+productName: "cutting room"
 directories:
   buildResources: build
 files:
@@ -12,12 +12,22 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: aincrad-app
+  executableName: cutting-room-view
+  icon: build/view-cutting-machine.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+  displayLanguageSelector: false
+  installerHeaderIcon: build/view-cutting-machine.ico
+  installerIcon: build/view-cutting-machine.ico
+  uninstallerIcon: build/view-cutting-machine.ico
+  include: build/installer.nsh
+  oneClick: false
+  perMachine: false
+portable:
+  artifactName: ${name}-${version}-view.${ext}
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
@@ -33,11 +43,11 @@ linux:
     - AppImage
     - snap
     - deb
-  maintainer: electronjs.org
+  maintainer: aincrad.dev.br
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
 publish:
   provider: generic
-  url: https://example.com/auto-updates
+  url: https://aincrad.dev.br/auto-updates

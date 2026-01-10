@@ -2,15 +2,9 @@ import { PageHeader } from "@renderer/components/common/PageHeader"
 import { ComponenteForm } from "@renderer/components/componentes/ComponenteForm"
 import { ComponenteList } from "@renderer/components/componentes/ComponenteList"
 import { Button } from "@renderer/components/ui/button"
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@renderer/components/ui/select"
+import { SelectSearch } from "@renderer/components/ui/select"
 import { useApp } from "@renderer/contexts/AppContext"
-import { Componente } from "@renderer/types"
+import { Componente, ComponentePayload } from "@renderer/types"
 import { Plus } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
@@ -34,27 +28,34 @@ export function ComponentesPage() {
 	)
 
 	const selectedModeloId = searchParams.get("modelo") || ""
+	const selectedModeloIdNum = selectedModeloId
+		? parseInt(selectedModeloId, 10)
+		: null
 
 	const componentes = useMemo(() => {
-		if (!selectedModeloId) return []
-		return getComponentesByModelo(selectedModeloId)
-	}, [selectedModeloId, getComponentesByModelo, modelos])
+		if (!selectedModeloIdNum) return []
+		return getComponentesByModelo(selectedModeloIdNum)
+	}, [selectedModeloIdNum, modelos])
 
 	const coresModelo = useMemo(() => {
-		if (!selectedModeloId) return []
-		return getCoresByModelo(selectedModeloId)
-	}, [selectedModeloId, getCoresByModelo, modelos])
+		if (!selectedModeloIdNum) return []
+		return getCoresByModelo(selectedModeloIdNum)
+	}, [selectedModeloIdNum, getCoresByModelo])
 
-	const selectedModelo = modelos.find((m) => m.id === selectedModeloId)
+	const selectedModelo = modelos.find((m) => m.id === selectedModeloIdNum)
 
 	function handleModeloChange(value: string) {
 		setSearchParams({ modelo: value })
 	}
 
-	function handleCreate(data: Omit<Componente, "id" | "modeloId">) {
-		if (!selectedModeloId) return
-		addComponente(selectedModeloId, data)
-		toast.success("Componente criado com sucesso!")
+	async function handleCreate(data: ComponentePayload) {
+		if (!selectedModeloIdNum) return
+		try {
+			await addComponente(selectedModeloIdNum, data)
+			toast.success("Componente criado com sucesso!")
+		} catch (error) {
+			toast.error("Erro ao criar componente:" + error)
+		}
 	}
 
 	function handleEdit(componente: Componente) {
@@ -62,20 +63,28 @@ export function ComponentesPage() {
 		setFormOpen(true)
 	}
 
-	function handleUpdate(data: Omit<Componente, "id" | "modeloId">) {
-		if (editingComponente && selectedModeloId) {
-			updateComponente(selectedModeloId, editingComponente.id, data)
-			toast.success("Componente atualizado com sucesso!")
+	async function handleUpdate(data: ComponentePayload) {
+		if (editingComponente && selectedModeloIdNum) {
+			try {
+				await updateComponente(selectedModeloIdNum, editingComponente.id, data)
+				toast.success("Componente atualizado com sucesso!")
+			} catch (error) {
+				toast.error("Erro ao atualizar componente" + error)
+			}
 		}
 	}
 
-	function handleDelete(id: string) {
-		if (!selectedModeloId) return
-		deleteComponente(selectedModeloId, id)
-		toast.success("Componente excluído com sucesso!")
+	async function handleDelete(id: string) {
+		if (!selectedModeloIdNum) return
+		try {
+			await deleteComponente(selectedModeloIdNum, parseInt(id, 10))
+			toast.success("Componente excluído com sucesso!")
+		} catch (error) {
+			toast.error("Erro ao excluir componente: " + error)
+		}
 	}
 
-	function handleFormSubmit(data: Omit<Componente, "id" | "modeloId">) {
+	function handleFormSubmit(data: ComponentePayload) {
 		if (editingComponente) {
 			handleUpdate(data)
 		} else {
@@ -99,7 +108,7 @@ export function ComponentesPage() {
 				action={
 					<Button
 						onClick={() => setFormOpen(true)}
-						disabled={!selectedModeloId}
+						disabled={!selectedModeloIdNum}
 					>
 						<Plus className="h-4 w-4 mr-2" />
 						Novo Componente
@@ -108,19 +117,16 @@ export function ComponentesPage() {
 			/>
 
 			<div className="flex items-center gap-4">
-				<div className="w-full max-w-xs">
-					<Select value={selectedModeloId} onValueChange={handleModeloChange}>
-						<SelectTrigger>
-							<SelectValue placeholder="Selecione um modelo" />
-						</SelectTrigger>
-						<SelectContent>
-							{modelos.map((modelo) => (
-								<SelectItem key={modelo.id} value={modelo.id}>
-									{modelo.nome} ({modelo.artigo})
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+				<div className="w-full max-w-xl">
+					<SelectSearch
+						value={selectedModeloId}
+						onValueChange={handleModeloChange}
+						placeholder="Selecione um modelo"
+						options={modelos.map((modelo) => ({
+							value: modelo.id.toString(),
+							label: `${modelo.nome} (${modelo.artigo})`,
+						}))}
+					/>
 				</div>
 				{selectedModelo && (
 					<p className="text-sm text-muted-foreground">
@@ -130,7 +136,7 @@ export function ComponentesPage() {
 				)}
 			</div>
 
-			{!selectedModeloId ? (
+			{!selectedModeloIdNum ? (
 				<div className="text-center py-16 text-muted-foreground animate-fade-in">
 					<p>
 						Selecione um modelo para visualizar e gerenciar seus componentes.
