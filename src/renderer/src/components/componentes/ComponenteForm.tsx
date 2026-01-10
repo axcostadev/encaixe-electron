@@ -128,11 +128,11 @@ export function ComponenteForm({
 
 	function handleToggleSelectAll() {
 		if (coresModelo.length === 0) return
-		const all = coresModelo.map((c) => c.id.toString())
+		const allIds = coresModelo.map((c) => c.id.toString())
+		const allSelected = allIds.every((id) => formData.coresDisponiveis.includes(id))
 		setFormData((prev) => ({
 			...prev,
-			coresDisponiveis:
-				prev.coresDisponiveis.length === coresModelo.length ? [] : all,
+			coresDisponiveis: allSelected ? [] : allIds,
 		}))
 	}
 
@@ -390,30 +390,19 @@ export function ComponenteForm({
 												{coresModelo.map((cor) => (
 													<div
 														key={cor.id}
-														className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors hover:bg-accent/50 ${
+														className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
 															formData.coresDisponiveis.includes(cor.id.toString())
 																? "bg-primary/10 border border-primary/30"
 																: "bg-background border border-transparent"
 														}`}
-														onClick={() =>
-															handleCorToggle(
-																cor.id.toString(),
-																!formData.coresDisponiveis.includes(cor.id.toString()),
-															)
-														}
 													>
 														<Checkbox
 															id={`cor-${cor.id}`}
-															checked={formData.coresDisponiveis.includes(
-																cor.id.toString(),
-															)}
+															checked={formData.coresDisponiveis.includes(cor.id.toString())}
 															onCheckedChange={(checked) =>
-																handleCorToggle(
-																	cor.id.toString(),
-																	checked as boolean,
-																)
+																handleCorToggle(cor.id.toString(), checked === true)
 															}
-															className="pointer-events-none"
+															className="border-input data-[state=checked]:bg-primary data-[state=checked]:border-primary"
 														/>
 														<label
 															htmlFor={`cor-${cor.id}`}
@@ -425,7 +414,7 @@ export function ComponenteForm({
 															<span className="font-medium">{cor.nome}</span>
 														</label>
 													</div>
-												))}
+													))}
 											</div>
 										</div>
 									</div>

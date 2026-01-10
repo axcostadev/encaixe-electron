@@ -210,7 +210,7 @@ export function SelectSearch({
 			<SelectPrimitive.Portal>
 				<SelectPrimitive.Content
 					className={cn(
-						"relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md",
+						"relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border border-border bg-background text-foreground shadow-md",
 					)}
 					position="popper"
 				>
@@ -222,7 +222,7 @@ export function SelectSearch({
 								value={query}
 								onChange={(e) => setQuery(e.target.value)}
 								placeholder="Pesquisar..."
-								className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm outline-none"
+								className="w-full rounded-md border border-input bg-background text-foreground px-2 py-1 text-sm outline-none"
 							/>
 						</div>
 
