@@ -52,6 +52,7 @@ import * as exportadorLectra from "../modules/exportadorLectra.js"
 import * as conversorComelz from "../modules/conversorComelz.js"
 import * as conversorEmma from "../modules/conversorEmma.js"
 import * as conversorLectra from "../modules/conversorLectra.js"
+import * as cgcParser from "../modules/cgcParser.js"
 
 // Type definitions
 interface LinhaCTF {
@@ -905,5 +906,72 @@ export function setupIPC(): void {
 
 	ipcMain.handle("economia-by-material", async (_event, limit: number = 10) => {
 		return await db.getEconomiaByMaterial(limit)
+	})
+
+	// ==================== CGC Import IPC handlers ====================
+
+	ipcMain.handle("economia-import-cgc", async (_event, filePath?: string) => {
+		try {
+			let pathToRead = filePath
+			if (!pathToRead) {
+				const res = await dialog.showOpenDialog({
+					properties: ["openFile"],
+					filters: [{ name: "CGC Files", extensions: ["txt", "TXT"] }],
+					title: "Selecionar arquivo CGC",
+				})
+				if (res.canceled) return { imported: 0 }
+				pathToRead = res.filePaths[0]
+			}
+
+			// Parse o arquivo CGC
+			const registros = await cgcParser.parseCGC(pathToRead)
+
+			if (!registros || registros.length === 0) {
+				return { imported: 0, message: "Nenhum registro encontrado no arquivo" }
+			}
+
+			// Converter para formato esperado pelo saveEconomiaRows
+			const rows = registros.map((r: any) => ({
+				Data: r.data,
+				Artigo: r.artigo,
+				Ordem: r.ordem,
+				Modelo: r.modelo,
+				Material: r.material,
+				"Cor/Espessura": r.cor_espessura,
+				PREÇO: r.preco,
+				Previsto: r.previsto,
+				Encaixe: r.encaixe,
+				Dif: r.dif,
+				"%": r.porcent,
+			}))
+
+			const result = await db.saveEconomiaRows(rows)
+			return { ...result, imported: registros.length }
+		} catch (err) {
+			console.error("[IPC] economia-import-cgc error:", err)
+			return { imported: 0, error: (err as any)?.message || String(err) }
+		}
+	})
+
+	// Handler para retornar apenas os headers das OFs (sem materiais)
+	ipcMain.handle("economia-import-cgc-headers", async (_event, filePath?: string) => {
+		try {
+			let pathToRead = filePath
+			if (!pathToRead) {
+				const res = await dialog.showOpenDialog({
+					properties: ["openFile"],
+					filters: [{ name: "CGC Files", extensions: ["txt", "TXT"] }],
+					title: "Selecionar arquivo CGC",
+				})
+				if (res.canceled) return { headers: [] }
+				pathToRead = res.filePaths[0]
+			}
+
+			const headers = await cgcParser.parseCGCHeaders(pathToRead)
+			return { headers, count: headers.length }
+		} catch (err) {
+			console.error("[IPC] economia-import-cgc-headers error:", err)
+			return { headers: [], error: (err as any)?.message || String(err) }
+		}
 	})
 }
