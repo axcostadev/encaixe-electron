@@ -66,26 +66,37 @@ export default function EconomiaPage() {
         setSearchResults([])
       } else {
         // Converter para o formato esperado pela tabela
-        const formattedResults = result.results.map((r: any, idx: number) => ({
-          line: idx + 1,
-          text: '',
-          parsed: {
-            'Data': r.data || '',
-            'Artigo': r.artigo || '',
-            'DATA FASE': r.data || '',
-            'Ordem': r.ordem || '',
-            'Modelo': r.modelo || '',
-            'Material': r.material || '',
-            'Cor/Espessura': r.cor_espessura || '',
-            'PREÇO': r.preco?.toString() || '',
-            'Previsto': r.previsto?.toString() || '',
-            'Encaixe': r.encaixe?.toString() || '',
-            'Dif': r.dif?.toString() || '',
-            '%': r.porcent?.toString() || '',
-            'Economia (R$)': '',
-            'Periodo (Ano/Mês)': r.data ? `${r.data.split('-')[0]}/${r.data.split('-')[1]}` : ''
+        const now = new Date()
+        const currentPeriod = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`
+        const todayDate = now.toLocaleDateString('pt-BR')
+        const formattedResults = result.results.map((r: any, idx: number) => {
+          const encaixe = Number(r.encaixe) || 0
+          const previsto = Number(r.previsto) || 0
+          const preco = Number(r.preco) || 0
+          const dif = encaixe - previsto
+          const percentual = previsto !== 0 ? (dif / previsto) * 100 : 0
+          const economia = dif * preco
+          return {
+            line: idx + 1,
+            text: '',
+            parsed: {
+              'Data': todayDate,
+              'Artigo': r.artigo || '',
+              'Data Fase': r.data_fase || r.data || '',
+              'Ordem': r.ordem || '',
+              'Modelo': r.modelo || '',
+              'Material': r.material || '',
+              'Cor/Espessura': r.cor_espessura || '',
+              'Preço': preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+              'Previsto': previsto.toString(),
+              'Encaixe': encaixe.toString(),
+              'Dif': dif.toString(),
+              '%': percentual.toFixed(2) + '%',
+              'Economia (R$)': economia.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+              'Periodo (Ano/Mês)': currentPeriod
+            }
           }
-        }))
+        })
         setSearchResults(formattedResults)
         if (result.filePath) {
           setCgcFilePath(result.filePath)
@@ -109,26 +120,37 @@ export default function EconomiaPage() {
         setCgcFilePath(result.filePath)
         setSelectedFileName(result.filePath.split(/[/\\]/).pop() || 'CGC.txt')
         // Converter para o formato esperado pela tabela
-        const formattedResults = result.results.map((r: any, idx: number) => ({
-          line: idx + 1,
-          text: '',
-          parsed: {
-            'Data': r.data || '',
-            'Artigo': r.artigo || '',
-            'DATA FASE': r.data || '',
-            'Ordem': r.ordem || '',
-            'Modelo': r.modelo || '',
-            'Material': r.material || '',
-            'Cor/Espessura': r.cor_espessura || '',
-            'PREÇO': r.preco?.toString() || '',
-            'Previsto': r.previsto?.toString() || '',
-            'Encaixe': r.encaixe?.toString() || '',
-            'Dif': r.dif?.toString() || '',
-            '%': r.porcent?.toString() || '',
-            'Economia (R$)': '',
-            'Periodo (Ano/Mês)': r.data ? `${r.data.split('-')[0]}/${r.data.split('-')[1]}` : ''
+        const now = new Date()
+        const currentPeriod = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`
+        const todayDate = now.toLocaleDateString('pt-BR')
+        const formattedResults = result.results.map((r: any, idx: number) => {
+          const encaixe = Number(r.encaixe) || 0
+          const previsto = Number(r.previsto) || 0
+          const preco = Number(r.preco) || 0
+          const dif = encaixe - previsto
+          const percentual = previsto !== 0 ? (dif / previsto) * 100 : 0
+          const economia = dif * preco
+          return {
+            line: idx + 1,
+            text: '',
+            parsed: {
+              'Data': todayDate,
+              'Artigo': r.artigo || '',
+              'Data Fase': r.data_fase || r.data || '',
+              'Ordem': r.ordem || '',
+              'Modelo': r.modelo || '',
+              'Material': r.material || '',
+              'Cor/Espessura': r.cor_espessura || '',
+              'Preço': preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+              'Previsto': previsto.toString(),
+              'Encaixe': encaixe.toString(),
+              'Dif': dif.toString(),
+              '%': percentual.toFixed(2) + '%',
+              'Economia (R$)': economia.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+              'Periodo (Ano/Mês)': currentPeriod
+            }
           }
-        }))
+        })
         setSearchResults(formattedResults)
       }
     } catch (err) {
@@ -139,9 +161,9 @@ export default function EconomiaPage() {
   }
 
   const fieldsList = [
-    'Data','Artigo','DATA FASE','Ordem','Modelo','Material','Cor/Espessura','PREÇO','Previsto','Encaixe','Dif','%','Economia (R$)','Periodo (Ano/Mês)'
+    'Data','Artigo','Data Fase','Ordem','Modelo','Material','Cor/Espessura','Preço','Previsto','Encaixe','Dif','%','Economia (R$)','Periodo (Ano/Mês)'
   ]
-  const [selectedFields, setSelectedFields] = useState<string[]>(['Data','Artigo','Ordem','Modelo','Material','Encaixe','Dif','Periodo (Ano/Mês)'])
+  const [selectedFields, setSelectedFields] = useState<string[]>(['Data','Artigo','Data Fase','Ordem','Modelo','Material','Cor/Espessura','Preço','Previsto','Encaixe','Dif','%','Economia (R$)','Periodo (Ano/Mês)'])
   useEffect(() => {
     let mounted = true
     ;(async () => {
