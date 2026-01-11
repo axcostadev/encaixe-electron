@@ -221,6 +221,7 @@ export function SelectSearch({
 								ref={inputRef}
 								value={query}
 								onChange={(e) => setQuery(e.target.value)}
+								onKeyDown={(e) => e.stopPropagation()}
 								placeholder="Pesquisar..."
 								className="w-full rounded-md border border-input bg-background text-foreground px-2 py-1 text-sm outline-none"
 							/>
