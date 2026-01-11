@@ -242,54 +242,6 @@
   background: rgba(255,255,255,0.1);
 }
 
-.busca-columns {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.busca-columns-label {
-  font-size: 13px;
-  color: #64748b;
-  white-space: nowrap;
-}
-
-.busca-columns-list {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.busca-column-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 20px;
-  font-size: 12px;
-  color: #94a3b8;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.busca-column-chip:hover {
-  background: rgba(255,255,255,0.06);
-}
-
-.busca-column-chip.active {
-  background: rgba(59,130,246,0.15);
-  border-color: rgba(59,130,246,0.3);
-  color: #60a5fa;
-}
-
-.busca-column-chip input {
-  display: none;
-}
-
 .busca-results {
   background: rgba(0,0,0,0.2);
   border-radius: 12px;
@@ -328,48 +280,189 @@
   font-size: 14px;
 }
 
-.busca-table-wrapper {
-  overflow-x: auto;
-  max-height: 400px;
+/* Nova tabela profissional */
+.busca-table-container {
+  overflow: auto;
+  max-height: 450px;
+  border-radius: 8px;
 }
 
-.busca-table {
+.busca-table-pro {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
 }
 
-.busca-table thead {
+.busca-table-pro thead {
   position: sticky;
   top: 0;
-  background: rgba(15,23,42,0.95);
   z-index: 10;
 }
 
-.busca-table th {
-  text-align: left;
-  padding: 14px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748b;
+.busca-table-pro thead tr {
+  background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
+}
+
+.busca-table-pro th {
+  padding: 14px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #93c5fd;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 2px solid #3b82f6;
+  white-space: nowrap;
+  text-align: left;
 }
 
-.busca-table td {
-  padding: 12px;
+.busca-table-pro tbody tr {
+  transition: background 0.15s;
+}
+
+.busca-table-pro tbody tr:nth-child(even) {
+  background: rgba(255,255,255,0.02);
+}
+
+.busca-table-pro tbody tr:hover {
+  background: rgba(59,130,246,0.1);
+}
+
+.busca-table-pro td {
+  padding: 12px 10px;
   font-size: 13px;
   color: #e2e8f0;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.busca-table tbody tr:hover {
-  background: rgba(255,255,255,0.03);
-}
-
-.busca-row-num {
+/* Larguras das colunas */
+.busca-table-pro .col-num {
+  width: 40px;
+  text-align: center;
   color: #64748b;
-  font-weight: 500;
-  width: 50px;
+  font-weight: 600;
+}
+
+.busca-table-pro .col-data {
+  width: 90px;
+}
+
+.busca-table-pro .col-artigo {
+  width: 120px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.busca-table-pro .col-ordem {
+  width: 100px;
+  font-family: monospace;
+  font-weight: 600;
+  color: #60a5fa;
+}
+
+.busca-table-pro .col-modelo {
+  width: 180px;
+}
+
+.busca-table-pro .col-material {
+  width: 140px;
+}
+
+.busca-table-pro .col-cor {
+  width: 140px;
+}
+
+.busca-table-pro .col-preco {
+  width: 80px;
+  text-align: right;
+  font-family: monospace;
+}
+
+.busca-table-pro .col-previsto {
+  width: 80px;
+  text-align: right;
+  font-family: monospace;
+}
+
+.busca-table-pro .col-datafase {
+  width: 90px;
+}
+
+.busca-table-pro .col-encaixe {
+  width: 90px;
+  text-align: center;
+}
+
+.busca-table-pro .col-dif {
+  width: 75px;
+  text-align: right;
+  font-family: monospace;
+  font-weight: 600;
+}
+
+.busca-table-pro .col-percent {
+  width: 60px;
+  text-align: right;
+  font-family: monospace;
+  font-weight: 600;
+}
+
+.busca-table-pro .col-economia {
+  width: 100px;
+  text-align: right;
+  font-family: monospace;
+  font-weight: 700;
+}
+
+/* Cores para valores positivos e negativos */
+.busca-table-pro td.positive {
+  color: #22c55e;
+}
+
+.busca-table-pro td.negative {
+  color: #ef4444;
+}
+
+/* Input de Encaixe */
+.encaixe-input {
+  width: 70px;
+  padding: 6px 8px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 6px;
+  color: #fff;
+  font-family: monospace;
+  font-size: 12px;
+  text-align: right;
+  transition: all 0.2s;
+}
+
+.encaixe-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.encaixe-input::placeholder {
+  color: #64748b;
+}
+
+/* Remove setas do input number */
+.encaixe-input::-webkit-outer-spin-button,
+.encaixe-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.encaixe-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.busca-table-pro .col-periodo {
+  width: 90px;
+  text-align: center;
 }
 

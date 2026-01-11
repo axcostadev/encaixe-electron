@@ -55,6 +55,37 @@ export default function EconomiaPage() {
   const [cgcFilePath, setCgcFilePath] = useState<string | null>(null)
   const [searchResults, setSearchResults] = useState<{ line: number; text: string; parsed?: Record<string,string> }[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
+  
+  // Estado para valores editáveis de "Encaixe" por linha
+  const [encaixeValues, setEncaixeValues] = useState<Record<number, string>>({})
+  
+  // Função para atualizar valor de Encaixe
+  const handleEncaixeChange = (idx: number, value: string) => {
+    setEncaixeValues(prev => ({ ...prev, [idx]: value }))
+  }
+  
+  // Função para calcular valores
+  const getEncaixeValue = (idx: number): number => {
+    const val = encaixeValues[idx]
+    if (val !== undefined && val !== '') {
+      return parseFloat(val) || 0
+    }
+    return 0
+  }
+  
+  const calcDif = (idx: number, previsto: number): number => {
+    const encaixe = getEncaixeValue(idx)
+    return encaixe - previsto
+  }
+  
+  const calcPercent = (dif: number, previsto: number): number => {
+    if (previsto === 0) return 0
+    return (dif / previsto) * 100
+  }
+  
+  const calcEconomia = (dif: number, preco: number): number => {
+    return dif * preco
+  }
 
   // Função para buscar no arquivo CGC
   const handleSearchCGC = async () => {
@@ -112,16 +143,13 @@ export default function EconomiaPage() {
         setCgcFilePath(result.filePath)
         setSelectedFileName(result.filePath.split(/[/\\]/).pop() || 'CGC.txt')
         setSearchResults([]) // Limpar resultados anteriores
+        setEncaixeValues({}) // Limpar valores de encaixe
       }
     } catch (err) {
       console.error('Erro ao selecionar arquivo:', err)
     }
   }
 
-  const fieldsList = [
-    'Data','Artigo','DATA FASE','Ordem','Modelo','Material','Cor/Espessura','PREÇO','Previsto','Encaixe','Dif','%','Economia (R$)','Periodo (Ano/Mês)'
-  ]
-  const [selectedFields, setSelectedFields] = useState<string[]>(['Data','Artigo','Ordem','Modelo','Material','Cor/Espessura','PREÇO','Previsto'])
   useEffect(() => {
     let mounted = true
     ;(async () => {
@@ -525,26 +553,6 @@ export default function EconomiaPage() {
             </div>
           </div>
 
-          {/* Column Selector */}
-          <div className="busca-columns">
-            <span className="busca-columns-label">Colunas visíveis:</span>
-            <div className="busca-columns-list">
-              {fieldsList.map(f=> (
-                <label key={f} className={`busca-column-chip ${selectedFields.includes(f) ? 'active' : ''}`}>
-                  <input 
-                    type="checkbox" 
-                    checked={selectedFields.includes(f)} 
-                    onChange={(e)=>{
-                      if (e.target.checked) setSelectedFields(s=>Array.from(new Set([...s,f])))
-                      else setSelectedFields(s=>s.filter(x=>x!==f))
-                    }}
-                  />
-                  {f}
-                </label>
-              ))}
-            </div>
-          </div>
-
           {/* Results Table */}
           <div className="busca-results">
             {searchLoading ? (
@@ -561,26 +569,72 @@ export default function EconomiaPage() {
                   <path d="m21 21-4.35-4.35"/>
                 </svg>
                 <h3>Nenhum resultado</h3>
-                <p>Digite o número da OF e clique em Buscar</p>
+                <p>Selecione o arquivo CGC e digite o número da OF para buscar</p>
               </div>
             ) : (
-              <div className="busca-table-wrapper">
-                <table className="busca-table">
+              <div className="busca-table-container">
+                <table className="busca-table-pro">
                   <thead>
                     <tr>
-                      <th>#</th>
-                      {selectedFields.map(f=> <th key={f}>{f}</th>)}
+                      <th className="col-num">#</th>
+                      <th className="col-data">Data</th>
+                      <th className="col-datafase">Data Fase</th>
+                      <th className="col-ordem">Ordem</th>
+                      <th className="col-modelo">Modelo</th>
+                      <th className="col-material">Material</th>
+                      <th className="col-cor">Cor/Espessura</th>
+                      <th className="col-preco">Preço</th>
+                      <th className="col-previsto">Previsto</th>
+                      <th className="col-encaixe">Encaixe</th>
+                      <th className="col-dif">Dif</th>
+                      <th className="col-percent">%</th>
+                      <th className="col-economia">Economia</th>
+                      <th className="col-periodo">Período</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {searchResults.map((r, idx)=> (
-                      <tr key={`${r.line}-${idx}`}>
-                        <td className="busca-row-num">{idx + 1}</td>
-                        {selectedFields.map(f=> (
-                          <td key={f}>{(r.parsed && (r.parsed[f] ?? r.parsed[f.toLowerCase()] ?? r.parsed[f.replace(/\s+/g,'')])) || '-'}</td>
-                        ))}
-                      </tr>
-                    ))}
+                    {searchResults.map((r, idx)=> {
+                      const previsto = parseFloat(r.parsed?.['Previsto'] || '0') || 0
+                      const preco = parseFloat(r.parsed?.['PREÇO'] || '0') || 0
+                      const dif = calcDif(idx, previsto)
+                      const percent = calcPercent(dif, previsto)
+                      const economia = calcEconomia(dif, preco)
+                      
+                      return (
+                        <tr key={`${r.line}-${idx}`}>
+                          <td className="col-num">{idx + 1}</td>
+                          <td className="col-data">{new Date().toLocaleDateString('pt-BR')}</td>
+                          <td className="col-artigo">{r.parsed?.['Artigo'] || '-'}</td>
+                          <td className="col-datafase">{r.parsed?.['DATA FASE'] || r.parsed?.['Data'] || '-'}</td>
+                          <td className="col-ordem">{r.parsed?.['Ordem'] || '-'}</td>
+                          <td className="col-modelo">{r.parsed?.['Modelo'] || '-'}</td>
+                          <td className="col-material">{r.parsed?.['Material'] || '-'}</td>
+                          <td className="col-cor">{r.parsed?.['Cor/Espessura'] || '-'}</td>
+                          <td className="col-preco">{preco.toFixed(2)}</td>
+                          <td className="col-previsto">{previsto.toFixed(2)}</td>
+                          <td className="col-encaixe">
+                            <input
+                              type="number"
+                              className="encaixe-input"
+                              value={encaixeValues[idx] ?? ''}
+                              onChange={(e) => handleEncaixeChange(idx, e.target.value)}
+                              placeholder="0.00"
+                              step="0.01"
+                            />
+                          </td>
+                          <td className={`col-dif ${dif > 0 ? 'positive' : dif < 0 ? 'negative' : ''}`}>
+                            {dif !== 0 ? dif.toFixed(2) : '-'}
+                          </td>
+                          <td className={`col-percent ${percent > 0 ? 'positive' : percent < 0 ? 'negative' : ''}`}>
+                            {percent !== 0 ? `${percent.toFixed(1)}%` : '-'}
+                          </td>
+                          <td className={`col-economia ${economia > 0 ? 'positive' : economia < 0 ? 'negative' : ''}`}>
+                            {economia !== 0 ? economia.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'}
+                          </td>
+                          <td className="col-periodo">{r.parsed?.['Periodo (Ano/Mês)'] || '-'}</td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
