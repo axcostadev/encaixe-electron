@@ -98,21 +98,30 @@ export async function parseCGC(caminho) {
 			// COR  I002  ETR1767       TRSF. CONSCIENCIA NEGRA   TERCTA 34/36       ,8173   208,080
 			const parts = linha.trim().split(/\s{2,}/)
 
-			if (parts.length >= 4) {
+			if (parts.length >= 3) {
 				// Primeira parte: "COR I002 ETR1767" ou similar
 				const headerParts = parts[0].split(/\s+/)
 				const codigo = headerParts[2] || ""
 
-				// Segunda parte: nome do material
-				const materialNome = parts[1] || ""
+				// Segunda parte: nome do material (pode ser curto - ex: 'I002' - neste caso vamos 'shift')
+				let materialNome = parts[1] || ""
 
-				// Terceira parte pode ser cor/espessura ou preço
+				// Inicializar campos
 				let corEspessura = ""
 				let preco = 0
 				let previsto = 0
 
-				// Procurar o preço (número com vírgula decimal)
-				for (let i = 2; i < parts.length; i++) {
+				// Se a segunda parte for um token curto (ex: 'I002'), assumir que é um local/código
+				// e usar a próxima parte como nome do material
+				let scanStart = 2
+				if (/^[A-Z]\d{3}$/i.test(materialNome) || materialNome.length <= 4) {
+					// usar parts[2] como material (se existir)
+					materialNome = parts[2] || materialNome
+					scanStart = 3
+				}
+
+				// Procurar o preço (número com vírgula decimal) e cor/espessura nas partes seguintes
+				for (let i = scanStart; i < parts.length; i++) {
 					const part = parts[i].trim()
 
 					// Se parece com preço (número decimal BR)
@@ -125,13 +134,21 @@ export async function parseCGC(caminho) {
 					} else if (!corEspessura && part.length > 0) {
 						// Cor/Espessura geralmente tem letras e números
 						corEspessura = part
+					} else {
+						// Pode haver partes adicionais do nome do material (juntar se necessário)
+						if (!/^[\d.,]+$/.test(part) && !corEspessura) {
+							materialNome = (materialNome + " " + part).trim()
+						}
 					}
 				}
 
 				// Se não encontrou cor/espessura, tentar extrair do nome do material
-				const corMatch = materialNome.match(/\s+([A-Z0-9/]+\s+[\d,/]+(?:MM)?)$/i)
-				if (!corEspessura && corMatch) {
-					corEspessura = corMatch[1]
+				if (!corEspessura) {
+					const corMatch = materialNome.match(/\s+([\w\-\/\.\sXx]+?)$/i)
+					if (corMatch) {
+						corEspessura = corMatch[1].trim()
+						materialNome = materialNome.replace(corMatch[0], '').trim()
+					}
 				}
 
 				registros.push({

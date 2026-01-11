@@ -66,16 +66,20 @@ export default function EconomiaPage() {
   }
   
   // Função para calcular valores
-  const getEncaixeValue = (idx: number): number => {
+  // getEncaixeValue agora considera o valor local (input) e, se ausente, usa o valor parseado do arquivo
+  const getEncaixeValue = (idx: number, parsedEncaixe?: string): number => {
     const val = encaixeValues[idx]
     if (val !== undefined && val !== '') {
       return parseFloat(val) || 0
     }
+    if (parsedEncaixe !== undefined && parsedEncaixe !== '') {
+      return parseFloat(parsedEncaixe) || 0
+    }
     return 0
   }
   
-  const calcDif = (idx: number, previsto: number): number => {
-    const encaixe = getEncaixeValue(idx)
+  const calcDif = (idx: number, previsto: number, parsedEncaixe?: string): number => {
+    const encaixe = getEncaixeValue(idx, parsedEncaixe)
     return encaixe - previsto
   }
   
@@ -106,6 +110,7 @@ export default function EconomiaPage() {
         setSearchResults([])
       } else {
         // Converter para o formato esperado pela tabela
+        const currentPeriod = `${new Date().getFullYear()}/${String(new Date().getMonth()+1).padStart(2,'0')}`
         const formattedResults = result.results.map((r: any, idx: number) => ({
           line: idx + 1,
           text: '',
@@ -123,10 +128,15 @@ export default function EconomiaPage() {
             'Dif': r.dif?.toString() || '',
             '%': r.porcent?.toString() || '',
             'Economia (R$)': '',
-            'Periodo (Ano/Mês)': r.data ? `${r.data.split('-')[0]}/${r.data.split('-')[1]}` : ''
+            'Periodo (Ano/Mês)': r.data ? `${r.data.split('-')[0]}/${r.data.split('-')[1]}` : currentPeriod
           }
         }))
         setSearchResults(formattedResults)
+
+        // Prefill local Encaixe inputs with parsed Encaixe when available
+        const initialEncaixe: Record<number,string> = {}
+        formattedResults.forEach((fr, i) => { initialEncaixe[i] = fr.parsed?.['Encaixe'] || '' })
+        setEncaixeValues(initialEncaixe) 
       }
     } catch (err) {
       console.error('Erro ao buscar:', err)
@@ -579,6 +589,7 @@ export default function EconomiaPage() {
                     <tr>
                       <th className="col-num">#</th>
                       <th className="col-data">Data</th>
+                      <th className="col-artigo">Artigo</th>
                       <th className="col-datafase">Data Fase</th>
                       <th className="col-ordem">Ordem</th>
                       <th className="col-modelo">Modelo</th>
@@ -597,7 +608,7 @@ export default function EconomiaPage() {
                     {searchResults.map((r, idx)=> {
                       const previsto = parseFloat(r.parsed?.['Previsto'] || '0') || 0
                       const preco = parseFloat(r.parsed?.['PREÇO'] || '0') || 0
-                      const dif = calcDif(idx, previsto)
+                      const dif = calcDif(idx, previsto, r.parsed?.['Encaixe'])
                       const percent = calcPercent(dif, previsto)
                       const economia = calcEconomia(dif, preco)
                       
@@ -606,7 +617,7 @@ export default function EconomiaPage() {
                           <td className="col-num">{idx + 1}</td>
                           <td className="col-data">{new Date().toLocaleDateString('pt-BR')}</td>
                           <td className="col-artigo">{r.parsed?.['Artigo'] || '-'}</td>
-                          <td className="col-datafase">{r.parsed?.['DATA FASE'] || r.parsed?.['Data'] || '-'}</td>
+                          <td className="col-datafase">{r.parsed?.['DATA FASE'] || r.parsed?.['Data'] || '-'} </td>
                           <td className="col-ordem">{r.parsed?.['Ordem'] || '-'}</td>
                           <td className="col-modelo">{r.parsed?.['Modelo'] || '-'}</td>
                           <td className="col-material">{r.parsed?.['Material'] || '-'}</td>
@@ -632,7 +643,7 @@ export default function EconomiaPage() {
                           <td className={`col-economia ${economia > 0 ? 'positive' : economia < 0 ? 'negative' : ''}`}>
                             {economia !== 0 ? economia.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'}
                           </td>
-                          <td className="col-periodo">{r.parsed?.['Periodo (Ano/Mês)'] || '-'}</td>
+                          <td className="col-periodo">{`${new Date().getFullYear()}/${String(new Date().getMonth()+1).padStart(2,'0')}`}</td>
                         </tr>
                       )
                     })}
