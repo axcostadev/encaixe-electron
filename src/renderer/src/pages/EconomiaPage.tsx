@@ -51,13 +51,21 @@ export default function EconomiaPage() {
 
   // Busca Dados (file search) state
   const [searchTerm, setSearchTerm] = useState<string>('')
-  const [selectedFileName, setSelectedFileName] = useState<string>('CGC.txt')
+  const [selectedFileName, setSelectedFileName] = useState<string>('')
   const [cgcFilePath, setCgcFilePath] = useState<string | null>(null)
   const [searchResults, setSearchResults] = useState<{ line: number; text: string; parsed?: Record<string,string> }[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
 
   // Função para buscar no arquivo CGC
   const handleSearchCGC = async () => {
+    if (!cgcFilePath) {
+      alert('Selecione um arquivo CGC primeiro!')
+      return
+    }
+    if (!searchTerm.trim()) {
+      alert('Digite o número da OF para buscar!')
+      return
+    }
     setSearchLoading(true)
     try {
       const result = await (window as any).api.economia.searchCGC(cgcFilePath, searchTerm)
@@ -66,42 +74,27 @@ export default function EconomiaPage() {
         setSearchResults([])
       } else {
         // Converter para o formato esperado pela tabela
-        const now = new Date()
-        const currentPeriod = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`
-        const todayDate = now.toLocaleDateString('pt-BR')
-        const formattedResults = result.results.map((r: any, idx: number) => {
-          const encaixe = Number(r.encaixe) || 0
-          const previsto = Number(r.previsto) || 0
-          const preco = Number(r.preco) || 0
-          const dif = encaixe - previsto
-          const percentual = previsto !== 0 ? (dif / previsto) * 100 : 0
-          const economia = dif * preco
-          return {
-            line: idx + 1,
-            text: '',
-            parsed: {
-              'Data': todayDate,
-              'Artigo': r.artigo || '',
-              'Data Fase': r.data_fase || r.data || '',
-              'Ordem': r.ordem || '',
-              'Modelo': r.modelo || '',
-              'Material': r.material || '',
-              'Cor/Espessura': r.cor_espessura || '',
-              'Preço': preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-              'Previsto': previsto.toString(),
-              'Encaixe': encaixe.toString(),
-              'Dif': dif.toString(),
-              '%': percentual.toFixed(2) + '%',
-              'Economia (R$)': economia.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-              'Periodo (Ano/Mês)': currentPeriod
-            }
+        const formattedResults = result.results.map((r: any, idx: number) => ({
+          line: idx + 1,
+          text: '',
+          parsed: {
+            'Data': r.data || '',
+            'Artigo': r.artigo || '',
+            'DATA FASE': r.data || '',
+            'Ordem': r.ordem || '',
+            'Modelo': r.modelo || '',
+            'Material': r.material || '',
+            'Cor/Espessura': r.cor_espessura || '',
+            'PREÇO': r.preco?.toString() || '',
+            'Previsto': r.previsto?.toString() || '',
+            'Encaixe': r.encaixe?.toString() || '',
+            'Dif': r.dif?.toString() || '',
+            '%': r.porcent?.toString() || '',
+            'Economia (R$)': '',
+            'Periodo (Ano/Mês)': r.data ? `${r.data.split('-')[0]}/${r.data.split('-')[1]}` : ''
           }
-        })
+        }))
         setSearchResults(formattedResults)
-        if (result.filePath) {
-          setCgcFilePath(result.filePath)
-          setSelectedFileName(result.filePath.split(/[/\\]/).pop() || 'CGC.txt')
-        }
       }
     } catch (err) {
       console.error('Erro ao buscar:', err)
@@ -111,59 +104,24 @@ export default function EconomiaPage() {
     }
   }
 
-  // Função para selecionar arquivo
+  // Função para selecionar arquivo (apenas define o caminho)
   const handleSelectFile = async () => {
-    setSearchLoading(true)
     try {
-      const result = await (window as any).api.economia.searchCGC(null, '')
+      const result = await (window as any).api.economia.selectCGCFile()
       if (result.filePath) {
         setCgcFilePath(result.filePath)
         setSelectedFileName(result.filePath.split(/[/\\]/).pop() || 'CGC.txt')
-        // Converter para o formato esperado pela tabela
-        const now = new Date()
-        const currentPeriod = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`
-        const todayDate = now.toLocaleDateString('pt-BR')
-        const formattedResults = result.results.map((r: any, idx: number) => {
-          const encaixe = Number(r.encaixe) || 0
-          const previsto = Number(r.previsto) || 0
-          const preco = Number(r.preco) || 0
-          const dif = encaixe - previsto
-          const percentual = previsto !== 0 ? (dif / previsto) * 100 : 0
-          const economia = dif * preco
-          return {
-            line: idx + 1,
-            text: '',
-            parsed: {
-              'Data': todayDate,
-              'Artigo': r.artigo || '',
-              'Data Fase': r.data_fase || r.data || '',
-              'Ordem': r.ordem || '',
-              'Modelo': r.modelo || '',
-              'Material': r.material || '',
-              'Cor/Espessura': r.cor_espessura || '',
-              'Preço': preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-              'Previsto': previsto.toString(),
-              'Encaixe': encaixe.toString(),
-              'Dif': dif.toString(),
-              '%': percentual.toFixed(2) + '%',
-              'Economia (R$)': economia.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-              'Periodo (Ano/Mês)': currentPeriod
-            }
-          }
-        })
-        setSearchResults(formattedResults)
+        setSearchResults([]) // Limpar resultados anteriores
       }
     } catch (err) {
       console.error('Erro ao selecionar arquivo:', err)
-    } finally {
-      setSearchLoading(false)
     }
   }
 
   const fieldsList = [
-    'Data','Artigo','Data Fase','Ordem','Modelo','Material','Cor/Espessura','Preço','Previsto','Encaixe','Dif','%','Economia (R$)','Periodo (Ano/Mês)'
+    'Data','Artigo','DATA FASE','Ordem','Modelo','Material','Cor/Espessura','PREÇO','Previsto','Encaixe','Dif','%','Economia (R$)','Periodo (Ano/Mês)'
   ]
-  const [selectedFields, setSelectedFields] = useState<string[]>(['Data','Artigo','Data Fase','Ordem','Modelo','Material','Cor/Espessura','Preço','Previsto','Encaixe','Dif','%','Economia (R$)','Periodo (Ano/Mês)'])
+  const [selectedFields, setSelectedFields] = useState<string[]>(['Data','Artigo','Ordem','Modelo','Material','Cor/Espessura','PREÇO','Previsto'])
   useEffect(() => {
     let mounted = true
     ;(async () => {

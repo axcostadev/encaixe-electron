@@ -976,20 +976,13 @@ export function setupIPC(): void {
 	})
 
 	// Handler para buscar dados do CGC por termo (OF, artigo, etc)
-	ipcMain.handle("economia-search-cgc", async (_event, filePath?: string, searchTerm?: string) => {
+	ipcMain.handle("economia-search-cgc", async (_event, filePath: string, searchTerm?: string) => {
 		try {
-			let pathToRead = filePath
-			if (!pathToRead) {
-				const res = await dialog.showOpenDialog({
-					properties: ["openFile"],
-					filters: [{ name: "CGC Files", extensions: ["txt", "TXT"] }],
-					title: "Selecionar arquivo CGC",
-				})
-				if (res.canceled) return { results: [], filePath: null }
-				pathToRead = res.filePaths[0]
+			if (!filePath) {
+				return { results: [], error: "Nenhum arquivo selecionado" }
 			}
 
-			const registros = await cgcParser.parseCGC(pathToRead)
+			const registros = await cgcParser.parseCGC(filePath)
 			
 			// Se há termo de busca, filtrar
 			let filtered = registros
@@ -1004,11 +997,27 @@ export function setupIPC(): void {
 			return { 
 				results: filtered, 
 				total: registros.length,
-				filePath: pathToRead 
+				filePath: filePath 
 			}
 		} catch (err) {
 			console.error("[IPC] economia-search-cgc error:", err)
 			return { results: [], error: (err as any)?.message || String(err) }
+		}
+	})
+
+	// Handler para apenas selecionar o arquivo CGC (sem carregar dados)
+	ipcMain.handle("economia-select-cgc-file", async () => {
+		try {
+			const res = await dialog.showOpenDialog({
+				properties: ["openFile"],
+				filters: [{ name: "CGC Files", extensions: ["txt", "TXT"] }],
+				title: "Selecionar arquivo CGC",
+			})
+			if (res.canceled) return { filePath: null }
+			return { filePath: res.filePaths[0] }
+		} catch (err) {
+			console.error("[IPC] economia-select-cgc-file error:", err)
+			return { filePath: null, error: (err as any)?.message || String(err) }
 		}
 	})
 }
