@@ -11,6 +11,7 @@ interface CadastroInfo {
 	artigo: string
 	modelo: string
 	componente: string
+	apelido: string
 	material: string
 	cor: string
 	largura: string

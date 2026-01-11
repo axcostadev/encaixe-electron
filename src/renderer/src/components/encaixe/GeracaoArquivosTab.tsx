@@ -34,14 +34,7 @@ import {
 	ModelDataLectra,
 	QtyRuleComelz,
 } from "@renderer/types"
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@renderer/components/ui/dialog"
+
 import { ScrollArea } from "@renderer/components/ui/scroll-area"
 import { ListaAutomaticoItem } from "@renderer/pages/EncaixePage"
 import { ListPlus } from "lucide-react"
@@ -58,6 +51,7 @@ type CadastroInfo = {
 	artigo: string
 	modelo: string
 	componente: string
+	apelido: string
 	material: string
 	cor: string
 	largura: string
@@ -171,9 +165,6 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 	// Estados para gerenciamento de apelidos
 	const [apelidosMap, setApelidosMap] = useState<Record<string, string>>({})
 	const [apelidoSelecionado, setApelidoSelecionado] = useState<string>("")
-	const [dialogApelidoAberto, setDialogApelidoAberto] = useState(false)
-	const [novoApelido, setNovoApelido] = useState("")
-	const [componenteParaApelido, setComponenteParaApelido] = useState("")
 
 	// Estado para gerenciar pares por tamanho e cor
 	const [paresPorCorTamanho, setParesPorCorTamanho] = useState<ParesPorCor[]>(
@@ -188,7 +179,6 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 		converterParaEmma,
 		converterParaLectra,
 		exportarArquivo,
-		cadastrarApelido: cadastrarApelidoHook,
 	} = useEncaixe()
 
 	// Carregar todos os apelidos cadastrados ao montar o componente
@@ -328,6 +318,15 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 			inicializarParesPorTamanho(gradePares, cadastro.tamanhos)
 		}
 		
+		// Auto-selecionar apelido do cadastro
+		if (cadastro?.apelido) {
+			setApelidoSelecionado(cadastro.apelido)
+		} else {
+			// Fallback: verificar no mapa de apelidos antigos
+			const apelidoAntigo = apelidosMap[nomeComponente.toLowerCase()]
+			setApelidoSelecionado(apelidoAntigo || "")
+		}
+		
 		// Auto-selecionar máquina baseado no setor do componente
 		if (cadastro?.setorNome) {
 			const setorUpper = cadastro.setorNome.toUpperCase()
@@ -357,45 +356,6 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 				return item
 			}),
 		)
-	}
-
-	function abrirDialogApelido() {
-		if (!componenteSelecionado) {
-			setMessage("Selecione um componente primeiro")
-			return
-		}
-		setComponenteParaApelido(componenteSelecionado)
-		setNovoApelido("")
-		setDialogApelidoAberto(true)
-	}
-
-	async function salvarApelido() {
-		if (!componenteParaApelido || !novoApelido.trim()) {
-			setMessage("Digite um apelido válido")
-			return
-		}
-
-		const success = await cadastrarApelidoHook(
-			componenteParaApelido,
-			novoApelido.trim(),
-		)
-
-		if (success) {
-			// Log de auditoria para criação de apelido
-			activityLogger.logCreateApelido(user, componenteParaApelido, novoApelido.trim())
-			// Atualizar mapa de apelidos local
-			setApelidosMap((prev) => ({
-				...prev,
-				[componenteParaApelido.toLowerCase()]: novoApelido.trim(),
-			}))
-			setMessage(
-				`Apelido "${novoApelido.trim()}" cadastrado para "${componenteParaApelido}"!`,
-			)
-			setDialogApelidoAberto(false)
-			setNovoApelido("")
-		} else {
-			setMessage("Erro ao cadastrar apelido")
-		}
 	}
 
 	// Função para adicionar item à lista automático
@@ -951,6 +911,12 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 											<strong>Componente:</strong> {cad.componente}
 										</p>
 										<p>
+											<strong>Apelido:</strong>{" "}
+											<span className={cad.apelido ? "text-primary font-semibold" : "text-yellow-500"}>
+												{cad.apelido || "⚠️ Não cadastrado"}
+											</span>
+										</p>
+										<p>
 											<strong>Material:</strong> {cad.material}
 										</p>
 										<p>
@@ -1211,13 +1177,6 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 							<ListPlus className="w-4 h-4 mr-2" />
 							Adicionar à Lista
 						</Button>
-						<Button
-							onClick={abrirDialogApelido}
-							variant="outline"
-							disabled={!componenteSelecionado}
-						>
-							Cadastrar Apelido
-						</Button>
 					</div>
 					{ofSearch && apelidoSelecionado && (
 						<p className="text-sm text-muted-foreground mt-2">
@@ -1231,56 +1190,6 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 					)}
 				</CardContent>
 			</Card>
-
-			{/* Dialog para cadastrar apelido */}
-			<Dialog open={dialogApelidoAberto} onOpenChange={setDialogApelidoAberto}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Cadastrar Apelido</DialogTitle>
-						<DialogDescription>
-							Digite o apelido para o componente "{componenteParaApelido}"
-						</DialogDescription>
-					</DialogHeader>
-					<div className="space-y-4 py-4">
-						<div className="space-y-2">
-							<Label htmlFor="novo-apelido">Apelido</Label>
-							<Input
-								id="novo-apelido"
-								value={novoApelido}
-								onChange={(e) => setNovoApelido(e.target.value.toUpperCase())}
-								placeholder="Ex: PLCVIST"
-							/>
-						</div>
-						{Object.keys(apelidosMap).length > 0 && (
-							<div className="space-y-2">
-								<Label>Apelidos já cadastrados:</Label>
-								<ScrollArea className="h-[150px] border rounded-md p-2">
-									{Object.entries(apelidosMap).map(([comp, apelido]) => (
-										<div
-											key={comp}
-											className="flex justify-between text-sm py-1 border-b last:border-b-0"
-										>
-											<span>{comp}</span>
-											<span className="font-mono font-semibold">{apelido}</span>
-										</div>
-									))}
-								</ScrollArea>
-							</div>
-						)}
-					</div>
-					<DialogFooter>
-						<Button
-							variant="outline"
-							onClick={() => setDialogApelidoAberto(false)}
-						>
-							Cancelar
-						</Button>
-						<Button onClick={salvarApelido} disabled={!novoApelido.trim()}>
-							Salvar
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
 
 			{/* Mensagens de Status */}
 			{message && (

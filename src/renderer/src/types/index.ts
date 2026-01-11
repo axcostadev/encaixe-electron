@@ -26,6 +26,7 @@ export interface Componente {
 	modeloId: number
 	sequencia: number
 	nome: string
+	apelido?: string
 	materialId: number
 	tipoTecido: number
 	conjugacaoNavalha: string

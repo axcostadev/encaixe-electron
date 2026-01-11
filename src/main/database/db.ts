@@ -327,6 +327,7 @@ export function initDatabase(): void {
 			setor_id INTEGER,
 			numero_tecido TEXT DEFAULT '',
 			nome TEXT NOT NULL,
+			apelido TEXT DEFAULT '',
 			material_id INTEGER,
 			tipo_tecido INTEGER,
 			conjugacao_navalha INTERGER DEFAULT 1,
@@ -342,6 +343,13 @@ export function initDatabase(): void {
 			FOREIGN KEY (material_id) REFERENCES materiais(id)
 		)
 	`)
+
+	// Migração para adicionar a coluna 'apelido' se ela não existir.
+	database.run(`ALTER TABLE componentes ADD COLUMN apelido TEXT DEFAULT ''`, (err) => {
+		if (err && !err.message.includes("duplicate column")) {
+			console.error("Erro ao adicionar coluna 'apelido' em 'componentes':", err)
+		}
+	})
 
 	// Criar tabela de cores associadas ao componente (cada cor como linha individual)
 	database.run(`

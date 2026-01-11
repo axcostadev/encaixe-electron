@@ -44,6 +44,7 @@ interface QtyEmma {
 
 interface ComponenteDados {
 	materialId: number
+	apelido?: string
 	tipoTecido?: number
 	conjugacaoNavalha?: string
 	placaPar?: string
@@ -61,6 +62,7 @@ interface CadastroInfo {
 	artigo: string
 	modelo: string
 	componente: string
+	apelido: string
 	material: string
 	cor: string
 	largura: string
@@ -75,6 +77,7 @@ interface CadastroInfo {
 	setorId?: number
 	setorNome?: string
 	tamanhosRanges?: { tamanhoInicial: number; tamanhoFinal: number }[]
+	sentidoMaterial?: string
 }
 
 interface User {

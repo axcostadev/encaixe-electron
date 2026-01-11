@@ -52,6 +52,7 @@ export function ComponenteForm({
 		setorId: "",
 		numeroTecido: "",
 		nome: "",
+		apelido: "",
 		materialId: "",
 		tipoTecido: "",
 		conjugacaoNavalha: 0,
@@ -77,6 +78,7 @@ export function ComponenteForm({
 				setorId: componente.setorId?.toString() || "",
 				numeroTecido: componente.numeroTecido || "",
 				nome: componente.nome,
+				apelido: componente.apelido || "",
 				materialId: componente.materialId.toString(),
 				tipoTecido: componente.tipoTecido?.toString() || "",
 				conjugacaoNavalha: parseInt(componente.conjugacaoNavalha) || 0,
@@ -94,6 +96,7 @@ export function ComponenteForm({
 				setorId: "",
 				numeroTecido: "",
 				nome: "",
+				apelido: "",
 				materialId: "",
 				tipoTecido: "",
 				conjugacaoNavalha: 0,
@@ -162,13 +165,14 @@ export function ComponenteForm({
 
 	function handleSubmit(e: React.FormEvent) {
 		e.preventDefault()
-		if (!formData.nome.trim() || !formData.materialId) return
+		if (!formData.nome.trim() || !formData.materialId || !formData.apelido.trim()) return
 
 		onSubmit({
 			modeloCorId: parseInt(formData.modeloCorId) || 0,
 			setorId: parseInt(formData.setorId) || 0,
 			numeroTecido: formData.numeroTecido.trim(),
 			nome: formData.nome.trim(),
+			apelido: formData.apelido.trim().toUpperCase(),
 			materialId: parseInt(formData.materialId) || 0,
 			tipoTecido: parseInt(formData.tipoTecido) || 0,
 			conjugacaoNavalha: formData.conjugacaoNavalha.toString(),
@@ -198,19 +202,32 @@ export function ComponenteForm({
 						className="space-y-6"
 					>
 						<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-							<div className="md:col-span-3 col-span-1 space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="nome">Nome do Componente *</Label>
-									<Input
-										id="nome"
-										value={formData.nome}
-										onChange={(e) => handleChange("nome", e.target.value)}
-										placeholder="Digite o nome"
-										required
-									/>
+							<div className="md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-6">
+								<div className="grid grid-cols-2 gap-4 md:col-span-2">
+									<div className="space-y-2">
+										<Label htmlFor="nome">Nome do Componente *</Label>
+										<Input
+											id="nome"
+											value={formData.nome}
+											onChange={(e) => handleChange("nome", e.target.value)}
+											placeholder="Digite o nome"
+											required
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="apelido">Apelido *</Label>
+										<Input
+											id="apelido"
+											value={formData.apelido}
+											onChange={(e) => handleChange("apelido", e.target.value.toUpperCase())}
+											placeholder="Ex: PLCVIST"
+											required
+											maxLength={20}
+										/>
+									</div>
 								</div>
 
-								<div className="grid grid-cols-2 gap-4">
+								<div className="grid grid-cols-2 gap-4 md:col-span-2">
 									<div className="space-y-2">
 										<Label htmlFor="material">Material *</Label>
 										<SelectSearch
@@ -236,7 +253,7 @@ export function ComponenteForm({
 									</div>
 								</div>
 
-								<div className="grid grid-cols-1 gap-4">
+								<div className="grid grid-cols-1 gap-4 md:col-span-4">
 									<div className="space-y-2">
 										<Label htmlFor="setor">Setor</Label>
 										<div className="flex items-center gap-2">
@@ -270,7 +287,7 @@ export function ComponenteForm({
 									</div>
 								</div>
 
-								<div className="grid grid-cols-2 gap-4">
+								<div className="grid grid-cols-2 gap-4 md:col-span-2">
 									<div className="space-y-2">
 										<Label htmlFor="conjugacaoNavalha">
 											Conjugação Navalha
@@ -301,7 +318,7 @@ export function ComponenteForm({
 									</div>
 								</div>
 
-								<div className="grid grid-cols-4 gap-4">
+								<div className="grid grid-cols-4 gap-4 md:col-span-4">
 									<div className="space-y-2">
 										<Label htmlFor="camadas">Camadas</Label>
 										<Input
@@ -366,59 +383,61 @@ export function ComponenteForm({
 									</div>
 								</div>
 
-								{coresModelo.length > 0 && (
-									<div className="space-y-3">
-										<div className="flex items-center justify-between">
-											<Label>Cores Disponíveis</Label>
-											<Button
-												type="button"
-												variant="outline"
-												size="sm"
-												onClick={handleToggleSelectAll}
-											>
-												{formData.coresDisponiveis.length === coresModelo.length
-													? "Desmarcar todas"
-													: "Marcar todas"}
-											</Button>
-										</div>
-										<p className="text-sm text-muted-foreground">
-											{formData.coresDisponiveis.length} de{" "}
-											{coresModelo.length} selecionada(s)
-										</p>
-										<div className="max-h-[200px] overflow-y-auto rounded-lg border bg-muted/30">
-											<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1 p-2">
-												{coresModelo.map((cor) => (
-													<div
-														key={cor.id}
-														className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
-															formData.coresDisponiveis.includes(cor.id.toString())
-																? "bg-primary/10 border border-primary/30"
-																: "bg-background border border-transparent"
-														}`}
-													>
-														<Checkbox
-															id={`cor-${cor.id}`}
-															checked={formData.coresDisponiveis.includes(cor.id.toString())}
-															onCheckedChange={(checked) =>
-																handleCorToggle(cor.id.toString(), checked === true)
-															}
-															className="border-input data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-														/>
-														<label
-															htmlFor={`cor-${cor.id}`}
-															className="text-sm leading-none cursor-pointer flex-1 truncate"
+								<div className="md:col-span-4">
+									{coresModelo.length > 0 && (
+										<div className="space-y-3">
+											<div className="flex items-center justify-between">
+												<Label>Cores Disponíveis</Label>
+												<Button
+													type="button"
+													variant="outline"
+													size="sm"
+													onClick={handleToggleSelectAll}
+												>
+													{formData.coresDisponiveis.length === coresModelo.length
+														? "Desmarcar todas"
+														: "Marcar todas"}
+												</Button>
+											</div>
+											<p className="text-sm text-muted-foreground">
+												{formData.coresDisponiveis.length} de{" "}
+												{coresModelo.length} selecionada(s)
+											</p>
+											<div className="max-h-[200px] overflow-y-auto rounded-lg border bg-muted/30">
+												<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1 p-2">
+													{coresModelo.map((cor) => (
+														<div
+															key={cor.id}
+															className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
+																formData.coresDisponiveis.includes(cor.id.toString())
+																	? "bg-primary/10 border border-primary/30"
+																	: "bg-background border border-transparent"
+															}`}
 														>
-															<span className="font-mono text-xs text-muted-foreground mr-1">
-																[{cor.abreviacao}]
-															</span>
-															<span className="font-medium">{cor.nome}</span>
-														</label>
-													</div>
+															<Checkbox
+																id={`cor-${cor.id}`}
+																checked={formData.coresDisponiveis.includes(cor.id.toString())}
+																onCheckedChange={(checked) =>
+																	handleCorToggle(cor.id.toString(), checked === true)
+																}
+																className="border-input data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+															/>
+															<label
+																htmlFor={`cor-${cor.id}`}
+																className="text-sm leading-none cursor-pointer flex-1 truncate"
+															>
+																<span className="font-mono text-xs text-muted-foreground mr-1">
+																	[{cor.abreviacao}]
+																</span>
+																<span className="font-medium">{cor.nome}</span>
+															</label>
+														</div>
 													))}
+												</div>
 											</div>
 										</div>
-									</div>
-								)}
+									)}
+								</div>
 							</div>
 
 							<div className="md:col-span-1 col-span-1 space-y-3 md:sticky md:top-6 md:self-start md:max-h-[60vh] md:overflow-auto">
@@ -488,8 +507,6 @@ export function ComponenteForm({
 									</div>
 								</div>
 							</div>
-
-							<div className="grid grid-cols-2 gap-4"></div>
 						</div>
 
 						<DialogFooter>

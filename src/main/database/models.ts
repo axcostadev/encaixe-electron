@@ -287,6 +287,7 @@ export interface Componente {
 	setor_id?: number
 	numero_tecido: string
 	nome: string
+	apelido?: string
 	materialId?: number
 	tipoTecido?: number
 	conjugacaoNavalha?: string
@@ -306,6 +307,7 @@ type ComponenteRow = {
 	setor_id?: number
 	numero_tecido?: string
 	nome: string
+	apelido?: string
 	material_id?: number
 	tipo_tecido?: number
 	conjugacao_navalha?: string
@@ -318,6 +320,7 @@ type ComponenteRow = {
 
 export interface ComponenteDados {
 	materialId: number
+	apelido?: string
 	tipoTecido?: number
 	conjugacaoNavalha?: string
 	placaPar?: string
@@ -338,7 +341,7 @@ export function listComponentes(modelo_id: number): Promise<Componente[]> {
 
 			const loadComponentes = new Promise<ComponenteRow[]>((res, rej) => {
 				database.all(
-					`SELECT id, modelo_id, modelo_cor_id, setor_id, numero_tecido, nome, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda
+					`SELECT id, modelo_id, modelo_cor_id, setor_id, numero_tecido, nome, apelido, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda
 					 FROM componentes WHERE modelo_id = ? ORDER BY id`,
 					[modelo_id],
 					(err: Error | null, rows: ComponenteRow[]) => {
@@ -428,6 +431,7 @@ export function listComponentes(modelo_id: number): Promise<Componente[]> {
 							setor_id: r.setor_id,
 							numero_tecido: r.numero_tecido || "",
 							nome: r.nome,
+							apelido: r.apelido || "",
 							materialId: r.material_id || 0,
 							tipoTecido: r.tipo_tecido || 0,
 							conjugacaoNavalha: r.conjugacao_navalha || "",
@@ -466,6 +470,7 @@ export function addComponente(
 			// Extrair campos individuais de `dados` (compatível com front-end atual)
 			// Extrair campos individuais de `dados` (compatível com front-end atual)
 			const material_id = dados?.materialId || null
+			const apelido = dados?.apelido || ""
 			const tipo_tecido = dados?.tipoTecido || null
 			const conjugacao_navalha = dados?.conjugacaoNavalha || null
 			const placa_par = dados?.placaPar || null
@@ -488,14 +493,15 @@ export function addComponente(
 			const numero_tecido = dados?.numeroTecido || ""
 
 			database.run(
-				`INSERT INTO componentes (modelo_id, modelo_cor_id, setor_id, numero_tecido, nome, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda)
-					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				`INSERT INTO componentes (modelo_id, modelo_cor_id, setor_id, numero_tecido, nome, apelido, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 				[
 					modelo_id,
 					modelo_cor_id,
 					setor_id,
 					numero_tecido,
 					nome,
+					apelido,
 					material_id,
 					tipo_tecido,
 					conjugacao_navalha,
@@ -565,6 +571,7 @@ export function updateComponente(
 			const database = getDatabase()
 			// Extrair campos individuais de `dados` (compatível com front-end atual)
 			const material_id = dados?.materialId || null
+			const apelido = dados?.apelido || ""
 			const tipo_tecido = dados?.tipoTecido || null
 			const conjugacao_navalha = dados?.conjugacaoNavalha || null
 			const placa_par = dados?.placaPar || null
@@ -574,9 +581,10 @@ export function updateComponente(
 			const perc_perda = dados?.percPerda || null
 
 			database.run(
-				`UPDATE componentes SET nome = ?, modelo_cor_id = ?, setor_id = ?, numero_tecido = ?, material_id = ?, tipo_tecido = ?, conjugacao_navalha = ?, placa_par = ?, camadas = ?, espacamento = ?, comp_maximo = ?, perc_perda = ? WHERE id = ? AND modelo_id = ?`,
+				`UPDATE componentes SET nome = ?, apelido = ?, modelo_cor_id = ?, setor_id = ?, numero_tecido = ?, material_id = ?, tipo_tecido = ?, conjugacao_navalha = ?, placa_par = ?, camadas = ?, espacamento = ?, comp_maximo = ?, perc_perda = ? WHERE id = ? AND modelo_id = ?`,
 				[
 					nome,
+					apelido,
 					dados?.modeloCorId || null,
 					dados?.setorId || null,
 					dados?.numeroTecido || "",
@@ -719,6 +727,7 @@ export interface CadastroInfo {
 	artigo: string
 	modelo: string
 	componente: string
+	apelido: string
 	material: string
 	cor: string
 	largura: string
@@ -814,7 +823,7 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 
 		const loadComponentesForModelo = (modelo: ModeloRow): void => {
 			database.all(
-				"SELECT id, modelo_id, numero_tecido, nome, modelo_cor_id, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda, setor_id FROM componentes WHERE modelo_id = ? ORDER BY id",
+				"SELECT id, modelo_id, numero_tecido, nome, apelido, modelo_cor_id, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda, setor_id FROM componentes WHERE modelo_id = ? ORDER BY id",
 				[modelo.id],
 				async (err: Error | null, compRows: ComponenteRow[]) => {
 					if (err || !compRows || compRows.length === 0) {
@@ -973,6 +982,7 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 																artigo: modelo.artigo,
 																modelo: modelo.nome,
 																componente: comp.nome,
+																apelido: comp.apelido || "",
 																material: mat?.artigo || "",
 																cor: corNames,
 																largura: mat?.largura?.toString() || "",
