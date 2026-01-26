@@ -5,11 +5,8 @@
 // Formato Comelz JSON order file (v0.2):
 // <qty-rule> ::= { "part_name": <string>,    // opt
 //                  "part_size": <string>,    // opt (formato "XX.00" para tamanhos)
-//                  "fitting": <string>,      // opt
 //                  "mirror": <bool>,         // opt (obrigatório se usar "parts")
-//                  "parts": <number>,        // opt (peças individuais - requer mirror)
-//                  "material": <string>,     // opt
-//                  "items": <number>         // opt (pares completos)
+//                  "parts": <number>         // opt (peças individuais - requer mirror)
 //                }
 // Nota: Quando usar "parts", o campo "mirror" é OBRIGATÓRIO (true ou false)
 //       Quando usar "items" sem mirror, conta como pares completos
@@ -40,25 +37,7 @@ export function converterParaQtyRules(
 			const partSize = (linha.codigoCor || linha.grade || linha.modelo || "")
 				.toString()
 				.trim()
-			const items = Number(linha.pares || 0)
-
-			let material =
-				cadastro && cadastro.material ? String(cadastro.material) : ""
-			// Enriquecer material com especificacaoTecnica do CTC quando artigo+cor combinarem
-			if (dadosCTC && Array.isArray(dadosCTC.linhas)) {
-				for (const l of dadosCTC.linhas) {
-					if (
-						String(l.artigo || "").trim() === partName &&
-						String(l.codigoCor || l.grade || "").trim() === partSize
-					) {
-						if (l.especificacaoTecnica)
-							material =
-								(material ? material + " - " : "") +
-								String(l.especificacaoTecnica).trim()
-						break
-					}
-				}
-			}
+			// campos processados a partir da linha
 
 			// Formato Comelz usa snake_case para os campos
 			const qtyRule = {}
@@ -68,13 +47,9 @@ export function converterParaQtyRules(
 			if (partSize || (cadastro && cadastro.cor)) {
 				qtyRule.part_size = formatPartSize(partSize || cadastro.cor || "")
 			}
-			if (material) {
-				qtyRule.material = material
-			}
-			// Usa "items" para pares completos (não requer mirror)
-			if (items > 0) {
-				qtyRule.items = items
-			}
+			// não adiciona campos 'material', 'items' ou 'fitting'
+			// adicionar campo 'extra' vazio para garantir vírgula após 'parts' no JSON
+			qtyRule.extra = ""
 
 			lista.push(qtyRule)
 		}
@@ -89,14 +64,7 @@ export function converterParaQtyRules(
 			const partSize = (linha.codigoCor || linha.grade || linha.modelo || "")
 				.toString()
 				.trim()
-			const items = Number(linha.pares || 0)
-
-			let material =
-				cadastro && cadastro.material ? String(cadastro.material) : ""
-			if (linha.especificacaoTecnica)
-				material =
-					(material ? material + " - " : "") +
-					String(linha.especificacaoTecnica).trim()
+			// campos processados a partir da linha
 
 			// Formato Comelz usa snake_case para os campos
 			const qtyRule = {}
@@ -106,13 +74,9 @@ export function converterParaQtyRules(
 			if (partSize || (cadastro && cadastro.cor)) {
 				qtyRule.part_size = formatPartSize(partSize || cadastro.cor || "")
 			}
-			if (material) {
-				qtyRule.material = material
-			}
-			// Usa "items" para pares completos (não requer mirror)
-			if (items > 0) {
-				qtyRule.items = items
-			}
+			// não adiciona campos 'material', 'items' ou 'fitting'
+			// adicionar campo 'extra' vazio para garantir vírgula após 'parts' no JSON
+			qtyRule.extra = ""
 
 			lista.push(qtyRule)
 		}
@@ -188,16 +152,12 @@ export function gerarArquivoComelz(options = {}) {
  * @param {string} options.part_size - Tamanho (ex: "39.00")
  * @param {boolean} options.mirror - true para espelhado, false para original
  * @param {number} options.parts - Quantidade de peças
- * @param {string} options.material - Material (opt)
- * @param {string} options.fitting - Fitting (opt)
  */
 export function criarQtyRuleParts({
 	part_name,
 	part_size,
 	mirror,
 	parts,
-	material,
-	fitting,
 } = {}) {
 	if (mirror === undefined || mirror === null) {
 		throw new Error('Campo "mirror" é obrigatório quando usando "parts"')
@@ -205,10 +165,9 @@ export function criarQtyRuleParts({
 	const rule = {}
 	if (part_name) rule.part_name = String(part_name)
 	if (part_size) rule.part_size = formatPartSize(part_size)
-	if (fitting) rule.fitting = String(fitting)
 	rule.mirror = Boolean(mirror)
 	rule.parts = Number(parts) || 0
-	if (material) rule.material = String(material)
+	rule.extra = ""
 	return rule
 }
 
@@ -217,25 +176,17 @@ export function criarQtyRuleParts({
  * @param {Object} options
  * @param {string} options.part_name - Nome da peça (opt)
  * @param {string} options.part_size - Tamanho (opt, ex: "39.00")
- * @param {number} options.items - Quantidade de pares/itens
- * @param {string} options.material - Material (opt)
- * @param {string} options.fitting - Fitting (opt)
  * @param {boolean} options.mirror - Mirror (opt, para half-pairs)
  */
 export function criarQtyRuleItems({
 	part_name,
 	part_size,
-	items,
-	material,
-	fitting,
 	mirror,
 } = {}) {
 	const rule = {}
 	if (part_name) rule.part_name = String(part_name)
 	if (part_size) rule.part_size = formatPartSize(part_size)
-	if (fitting) rule.fitting = String(fitting)
 	if (mirror !== undefined && mirror !== null) rule.mirror = Boolean(mirror)
-	if (material) rule.material = String(material)
-	rule.items = Number(items) || 0
+	rule.extra = ""
 	return rule
 }

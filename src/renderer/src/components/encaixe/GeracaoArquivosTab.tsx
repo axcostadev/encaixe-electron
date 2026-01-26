@@ -481,12 +481,10 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 								
 								qtyRules.push({
 									part_name: cadastroSelecionado.componente || cadastroSelecionado.artigo,
-									part_size: String(item.tamanho),
-									fitting: "",
+									part_size: String(Number(item.tamanho).toFixed(2)),
 									mirror: false,
 									parts: folhas,
-									material: cadastroSelecionado.material || "",
-									items: item.pares,
+							extra: "",
 								})
 							}
 						}
@@ -703,12 +701,10 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 								
 								qtyRules.push({
 									part_name: cadastroSelecionado.componente || cadastroSelecionado.artigo,
-									part_size: String(item.tamanho),
-									fitting: "",
+									part_size: String(Number(item.tamanho).toFixed(2)),
 									mirror: false,
 									parts: folhas,
-									material: cadastroSelecionado.material || "",
-									items: item.pares,
+							extra: "",
 								})
 							}
 						}
@@ -1200,4 +1196,6 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 		</div>
 	)
 }
+
+
 
