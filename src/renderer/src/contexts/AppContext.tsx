@@ -95,16 +95,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
 					numero_tecido?: string
 					sequencia?: number
 					nome: string
-					materialId?: number
-					tipoTecido?: number
-					conjugacaoNavalha?: string
-					placaPar?: string
-					camadas?: number
-					espacamento?: number
-					compMaximo?: number
-					percPerda?: number
-					coresDisponiveis?: string[]
-					tamanhos?: { tamanhoInicial: number; tamanhoFinal: number }[]
+			apelido?: string
+			material_id?: number
+			materialId?: number
+			redutor_largura?: number
+			redutorLargura?: number
+			// snake_case variants from backend
+			tipo_tecido?: number
+			conjugacao_navalha?: string
+			placa_par?: string
+			camadas?: number
+			espacamento?: number
+			comp_maximo?: number
+			perc_perda?: number
+			cores_disponiveis?: string[]
+			// camelCase fallbacks
+			tipoTecido?: number
+			conjugacaoNavalha?: string
+			placaPar?: string
+			compMaximo?: number
+			percPerda?: number
+			coresDisponiveis?: string[]
+			tamanhos?: { tamanhoInicial: number; tamanhoFinal: number }[]
+			[key: string]: any
 				}
 
 				const componentes: Componente[] = (componentesFromAPI || []).map(
@@ -114,15 +127,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
 							modeloId: c.modelo_id,
 							sequencia: c.sequencia ?? idx,
 							nome: c.nome,
-							materialId: c.materialId || 0,
-							tipoTecido: c.tipoTecido || 0,
-							conjugacaoNavalha: c.conjugacaoNavalha || "",
-							placaPar: c.placaPar || "",
-							camadas: c.camadas || 0,
-							espacamento: c.espacamento || 0,
-							compMaximo: c.compMaximo || 0,
-							percPerda: c.percPerda || 0,
-							coresDisponiveis: c.coresDisponiveis || [],
+							apelido: c.apelido || "",
+							materialId: (c as any).material_id || c.materialId || 0,
+							redutorLargura: (c as any).redutor_largura ?? (c as any).redutorLargura ?? 0,
+							tipoTecido: c.tipoTecido ?? c.tipo_tecido ?? 0,
+							conjugacaoNavalha: c.conjugacaoNavalha ?? c.conjugacao_navalha ?? "",
+							placaPar: c.placaPar ?? c.placa_par ?? "",
+							camadas: c.camadas ?? 0,
+							espacamento: c.espacamento ?? 0,
+							compMaximo: c.compMaximo ?? c.comp_maximo ?? 0,
+							percPerda: c.percPerda ?? c.perc_perda ?? 0,
+							coresDisponiveis: c.coresDisponiveis ?? c.cores_disponiveis ?? [],
 							tamanhos: c.tamanhos || [],
 							modeloCorId: c.modelo_cor_id || undefined,
 							setorId: c.setor_id || undefined,
@@ -130,6 +145,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 						}
 					},
 				)
+
 
 				return {
 					...m,
@@ -385,18 +401,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		// Persistir no backend
 		const dados = {
 			materialId: componente.materialId,
-			tipoTecido: componente.tipoTecido,
+			apelido: componente.apelido,
+				tipoTecido: componente.tipoTecido,
 			conjugacaoNavalha: componente.conjugacaoNavalha,
 			placaPar: componente.placaPar,
 			camadas: componente.camadas,
 			espacamento: componente.espacamento,
 			compMaximo: componente.compMaximo,
 			percPerda: componente.percPerda,
+			redutorLargura: componente.redutorLargura ?? 0,
 			coresDisponiveis: componente.coresDisponiveis,
 			modeloCorId: componente.modeloCorId,
 			setorId: componente.setorId,
 			numeroTecido: componente.numeroTecido,
-		}
+		} 
 
 		console.debug("addComponente: payload:", {
 			modeloId,
@@ -406,6 +424,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		})
 		let res: any
 		try {
+			console.debug("addComponente: sending to backend", { modeloId, nome: componente.nome, dados, tamanhos: componente.tamanhos })
 			res = await window.api.componentes.create(
 				modeloId,
 				componente.nome,
@@ -438,6 +457,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
 						: m,
 				),
 			)
+			// Também salvar apelido no gerenciador de apelidos para uso global
+			try {
+				if (componente.apelido) {
+					await (window as any).api.apelidosAPI.save(newComponente.nome, componente.apelido)
+				}
+				// Recarregar modelos do backend para garantir consistência
+				console.debug('AppContext: reloading modelos after create to ensure consistency')
+				await loadModelos()
+			} catch (err) {
+				console.error('Erro ao salvar apelido global ou recarregar modelos:', err)
+			}
 		} else {
 			console.error("Falha ao criar componente:", res)
 			throw new Error(res?.message || "Erro ao criar componente")
@@ -450,11 +480,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		componente: Partial<ComponentePayload>,
 	) {
 		// Persistir no backend - passar parâmetros individuais em vez de objeto "dados"
+		console.debug("updateComponente: sending to backend", { modeloId, componenteId, nome: componente.nome, dados: { apelido: componente.apelido || "", materialId: componente.materialId ?? 0, tipoTecido: componente.tipoTecido ?? 0, conjugacaoNavalha: componente.conjugacaoNavalha ?? "", placaPar: componente.placaPar ?? "", camadas: componente.camadas ?? 1, espacamento: componente.espacamento ?? 0, compMaximo: componente.compMaximo ?? 0, percPerda: componente.percPerda ?? 0, redutorLargura: componente.redutorLargura ?? 0, coresDisponiveis: componente.coresDisponiveis ?? [], modeloCorId: componente.modeloCorId ?? 0, setorId: componente.setorId ?? 0, numeroTecido: componente.numeroTecido ?? "" }, tamanhos: componente.tamanhos || [] })
 		const res = await window.api.componentes.update(
 			modeloId,
 			componenteId,
 			componente.nome || "",
 			{
+				apelido: componente.apelido || "",
 				materialId: componente.materialId ?? 0,
 				tipoTecido: componente.tipoTecido ?? 0,
 				conjugacaoNavalha: componente.conjugacaoNavalha ?? "",
@@ -463,6 +495,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 				espacamento: componente.espacamento ?? 0,
 				compMaximo: componente.compMaximo ?? 0,
 				percPerda: componente.percPerda ?? 0,
+				redutorLargura: componente.redutorLargura ?? 0,
 				coresDisponiveis: componente.coresDisponiveis ?? [],
 				modeloCorId: componente.modeloCorId ?? 0,
 				setorId: componente.setorId ?? 0,
@@ -472,18 +505,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		)
 
 		if (res && res.success) {
-			setModelos((prev) =>
-				prev.map((m) =>
+			setModelos((prev) => {
+				const next = prev.map((m) =>
 					m.id === modeloId
 						? {
-								...m,
-								componentes: m.componentes.map((c) =>
-									c.id === componenteId ? { ...c, ...componente } : c,
-								),
-							}
-						: m,
-				),
-			)
+							...m,
+							componentes: m.componentes.map((c) =>
+								c.id === componenteId ? { ...c, ...componente } : c,
+							),
+						}
+					: m,
+				)
+				// Logar o componente atualizado que será gravado no estado
+				const updated = next
+					.flatMap((m) => m.componentes)
+					.find((c) => c.id === componenteId)
+				console.debug('AppContext: after updateComponente, updated in-memory componente =', JSON.stringify(updated))
+				// Salvar apelido no gerenciador de apelidos também
+				try {
+					if (componente.apelido) {
+						;(window as any).api.apelidosAPI.save(updated?.nome || componente.nome, componente.apelido)
+					}
+				} catch (err) {
+					console.error('Erro ao salvar apelido global:', err)
+				}
+				return next
+			})
+			try {
+				console.debug('AppContext: reloading modelos after update to ensure consistency')
+				await loadModelos()
+			} catch (err) {
+				console.error('Erro ao recarregar modelos após update:', err)
+			}
 		} else {
 			throw new Error(res?.message || "Erro ao atualizar componente")
 		}

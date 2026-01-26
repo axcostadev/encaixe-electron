@@ -45,6 +45,11 @@ npm run build:mac
 
 # Linux — Gera AppImage, snap e deb conforme configuração
 npm run build:linux
+
+
+$env:Path += ';C:\Aincrad\Development\_kit\node-v24.11.1-win-x64'
+npm -v
+npm run dev
 ```
 
 ## Qualidade de Código

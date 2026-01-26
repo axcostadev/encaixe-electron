@@ -53,11 +53,12 @@ interface ComponenteDados {
 	espacamento?: number
 	compMaximo?: number
 	percPerda?: number
+	redutorLargura?: number
 	coresDisponiveis?: string[]
 	modeloCorId?: number
 	setorId?: number
 	numeroTecido?: string
-}
+} 
 
 interface UserPermissions {
 	canViewDashboard: boolean
@@ -297,6 +298,16 @@ const api = {
 	cadastroImportAPI: {
 		importAll: () => ipcRenderer.invoke("cadastro-import-folder"),
 	},
+	migrations: {
+		checkRedutorLargura: () => ipcRenderer.invoke("migrations:check-redutor-largura"),
+		addRedutorLargura: () => ipcRenderer.invoke("migrations:add-redutor-largura"),
+	},
+	settings: {
+		get: () => ipcRenderer.invoke("settings:get"),
+		set: (updates: Record<string, any>) => ipcRenderer.invoke("settings:set", updates),
+		test: (dbPath: string) => ipcRenderer.invoke("settings:test-db", dbPath),
+		getStatus: () => ipcRenderer.invoke("settings:get-status"),
+	},
 	// Economia APIs
 	economia: {
 		importFile: (filePath?: string) => ipcRenderer.invoke("economia-import-file", filePath),
@@ -309,6 +320,10 @@ const api = {
 		summary: () => ipcRenderer.invoke("economia-summary"),
 		byModelo: (limit: number = 10) => ipcRenderer.invoke("economia-by-modelo", limit),
 		byMaterial: (limit: number = 10) => ipcRenderer.invoke("economia-by-material", limit),
+		upsertEncaixe: (row: any) => ipcRenderer.invoke("economia:upsert-encaixe", row),
+			insertHeader: (header: any) => ipcRenderer.invoke("economia:insert-header", header),
+		updateRow: (id: number, fields: Record<string, any>) => ipcRenderer.invoke("economia:update-row", id, fields),
+		deleteRows: (ids: number[]) => ipcRenderer.invoke("economia:delete-rows", ids),
 	},
 }
 

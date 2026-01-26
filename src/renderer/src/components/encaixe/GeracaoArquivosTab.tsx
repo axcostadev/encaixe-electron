@@ -1,4 +1,4 @@
-import { Button } from "@renderer/components/ui/button"
+﻿import { Button } from "@renderer/components/ui/button"
 import { Input } from "@renderer/components/ui/input"
 import { Label } from "@renderer/components/ui/label"
 import {
@@ -493,7 +493,7 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 					}
 					
 					const pastaArtigoComelz = `${cadastroSelecionado.artigo} - ${cadastroSelecionado.modelo}`
-					const modelPathComelz = `\\\\modserver\\models\\COMELZ\\${pastaArtigoComelz}\\${cadastroSelecionado.componente}.cmz`
+					const modelPathComelz = `O:\\Lectra\\Calcado\\Modelos\\COMELZ\\${pastaArtigoComelz}\\${cadastroSelecionado.componente}.cmz`
 					
 					dados = {
 						id: ofSearch,
@@ -1200,3 +1200,4 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 		</div>
 	)
 }
+

@@ -61,6 +61,7 @@ import {
 	Plus,
 	Lock,
 	History,
+	Database,
 	Search,
 	Download,
 	Filter,
@@ -165,7 +166,136 @@ export default function SetupPage() {
 	const [logActionFilter, setLogActionFilter] = useState<string>('all')
 	const [auditSubTab, setAuditSubTab] = useState<'encaixe' | 'manual'>('encaixe')
 
-	// Form state
+	// Entidades usadas para filtro na aba Auditoria
+	const encaixeEntityTypes: Array<ActivityLog['entityType']> = ['encaixe', 'of', 'apelido']
+	const manualEntityTypes: Array<ActivityLog['entityType']> = ['brand', 'model', 'component']
+
+	// Migration status for redutor_largura
+	const [migrationStatus, setMigrationStatus] = useState<'checking' | 'present' | 'missing' | 'error'>('checking')
+	const [migrationMessage, setMigrationMessage] = useState('')
+	const [runningMigration, setRunningMigration] = useState(false)
+
+// Settings state (Configurações)
+const [dbFilePath, setDbFilePath] = useState('')
+const [originalDbFile, setOriginalDbFile] = useState('')
+const [savingSettings, setSavingSettings] = useState(false)
+const [economiaDbPath, setEconomiaDbPath] = useState('')
+
+async function loadStatus() {
+	try {
+		const res = await (window as any).api.settings.getStatus()
+		if (res && res.success) {
+			setEconomiaDbPath(res.economiaDb || '')
+			// also ensure input matches stored setting if not manually editing
+			if (!dbFilePath) setDbFilePath(res.settings?.dbFile || '')
+		} else {
+			console.error('Erro carregando status:', res?.message)
+		}
+	} catch (err) {
+		console.error('Erro carregando status:', err)
+	}
+}
+
+async function loadSettings() {
+	try {
+		const res = await (window as any).api.settings.get()
+		if (res && res.success && res.settings) {
+			setDbFilePath(res.settings.dbFile || '')
+			setOriginalDbFile(res.settings.dbFile || '')
+		} else if (res && !res.success) {
+			console.error('Erro carregando configurações:', res.message)
+		}
+	} catch (err) {
+		console.error('Erro carregando configurações:', err)
+	}
+}
+
+async function handleSelectDbFolder() {
+	try {
+		const selected = await (window as any).api.electronAPI.selectDirectory()
+		// user cancelled
+		if (!selected) {
+			toast('Seleção de pasta cancelada')
+			return
+		}
+		// inferir separador a partir do próprio caminho selecionado
+		const sep = selected.includes('\\') ? '\\' : '/'
+		let composed = selected
+		if (!composed.endsWith('\\') && !composed.endsWith('/')) composed = `${composed}${sep}`
+		composed = `${composed}app.db`
+		setDbFilePath(composed)
+	} catch (err) {
+		console.error('Erro selecionando pasta:', err)
+		toast.error('Erro ao abrir diálogo de pasta')
+	}
+}
+
+async function handleTestDb() {
+	if (!dbFilePath) {
+		toast.error('Informe o caminho do arquivo de banco de dados para testar')
+		return
+	}
+	try {
+		const res = await (window as any).api.settings.test(dbFilePath)
+		if (res && res.success) {
+			toast.success('Conexão com o DB bem-sucedida')
+		} else {
+			toast.error(res?.message || 'Erro ao conectar com o DB')
+		}
+	} catch (err) {
+		console.error('Erro testando DB:', err)
+		toast.error('Erro ao testar conexão')
+	}
+}
+
+async function handleSaveSettings() {
+	if (!dbFilePath) {
+		toast.error('Informe o caminho do arquivo de banco de dados')
+		return
+	}
+
+	// Se mudou o caminho, pedir confirmação porque faremos backup e reiniciaremos a conexão
+	if (originalDbFile && originalDbFile !== dbFilePath) {
+		if (!confirm('Alterar o local do DB fará backup do arquivo atual e reinicializará a conexão. Deseja continuar?')) return
+	}
+
+	setSavingSettings(true)
+	try {
+		const res = await (window as any).api.settings.set({ dbFile: dbFilePath })
+		if (res && res.success) {
+			toast.success('Configurações salvas com sucesso')
+			setOriginalDbFile(dbFilePath)
+			if (res.economiaReinit) {
+				if (res.economiaReinit.success) {
+					toast.success('Economia DB reinicializado com sucesso')
+				} else {
+					console.error('Erro reinicializando economia DB:', res.economiaReinit.message)
+					toast.error('Erro ao reinicializar Economia DB: ' + (res.economiaReinit.message || 'ver logs'))
+				}
+			}
+		} else {
+			toast.error(res?.message || 'Erro ao salvar configurações')
+		}
+	} catch (err) {
+		console.error('Erro salvando configurações:', err)
+		toast.error('Erro salvando configurações')
+	} finally {
+		setSavingSettings(false)
+	}
+}
+
+async function handleRestoreDefault() {
+	try {
+		const res = await (window as any).api.settings.get()
+		if (res && res.success && res.settings) {
+			// padrão é o valor salvo no arquivo; se não existir, o main fornece o default
+			setDbFilePath(res.settings.dbFile || '')
+		}
+	} catch (err) {
+		console.error('Erro restaurando padrão:', err)
+	}
+}
+
 	const [formData, setFormData] = useState({
 		username: "",
 		email: "",
@@ -221,16 +351,66 @@ export default function SetupPage() {
 		loadRoles()
 	}, [loadUsers, loadRoles])
 
+	// Função para verificar o status da migração
+	async function checkMigrationStatus() {
+		setMigrationStatus('checking')
+		setMigrationMessage('')
+		try {
+			const exists = await (window as any).api.migrations.checkRedutorLargura()
+			setMigrationStatus(exists ? 'present' : 'missing')
+		} catch (err: any) {
+			console.error('Erro verificando migration:', err)
+			setMigrationStatus('error')
+			setMigrationMessage(err?.message || String(err))
+		}
+	}
+
 	// Carregar logs quando a aba de auditoria for selecionada
 	useEffect(() => {
 		if (activeTab === 'auditoria') {
 			setActivityLogs(activityLogger.getAllLogs())
 		}
+		if (activeTab === 'migrations') {
+			checkMigrationStatus()
+		}
+		if (activeTab === 'configuracoes') {
+			loadSettings()
+			loadStatus()
+		}
 	}, [activeTab])
 
-	// Tipos de entidade por categoria
-	const encaixeEntityTypes = ['encaixe', 'of', 'apelido']
-	const manualEntityTypes = ['brand', 'model', 'component']
+async function runMigration() {
+	if (!confirm('Deseja aplicar a migração e adicionar a coluna redutor_largura?')) return
+	setRunningMigration(true)
+	try {
+		const res = await (window as any).api.migrations.addRedutorLargura()
+		if (res && res.success) {
+			toast.success(res.message || 'Migração aplicada com sucesso')
+			// Log de auditoria local
+			try {
+				activityLogger.log(user || null, 'update_model', 'model', 'db', 'schema', { migration: 'add_redutor_largura', result: res })
+			} catch (e) {
+				console.error('Erro salvando log de auditoria para migração:', e)
+			}
+		} else {
+			toast.error(res?.message || 'Erro ao aplicar migração')
+			try {
+				activityLogger.log(user || null, 'update_model', 'model', 'db', 'schema', { migration: 'add_redutor_largura', result: res })
+			} catch (e) {
+				console.error('Erro salvando log de auditoria para migração (erro):', e)
+			}
+		}
+		// reverificar status
+		await checkMigrationStatus()
+	} catch (err: any) {
+		console.error('Erro aplicando migração:', err)
+		toast.error(err?.message || String(err))
+		setMigrationStatus('error')
+		setMigrationMessage(err?.message || String(err))
+	} finally {
+		setRunningMigration(false)
+	}
+}
 
 	// Filtrar logs por sub-aba (encaixe ou manual)
 	const logsForCurrentTab = activityLogs.filter(log => {
@@ -515,7 +695,7 @@ export default function SetupPage() {
 			</div>
 
 			<Tabs value={activeTab} onValueChange={setActiveTab}>
-				<TabsList className="grid w-full max-w-2xl grid-cols-4">
+				<TabsList className="grid w-full max-w-2xl grid-cols-6">
 					<TabsTrigger value="usuarios" className="flex items-center gap-2">
 						<Users className="w-4 h-4" />
 						Usuários
@@ -532,10 +712,16 @@ export default function SetupPage() {
 						<History className="w-4 h-4" />
 						Auditoria
 					</TabsTrigger>
-				</TabsList>
-
-				{/* Tab Usuários */}
-				<TabsContent value="usuarios" className="space-y-4">
+				<TabsTrigger value="migrations" className="flex items-center gap-2">
+					<Database className="w-4 h-4" />
+					Migrações
+				</TabsTrigger>
+					<TabsTrigger value="configuracoes" className="flex items-center gap-2">
+				<Settings className="w-4 h-4" />
+				Configurações
+			</TabsTrigger>
+			</TabsList>
+						<TabsContent value="usuarios" className="space-y-4">
 					<Card>
 						<CardHeader>
 							<div className="flex items-center justify-between">
@@ -827,7 +1013,84 @@ export default function SetupPage() {
 					</Card>
 				</TabsContent>
 
-				{/* Tab Auditoria */}
+				{/* Tab Migrações */}
+			<TabsContent value="migrations" className="space-y-4">
+				<Card className="border-2">
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<History className="w-5 h-5" />
+							Migrações do Banco
+						</CardTitle>
+						<CardDescription>Verifique e aplique migrações manualmente</CardDescription>
+					</CardHeader>
+					<CardContent>
+						{migrationStatus === 'checking' && (
+							<div className="flex items-center gap-2">
+								<RefreshCw className="w-5 h-5 animate-spin" />
+								<span>Verificando estado da migração...</span>
+							</div>
+						)}
+						{migrationStatus === 'present' && (
+							<div className="flex items-center justify-between">
+								<div className="text-sm text-green-400">Coluna <code>redutor_largura</code> já existe.</div>
+								<Button variant="outline" size="sm" onClick={checkMigrationStatus}>Reverificar</Button>
+							</div>
+						)}
+						{migrationStatus === 'missing' && (
+							<div className="flex items-center justify-between">
+								<div className="text-sm text-yellow-300">Coluna <code>redutor_largura</code> não encontrada. O banco precisa ser atualizado.</div>
+								<div className="flex gap-2">
+									<Button size="sm" variant="destructive" onClick={runMigration} disabled={runningMigration}>
+										{runningMigration ? 'Executando...' : 'Aplicar Migração'}
+									</Button>
+									<Button variant="outline" size="sm" onClick={checkMigrationStatus}>Reverificar</Button>
+								</div>
+							</div>
+						)}
+						{migrationStatus === 'error' && (
+							<div className="flex items-center justify-between">
+								<div className="text-sm text-red-400">Erro ao verificar migração: {migrationMessage}</div>
+								<Button variant="outline" size="sm" onClick={checkMigrationStatus}>Tentar novamente</Button>
+							</div>
+						)}
+					</CardContent>
+				</Card>
+			</TabsContent>
+
+			{/* Tab Configurações (nova) */}
+			<TabsContent value="configuracoes" className="space-y-4">
+				<Card className="border-2">
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<Settings className="w-5 h-5" />
+							Configurações Gerais
+						</CardTitle>
+						<CardDescription>Defina caminhos e preferências da aplicação</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<div className="grid grid-cols-1 gap-4">
+							<div>
+								<div className="mb-2">
+								<div className="text-sm">Economia DB atual: <code title={economiaDbPath}>{economiaDbPath || '—'}</code></div>
+							</div>
+							<Label className="text-sm">Pasta onde será salvo o arquivo <code>app.db</code></Label>
+								<div className="flex gap-2 mt-2">
+									<Input value={dbFilePath} onChange={(e) => setDbFilePath((e.target as HTMLInputElement).value)} />
+									<Button variant="outline" onClick={handleSelectDbFolder}>Selecionar pasta...</Button>
+								</div>
+								<p className="text-muted-foreground text-sm mt-2">Selecione a pasta na rede ou local onde será armazenado o arquivo <code>app.db</code>. Ao salvar, o app fará backup do DB atual (se existir) e reinicializará a conexão.</p>
+							</div>
+							<div className="flex gap-2">
+								<Button onClick={handleSaveSettings} disabled={savingSettings}>{savingSettings ? 'Salvando...' : 'Salvar'}</Button>
+							<Button variant="outline" onClick={handleTestDb} disabled={!dbFilePath}>Testar conexão</Button>
+								<Button variant="outline" onClick={handleRestoreDefault}>Restaurar padrão</Button>
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+			</TabsContent>
+
+			{/* Tab Auditoria */}
 				<TabsContent value="auditoria" className="space-y-4">
 					<Card>
 						<CardHeader>
@@ -993,7 +1256,9 @@ export default function SetupPage() {
 								)}
 							</div>
 
-							{/* Estatísticas por sub-aba */}
+
+
+				{/* Estatísticas por sub-aba */}
 							{auditSubTab === 'encaixe' ? (
 								<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 									<div className="bg-muted/50 rounded-lg p-3 text-center">

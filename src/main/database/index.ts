@@ -28,6 +28,8 @@ import {
 	updateComponente,
 	deleteComponente,
 	getCadastroByArtigo,
+	hasColumnRedutorLargura,
+	addRedutorLarguraColumn,
 } from "./models"
 import type { Componente, ComponenteDados, CadastroInfo } from "./models"
 import {
@@ -96,6 +98,8 @@ export {
 	updateComponente,
 	deleteComponente,
 	getCadastroByArtigo,
+	hasColumnRedutorLargura,
+	addRedutorLarguraColumn,
 	listSetores,
 	createSetor,
 	updateSetor,

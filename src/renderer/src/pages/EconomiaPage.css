@@ -1,15 +1,46 @@
 .economia-filters {
-  background: var(--economia-gradient);
-  color: #fff;
-  padding: 12px;
+  background: linear-gradient(180deg, rgba(99,179,255,0.12), rgba(59,130,246,0.06)); /* mais claro */
+  color: #ecf6ff; /* texto mais legível */
+  padding: 14px;
   border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  box-shadow: 0 10px 30px rgba(2,6,23,0.45);
+  border: 1px solid rgba(255,255,255,0.03);
 }
-.economia-filters h3{color:#fff;margin:0 0 8px;font-weight:700}
-.economia-filters .filter-box{background:rgba(255,255,255,0.06);border-radius:8px;padding:8px;height:160px;overflow:auto}
-.economia-filters label{display:flex;align-items:center;padding:4px 6px;border-radius:6px;margin-bottom:4px}
-.economia-filters input[type="checkbox"]{width:14px;height:14px}
-.economia-filters label:hover{background:rgba(255,255,255,0.03)}
+.economia-filters h3{color:#eaf6ff;margin:0 0 8px;font-weight:700}
+.economia-filters .filter-box{background:rgba(2,6,23,0.85);border-radius:8px;padding:8px;height:160px;overflow:auto;border:1px solid rgba(255,255,255,0.03)}
+.economia-filters label{display:flex;align-items:center;padding:6px 8px;border-radius:8px;margin-bottom:6px;color:rgba(255,255,255,0.92);font-weight:600}
+.economia-filters input[type="checkbox"]{width:16px;height:16px;accent-color:#60a5fa}
+.economia-filters label:hover{background:rgba(255,255,255,0.02)}
+
+/* Period list specific styling to ensure consistent sizing */
+.periodo-list { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding: 8px; width: 100%; box-sizing: border-box; }
+.period-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 2px; }
+.period-label { display:flex; align-items:center; gap:8px; color: rgba(255,255,255,0.95); font-weight:600 }
+.period-text { min-width: 60px; display: inline-block }
+
+/* Standardize filter box sizes and center the filter title */
+.economia-filters .filter-box,
+.economia-filters .periodo-list {
+  height: 200px !important;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.economia-filters .filter-title {
+  text-align: center;
+  display: block;
+  margin: 0 0 12px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+@media (max-width: 767px){
+  .economia-filters .filter-box,
+  .economia-filters .periodo-list { height: 140px !important }
+}
+/* Make remove button clearly visible (light blue) */
+
+
 .economia-filters .controls{display:flex;gap:8px;margin-top:8px}
 .economia-filters .controls button{padding:4px 8px}
 
@@ -18,12 +49,26 @@
 .economia-badges .badge-amount{font-weight:700}
 
 /* layout: left narrow filters, right area with two square cards */
-.economia-charts-container{display:grid;grid-template-columns:180px 1fr;gap:18px;align-items:start}
+.economia-charts-container{display:grid;grid-template-columns:220px 1fr;gap:18px;align-items:start}
 .economia-charts-container > .bg-card{background: var(--economia-gradient) !important;border-radius:14px;padding:18px;min-height:var(--panel-height);background-repeat:no-repeat;background-size:cover}
 .economia-charts-container > .economia-filters{min-height:var(--panel-height)}
-.charts-right{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.charts-right{display:grid;grid-template-columns:1fr 1fr;gap:18px;min-width:480px}
+.charts-right > .bg-card, .busca-table-container, .chart-placeholder { min-width: 320px; min-height: 280px }
 .charts-right > .bg-card{min-height:var(--panel-height);background: var(--economia-gradient) !important;background-repeat:no-repeat;background-size:cover}
 .bg-card h3{font-weight:700;text-align:center;color:#ffffff}
+.bg-card .recharts-text,
+.bg-card .recharts-legend-item text,
+.bg-card .recharts-legend-wrapper text,
+.bg-card .recharts-cartesian-axis-tick-value,
+.bg-card svg text {
+  fill: #ffffff !important;
+  color: #ffffff !important;
+}
+
+.bg-card .recharts-cartesian-axis-tick-line,
+.bg-card .recharts-cartesian-grid line {
+  stroke: rgba(255,255,255,0.12) !important;
+}
 .chart-placeholder{padding:40px;text-align:center;color:#475569}
 
 /* responsive fallback for small screens */
@@ -94,15 +139,37 @@
 
 .busca-controls {
   display: flex;
-  gap: 16px;
-  align-items: flex-end;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
+/* Stack on small screens: header first then search controls */
+@media (max-width: 767px) {
+  .busca-controls { flex-direction: column; align-items: stretch }
+  .busca-header-side { order: 0; margin-bottom: 12px }
+  .busca-input-group, .busca-button-group { order: 1; display:flex; gap:8px; align-items:center }
+  .busca-input-field { width: 100%; }
+}
 .busca-input-group {
   flex: 1;
-  min-width: 280px;
+  min-width: 220px;
+  max-width: 420px;
+  transition: min-width 0.12s ease, max-width 0.12s ease;
+}
+
+/* When there are search results, compact the OF search input and buttons in the header */
+.busca-controls.has-results .busca-input-group {
+  min-width: 140px;
+  max-width: 320px;
+}
+.busca-controls.has-results .busca-button-group {
+  gap: 6px;
+}
+.busca-controls.has-results .busca-btn {
+  padding: 8px 12px;
 }
 
 .busca-input-label {
@@ -119,6 +186,17 @@
   align-items: center;
 }
 
+/* header side next to search */
+.busca-header-side {
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin-left: 16px;
+}
+.busca-header-side .header-field { display:flex; flex-direction:column; gap:6px }
+.busca-header-side .header-field label { font-size:12px; color:#93c5fd; font-weight:700 }
+.busca-header-side .header-input { padding:8px 10px; border-radius:8px; background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); color:#e2e8f0; width:160px }
+.busca-header-side .header-actions { display:flex; gap:8px; align-items:center }
 .busca-input-icon {
   position: absolute;
   left: 14px;
@@ -128,13 +206,13 @@
 
 .busca-input-field {
   width: 100%;
-  padding: 12px 14px 12px 44px;
+  padding: 10px 12px 10px 40px;
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 10px;
   color: #fff;
-  font-size: 15px;
-  transition: all 0.2s;
+  font-size: 14px;
+  transition: all 0.12s;
 }
 
 .busca-input-field:focus {
@@ -148,21 +226,23 @@
   color: #64748b;
 }
 
+/* removed period remove button styles (button removed from markup) */
+
 .busca-button-group {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .busca-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 20px;
-  border-radius: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.12s;
   border: none;
 }
 
@@ -291,14 +371,31 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: fixed;
+  table-layout: auto; /* allow columns to grow on wide screens */
 }
 
 .busca-table-pro thead {
   position: sticky;
-  top: 0;
+  top: 0; /* top is handled by dynamic spacer inserted into the scroll container */
   z-index: 10;
 }
+
+/* Sticky header form above the table to provide FK fields */
+.busca-table-header-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  background: linear-gradient(180deg, rgba(2,6,23,0.85), rgba(2,6,23,0.95));
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.busca-table-header-sticky .header-field { display:flex; flex-direction:column; gap:6px }
+.busca-table-header-sticky .header-field label { font-size:12px; color:#93c5fd; font-weight:700 }
+.busca-table-header-sticky .header-input { padding:8px 10px; border-radius:8px; background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); color:#e2e8f0; }
+.busca-table-header-sticky .header-actions { margin-left:auto; display:flex; gap:8px; align-items:center }
 
 .busca-table-pro thead tr {
   background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
@@ -319,6 +416,14 @@
 .busca-table-pro tbody tr {
   transition: background 0.15s;
 }
+
+/* Ensure first visible row is not covered by sticky headers — add a bit more top padding */
+.busca-table-pro tbody tr:first-child td {
+  padding-top: 8px; /* small default — spacer handles the real offset now */
+}
+
+/* Spacer inserted dynamically to push table down below the controls/status */
+.busca-table-spacer { width: 100%; height: 0; transition: height 0.12s ease; pointer-events: none }
 
 .busca-table-pro tbody tr:nth-child(even) {
   background: rgba(255,255,255,0.02);
@@ -343,6 +448,105 @@
   text-align: center;
   color: #64748b;
   font-weight: 600;
+}
+
+/* High-contrast mode overrides for Economia page */
+.high-contrast .economia-filters,
+.high-contrast .bg-card,
+.high-contrast .busca-table-pro thead tr {
+  background: #eaf4ff !important; /* light blue */
+  color: #071428 !important; /* dark text */
+}
+
+.high-contrast .busca-table-pro td,
+.high-contrast .busca-table-pro th,
+.high-contrast .economia-filters label {
+  color: #071428 !important;
+}
+
+.high-contrast .busca-table-pro td {
+  background: rgba(255,255,255,0.85) !important;
+}
+
+.high-contrast .busca-table-pro thead tr th {
+  background: #a9d0ff !important;
+  color: #071428 !important;
+  border-bottom-color: rgba(7,20,40,0.12) !important;
+}
+
+/* Additional high-contrast fixes: force names/labels and chart text black */
+.high-contrast .busca-header-title,
+.high-contrast .busca-header-subtitle,
+.high-contrast .busca-input-label,
+.high-contrast .period-label,
+.high-contrast .period-text,
+.high-contrast .busca-status-item,
+.high-contrast .busca-empty,
+.high-contrast .economia-badges .badge-amount,
+.high-contrast .busca-table-pro .col-num,
+.high-contrast .economia-filters label {
+  color: #071428 !important;
+}
+
+.high-contrast svg,
+.high-contrast svg text,
+.high-contrast .recharts-text,
+.high-contrast .recharts-legend-item text,
+.high-contrast .recharts-legend-wrapper text,
+.high-contrast .recharts-cartesian-axis-tick-value,
+.high-contrast .recharts-cartesian-axis-tick-line {
+  fill: #071428 !important;
+  color: #071428 !important;
+  stroke: #071428 !important;
+}
+
+.high-contrast .busca-btn,
+.high-contrast .busca-btn-secondary,
+.high-contrast .busca-btn-ghost {
+  color: #071428 !important;
+}
+
+.high-contrast .busca-input-field {
+  color: #071428 !important;
+  background: #ffffff !important;
+  border-color: rgba(7,20,40,0.08) !important;
+}
+
+.high-contrast .chart-placeholder { color: #071428 !important; }
+
+/* Ensure card headings (chart titles) are dark in high-contrast */
+.high-contrast .bg-card h3,
+.high-contrast .bg-card h2,
+.high-contrast .bg-card .card-title {
+  color: #071428 !important;
+  text-shadow: none !important;
+}
+
+
+.high-contrast .busca-table-pro tbody tr:nth-child(even) {
+  background: rgba(7,20,40,0.03) !important;
+}
+
+.high-contrast .busca-table-pro .col-economia.positive { color: #8b0000 !important }
+.high-contrast .busca-table-pro .col-economia.negative { color: #05672b !important }
+
+.high-contrast .encaixe-input {
+  background: #ffffff !important;
+  color: #071428 !important;
+  border: 1px solid rgba(7,20,40,0.08) !important;
+}
+
+.high-contrast .busca-btn {
+  background: #0b477a !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+.high-contrast .busca-btn.busca-btn-ghost,
+.high-contrast .busca-btn.busca-btn-secondary {
+  background: rgba(11,71,122,0.08) !important;
+  color: #071428 !important;
+  border: 1px solid rgba(7,20,40,0.06) !important;
 }
 
 .busca-table-pro .col-data {
@@ -418,11 +622,11 @@
 
 /* Cores para valores positivos e negativos */
 .busca-table-pro td.positive {
-  color: #22c55e;
+  color: #ef4444;
 }
 
 .busca-table-pro td.negative {
-  color: #ef4444;
+  color: #22c55e;
 }
 
 /* Input de Encaixe */

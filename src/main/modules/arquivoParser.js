@@ -47,6 +47,14 @@ export async function parseCTF(caminho) {
       codigoCor = letras + numeros.slice(0, -2); // "PTRL47"
       grade = mCodGradeFromModel[2]; // Manter grade original
     }
+    // Tentar extrair código de cor a partir de colunas fixas (col 56, 6 caracteres)
+    // Coluna 56 (1-based) corresponde ao índice 55 (0-based). Pegamos 6 caracteres.
+    if (linha && linha.length >= 61) {
+      const codigoCorCols = linha.substring(55, 55 + 6).trim();
+      if (codigoCorCols) {
+        codigoCor = codigoCorCols.toUpperCase();
+      }
+    }
 
     const linhaObj = { of: numeroOff, artigo, modelo, codigoCor, grade, pares: quantidadePares };
 
@@ -108,6 +116,15 @@ export async function parseCTC(caminho) {
       // Código de cor = letras + números (exceto os 2 últimos que são a grade)
       codigoCor = letras + numeros.slice(0, -2); // "PTRL47"
       grade = mCodGradeFromModel[2]; // Manter grade original
+    }
+
+    // Tentar extrair código de cor a partir de colunas fixas (col 56, 6 caracteres)
+    // Coluna 56 (1-based) corresponde ao índice 55 (0-based). Pegamos 6 caracteres.
+    if (linha && linha.length >= 61) {
+      const codigoCorCols = linha.substring(55, 55 + 6).trim();
+      if (codigoCorCols) {
+        codigoCor = codigoCorCols.toUpperCase();
+      }
     }
 
     let especificacaoTecnica = '';

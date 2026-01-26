@@ -27,6 +27,8 @@ import {
 	updateComponente,
 	deleteComponente,
 	getCadastroByArtigo,
+			hasColumnRedutorLargura,
+			addRedutorLarguraColumn,
 	listSetores,
 	createSetor,
 	updateSetor,
@@ -53,6 +55,7 @@ import * as conversorComelz from "../modules/conversorComelz.js"
 import * as conversorEmma from "../modules/conversorEmma.js"
 import * as conversorLectra from "../modules/conversorLectra.js"
 import * as cgcParser from "../modules/cgcParser.js"
+import { getSettings, setSettings } from "../settings"
 
 // Type definitions
 interface LinhaCTF {
@@ -181,8 +184,10 @@ export function setupIPC(): void {
 	// Inicializar banco de dados
 	initDatabase()
 
-	// Inicializar banco de dados do electron-app
+	// Inicializar banco de dados do electron-app e garantir headers
 	db.initDB()
+		.then(() => db.ensureEconomiaHeaders && db.ensureEconomiaHeaders())
+		.catch((err) => console.error('Erro inicializando DB (initDB):', err))
 
 	// Inicializar gerenciador de apelidos (cria tabela no DB se necessário)
 	gerenciadorApelidos
@@ -441,6 +446,7 @@ export function setupIPC(): void {
 			dados: ComponenteDados | null,
 			tamanhos: { tamanhoInicial: number; tamanhoFinal: number }[],
 		) => {
+			console.log('[IPC] componentes:update called', { modelo_id, componente_id, nome, dados, tamanhos })
 			return await updateComponente(
 				modelo_id,
 				componente_id,
@@ -565,6 +571,72 @@ export function setupIPC(): void {
 		return await db.saveCTFLines(lines)
 	})
 
+	// Settings handlers
+	ipcMain.handle("settings:get", async () => {
+		try {
+			return { success: true, settings: getSettings() }
+		} catch (err) {
+			return { success: false, message: String(err) }
+		}
+	})
+
+	ipcMain.handle("settings:set", async (_event, updates: Record<string, any>) => {
+		try {
+			const oldSettings = getSettings()
+			const res = setSettings(updates)
+			// If dbFile mudou, reinicializa o DB para aplicar o novo caminho
+			if (oldSettings.dbFile !== res.dbFile) {
+				let economiaReinitResult: any = { success: true }
+				// Primeiro reinicializa o DB da economia (módulo separado)
+				try {
+					if (db && typeof db.reinitDB === 'function') {
+						economiaReinitResult = await db.reinitDB(res.dbFile)
+						if (!economiaReinitResult || !economiaReinitResult.success) {
+							console.error('Erro na reinit da economia DB:', economiaReinitResult?.message)
+						}
+					}
+				} catch (e) {
+					console.error('Erro reinicializando economia DB após alteração de settings:', e)
+					economiaReinitResult = { success: false, message: String(e) }
+				}
+
+				// Depois reinicializa o DB principal
+				try {
+					closeDatabase()
+					initDatabase()
+				} catch (e) {
+					console.error('Erro reinicializando DB após alteração de settings (main DB):', e)
+				}
+
+				// incluir resultado da reinit da economia no retorno
+				return { success: true, settings: res, economiaReinit: economiaReinitResult }
+			}
+			return { success: true, settings: res }
+		} catch (err) {
+			return { success: false, message: String(err) }
+		}
+	})
+
+// Retorna o estado atual das settings e o caminho do DB da economia (útil para a UI)
+ipcMain.handle("settings:get-status", async () => {
+	try {
+		const settings = getSettings()
+		let economiaDb = null
+		try {
+			if (db && typeof db.getCurrentDbFile === 'function') {
+				economiaDb = db.getCurrentDbFile()
+			} else {
+				economiaDb = process.env.ECONOMIA_DB_FILE || settings.dbFile || null
+			}
+		} catch (err) {
+			console.error('Erro obtendo caminho economia DB:', err)
+		}
+		return { success: true, settings, economiaDb }
+	} catch (err) {
+		return { success: false, message: String(err) }
+	}
+	})
+
 	ipcMain.handle("save-ctc", async (_event, lines: DadosCTC[]) => {
 		return await db.saveCTCLines(lines)
 	})
@@ -620,8 +692,11 @@ export function setupIPC(): void {
 				let grade = ""
 				let modelo = ""
 
-				if (linha.length >= 65) {
-					codigoCor = linha.substring(50, 60).trim()
+				if (linha.length >= 62) {
+					// Extrair código de cor a partir da coluna 56 (1-based) -> índice 55 (0-based)
+					// Pegar 6 caracteres: substring(55, 61)
+					codigoCor = linha.substring(55, 55 + 6).trim()
+					// Grade continua após (índice 61..63)
 					grade = linha.substring(61, 64).trim()
 					modelo = linha.substring(73, 82).trim()
 				}
@@ -859,6 +934,25 @@ export function setupIPC(): void {
 		return await db.deleteCadastroById(id)
 	})
 
+	// Migrations: check if redutor_largura exists and add it when requested
+	ipcMain.handle("migrations:check-redutor-largura", async () => {
+		try {
+			return await hasColumnRedutorLargura()
+		} catch (err) {
+			console.error('[IPC] migrations:check-redutor-largura error:', err)
+			return false
+		}
+	})
+
+	ipcMain.handle("migrations:add-redutor-largura", async () => {
+		try {
+			return await addRedutorLarguraColumn()
+		} catch (err) {
+			console.error('[IPC] migrations:add-redutor-largura error:', err)
+			return { success: false, message: (err as any)?.message || String(err) }
+		}
+	})
+
 	ipcMain.handle("cadastro-import-folder", async () => {
 		// Implementar importação em lote se necessário
 		return { imported: 0 }
@@ -906,6 +1000,52 @@ export function setupIPC(): void {
 
 	ipcMain.handle("economia-by-material", async (_event, limit: number = 10) => {
 		return await db.getEconomiaByMaterial(limit)
+	})
+
+	// Upsert de encaixe: atualiza `encaixe`, `dif` e `porcent` ou insere nova linha quando não existir
+	ipcMain.handle("economia:upsert-encaixe", async (_event, row) => {
+		try {
+			console.log('[IPC] economia:upsert-encaixe payload:', JSON.stringify(row))
+			const res = await db.upsertEconomiaRow(row)
+			console.log('[IPC] economia:upsert-encaixe result:', res)
+			return { success: true, result: res }
+		} catch (err) {
+			console.error('[IPC] economia:upsert-encaixe error:', err)
+			return { success: false, error: (err as any)?.message || String(err) }
+		}
+	})
+
+	// Inserir cabeçalho (economia_headers) e retornar id (FK)
+	ipcMain.handle("economia:insert-header", async (_event, header) => {
+		try {
+			const res = await db.insertEconomiaHeader(header)
+			return { success: true, result: res }
+		} catch (err) {
+			console.error('[IPC] economia:insert-header error:', err)
+			return { success: false, error: (err as any)?.message || String(err) }
+		}
+	})
+
+	// Atualizar linha por id (usado pelo Banco de Dados - edição inline)
+	ipcMain.handle("economia:update-row", async (_event, id: number, fields: Record<string, any>) => {
+		try {
+			const res = await db.updateEconomiaRowById(id, fields)
+			return { success: true, result: res }
+		} catch (err) {
+			console.error('[IPC] economia:update-row error:', err)
+			return { success: false, error: (err as any)?.message || String(err) }
+		}
+	})
+
+	// Deletar múltiplas linhas do banco de dados
+	ipcMain.handle("economia:delete-rows", async (_event, ids: number[]) => {
+		try {
+			const res = await db.deleteEconomiaRows(ids)
+			return { success: true, result: res }
+		} catch (err) {
+			console.error('[IPC] economia:delete-rows error:', err)
+			return { success: false, error: (err as any)?.message || String(err) }
+		}
 	})
 
 	// ==================== CGC Import IPC handlers ====================

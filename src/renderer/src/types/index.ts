@@ -41,7 +41,8 @@ export interface Componente {
 	modeloCorId?: number
 	setorId?: number
 	numeroTecido?: string
-}
+	redutorLargura?: number
+} 
 
 export type ComponentePayload = Omit<
 	Componente,

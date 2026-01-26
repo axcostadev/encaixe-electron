@@ -93,78 +93,57 @@ export async function parseCGC(caminho) {
 
 		// Detectar linhas de material (começam com COR ou MAT seguido de local)
 		if (ordemAtual && /^\s*(COR|MAT)\s+[A-Z]\d{3}\s+\S+/.test(linha)) {
-			// Parse mais detalhado da linha de material
-			// Formato típico:
-			// COR  I002  ETR1767       TRSF. CONSCIENCIA NEGRA   TERCTA 34/36       ,8173   208,080
-			const parts = linha.trim().split(/\s{2,}/)
+			// Parse usando posições fixas
+			// Formato fixo:
+			// 1-3: Tipo (COR/MAT)
+			// 5-8: Local
+			// 10-16: Código
+			// 13-23: Componente
+			// 43-56: Cor/Espessura
+			// 58-65: Preço
+			// 67-75: Qtd Prev
+			// 77-85: Tot Prev
+			// 87-94: Qtd Serv
+			// 96-104: Tot Serv
+			// 106-108: % Ser
+			// 110-112: Um
+			// 114-115: Trm
 
-			if (parts.length >= 3) {
-				// Primeira parte: "COR I002 ETR1767" ou similar
-				const headerParts = parts[0].split(/\s+/)
-				const codigo = headerParts[2] || ""
+			const tipo = linha.substring(0, 3).trim()
+			const local = linha.substring(4, 8).trim()
+			const codigo = linha.substring(9, 16).trim()
+			const componente = linha.substring(12, 23).trim() // Col 13-23 (0-based 12-23)
+			const corEspessura = linha.substring(52, 66).trim()  // Usuário especificou col 53-66 (0-based 52-65)
+			const precoStr = linha.substring(68, 77).trim()  // Col 69-77 (0-based 68-76)
+			const qtdPrevStr = linha.substring(79, 87).trim()  // Col 80-87 (0-based 79-86)
+			const totPrevStr = linha.substring(76, 85).trim()
+			const qtdServStr = linha.substring(86, 94).trim()
+			const totServStr = linha.substring(95, 104).trim()
+			const percentSerStr = linha.substring(105, 108).trim()
+			const unidade = linha.substring(109, 112).trim()
+			const trm = linha.substring(113, 115).trim()
 
-				// Segunda parte: nome do material (pode ser curto - ex: 'I002' - neste caso vamos 'shift')
-				let materialNome = parts[1] || ""
+			// Filtrar: aceitar apenas materiais com 'L' na coluna 136 ou 137 (1-based)
+			const col136 = linha.substring(135, 136).trim().toUpperCase()
+			const col137 = linha.substring(136, 137).trim().toUpperCase()
+			if (col136 !== 'L' && col137 !== 'L') continue
 
-				// Inicializar campos
-				let corEspessura = ""
-				let preco = 0
-				let previsto = 0
+			const preco = parseNumberBR(precoStr)
+			const previsto = parseNumberBR(qtdPrevStr)
 
-				// Se a segunda parte for um token curto (ex: 'I002'), assumir que é um local/código
-				// e usar a próxima parte como nome do material
-				let scanStart = 2
-				if (/^[A-Z]\d{3}$/i.test(materialNome) || materialNome.length <= 4) {
-					// usar parts[2] como material (se existir)
-					materialNome = parts[2] || materialNome
-					scanStart = 3
-				}
-
-				// Procurar o preço (número com vírgula decimal) e cor/espessura nas partes seguintes
-				for (let i = scanStart; i < parts.length; i++) {
-					const part = parts[i].trim()
-
-					// Se parece com preço (número decimal BR)
-					if (/^[\d.,]+$/.test(part)) {
-						if (preco === 0) {
-							preco = parseNumberBR(part)
-						} else if (previsto === 0) {
-							previsto = parseNumberBR(part)
-						}
-					} else if (!corEspessura && part.length > 0) {
-						// Cor/Espessura geralmente tem letras e números
-						corEspessura = part
-					} else {
-						// Pode haver partes adicionais do nome do material (juntar se necessário)
-						if (!/^[\d.,]+$/.test(part) && !corEspessura) {
-							materialNome = (materialNome + " " + part).trim()
-						}
-					}
-				}
-
-				// Se não encontrou cor/espessura, tentar extrair do nome do material
-				if (!corEspessura) {
-					const corMatch = materialNome.match(/\s+([\w\-\/\.\sXx]+?)$/i)
-					if (corMatch) {
-						corEspessura = corMatch[1].trim()
-						materialNome = materialNome.replace(corMatch[0], '').trim()
-					}
-				}
-
-				registros.push({
-					data: ordemAtual.data,
-					artigo: ordemAtual.artigo,
-					ordem: ordemAtual.ordem,
-					modelo: ordemAtual.modelo,
-					material: materialNome.trim(),
-					cor_espessura: corEspessura,
-					preco: preco,
-					previsto: previsto,
-					encaixe: null,
-					dif: null,
-					porcent: null,
-				})
-			}
+			registros.push({
+				data: ordemAtual.data,
+				artigo: ordemAtual.artigo,
+				ordem: ordemAtual.ordem,
+				modelo: ordemAtual.modelo,
+				material: componente.trim(),
+				cor_espessura: corEspessura,
+				preco: preco,
+				previsto: previsto,
+				encaixe: null,
+				dif: null,
+				porcent: null,
+			})
 		}
 	}
 

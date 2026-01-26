@@ -52,32 +52,11 @@ interface ComponenteDados {
 	espacamento?: number
 	compMaximo?: number
 	percPerda?: number
+	redutorLargura?: number
 	coresDisponiveis?: string[]
 	modeloCorId?: number
 	setorId?: number
 	numeroTecido?: string
-}
-
-interface CadastroInfo {
-	artigo: string
-	modelo: string
-	componente: string
-	apelido: string
-	material: string
-	cor: string
-	largura: string
-	tipoTecido: number
-	paresCriac: string
-	conjugNavalha: string
-	placaPorPar: string
-	camada: string
-	espacamento: string
-	comprimentoMax: string
-	tamanhos?: number[]
-	setorId?: number
-	setorNome?: string
-	tamanhosRanges?: { tamanhoInicial: number; tamanhoFinal: number }[]
-	sentidoMaterial?: string
 }
 
 interface User {
@@ -447,6 +426,10 @@ declare global {
 			cadastroImportAPI: {
 				importAll: () => Promise<{ imported: number; error?: string }>
 			}
+		migrations: {
+			checkRedutorLargura: () => Promise<boolean>
+			addRedutorLargura: () => Promise<{ success: boolean; message: string }>
+		}
 		}
 	}
 }

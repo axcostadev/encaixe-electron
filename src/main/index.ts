@@ -11,8 +11,9 @@ function createWindow(): void {
 	// Create the browser window.
 	const mainWindow = new BrowserWindow({
 		title: "cutting room",
-		width: 900,
-		height: 670,
+		width: 1920,
+		height: 768,
+		minWidth: 1600,
 		show: false,
 		// mostrar menu por padrão (não esconder com Alt)
 		autoHideMenuBar: false,

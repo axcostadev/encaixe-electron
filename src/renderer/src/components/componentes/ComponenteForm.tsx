@@ -61,6 +61,7 @@ export function ComponenteForm({
 		espacamento: "",
 		compMaximo: "",
 		percPerda: "",
+		redutorLargura: "",
 		coresDisponiveis: [] as string[],
 		tamanhos: [] as { tamanhoInicial: number; tamanhoFinal: number }[],
 	})
@@ -72,6 +73,7 @@ export function ComponenteForm({
 	const finalRef = useRef<HTMLInputElement | null>(null)
 
 	useEffect(() => {
+		console.debug('ComponenteForm useEffect received componente =', componente ? JSON.stringify(componente) : 'null')
 		if (componente) {
 			setFormData({
 				modeloCorId: componente.modeloCorId?.toString() || "",
@@ -87,6 +89,7 @@ export function ComponenteForm({
 				espacamento: componente.espacamento.toString(),
 				compMaximo: componente.compMaximo.toString(),
 				percPerda: componente.percPerda.toString(),
+				redutorLargura: componente.redutorLargura?.toString() || "",
 				coresDisponiveis: componente.coresDisponiveis,
 				tamanhos: componente.tamanhos || [],
 			})
@@ -105,10 +108,11 @@ export function ComponenteForm({
 				espacamento: "",
 				compMaximo: "",
 				percPerda: "",
+				redutorLargura: "",
 				coresDisponiveis: [],
 				tamanhos: [],
 			})
-		}
+		} 
 		// only reset when `componente` changes; `open` toggles are handled by parent
 	}, [componente])
 
@@ -180,8 +184,7 @@ export function ComponenteForm({
 			camadas: parseInt(formData.camadas) || 0,
 			espacamento: parseFloat(formData.espacamento) || 0,
 			compMaximo: parseFloat(formData.compMaximo) || 0,
-			percPerda: parseFloat(formData.percPerda) || 0,
-			coresDisponiveis: formData.coresDisponiveis,
+			percPerda: parseFloat(formData.percPerda) || 0,				redutorLargura: parseInt(formData.redutorLargura) || 0,			coresDisponiveis: formData.coresDisponiveis,
 			tamanhos: formData.tamanhos,
 		})
 		onOpenChange(false)
@@ -318,67 +321,79 @@ export function ComponenteForm({
 									</div>
 								</div>
 
-								<div className="grid grid-cols-4 gap-4 md:col-span-4">
-									<div className="space-y-2">
-										<Label htmlFor="camadas">Camadas</Label>
-										<Input
-											id="camadas"
-											type="number"
-											min="1"
-											value={formData.camadas}
-											onChange={(e) => {
-												const v = e.target.value
-												if (v === "") {
-													handleChange("camadas", "")
-													return
-												}
-												const n = Math.max(1, parseInt(v) || 1)
-												handleChange("camadas", n.toString())
-											}}
-											placeholder="1"
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor="espacamento">Espaçamento</Label>
-										<Input
-											id="espacamento"
-											type="number"
-											step="0.01"
-											min="0"
-											value={formData.espacamento}
-											onChange={(e) =>
-												handleChange("espacamento", e.target.value)
-											}
-											placeholder="0.00"
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor="compMaximo">Comp. Máximo</Label>
-										<Input
-											id="compMaximo"
-											type="number"
-											step="0.01"
-											min="0"
-											value={formData.compMaximo}
-											onChange={(e) =>
-												handleChange("compMaximo", e.target.value)
-											}
-											placeholder="0.00"
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor="percPerda">% Perda</Label>
-										<Input
-											id="percPerda"
-											type="number"
-											step="0.01"
-											min="0"
-											max="100"
-											value={formData.percPerda}
-											onChange={(e) =>
-												handleChange("percPerda", e.target.value)
-											}
-											placeholder="0.00"
+<div className="grid grid-cols-5 gap-4 md:col-span-4">
+					<div className="space-y-2">
+						<Label htmlFor="camadas">Camadas</Label>
+						<Input
+							id="camadas"
+							type="number"
+							min="1"
+							value={formData.camadas}
+							onChange={(e) => {
+								const v = e.target.value
+								if (v === "") {
+									handleChange("camadas", "")
+									return
+								}
+								const n = Math.max(1, parseInt(v) || 1)
+								handleChange("camadas", n.toString())
+							}}
+							placeholder="1"
+						/>
+					</div>
+					<div className="space-y-2">
+						<Label htmlFor="espacamento">Espaçamento</Label>
+						<Input
+							id="espacamento"
+							type="number"
+							step="0.01"
+							min="0"
+							value={formData.espacamento}
+							onChange={(e) =>
+								handleChange("espacamento", e.target.value)
+							}
+							placeholder="0.00"
+						/>
+					</div>
+					<div className="space-y-2">
+						<Label htmlFor="compMaximo">Comp. Máximo</Label>
+						<Input
+							id="compMaximo"
+							type="number"
+							step="0.01"
+							min="0"
+							value={formData.compMaximo}
+							onChange={(e) =>
+								handleChange("compMaximo", e.target.value)
+							}
+							placeholder="0.00"
+						/>
+					</div>
+					<div className="space-y-2">
+						<Label htmlFor="percPerda">% Perda</Label>
+						<Input
+							id="percPerda"
+							type="number"
+							step="0.01"
+							min="0"
+							max="100"
+							value={formData.percPerda}
+							onChange={(e) =>
+								handleChange("percPerda", e.target.value)
+							}
+							placeholder="0.00"
+						/>
+					</div>
+					<div className="space-y-2">
+						<Label htmlFor="redutorLargura">Redutor Largura</Label>
+						<Input
+							id="redutorLargura"
+							type="number"
+							step="1"
+							min="0"
+							value={formData.redutorLargura}
+							onChange={(e) => handleChange("redutorLargura", e.target.value)}
+							placeholder="0"
 										/>
 									</div>
 								</div>

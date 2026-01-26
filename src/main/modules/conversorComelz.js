@@ -172,7 +172,8 @@ export function gerarArquivoComelz(options = {}) {
 
 	// Campo obrigatório - model (caminho do arquivo .CMZ)
 	// Nota: backslashes devem ser escapados no JSON
-	arquivo.model = String(options.model || "")
+	// Usa um padrão local se `options.model` não for informado
+	arquivo.model = String(options.model || "O:\\Lectra\\Calcado\\Modelos\\COMELZ\\")
 
 	// qty rules
 	arquivo.qty = Array.isArray(options.qty) ? options.qty : []

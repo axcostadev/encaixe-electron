@@ -7,18 +7,38 @@ import { app } from "electron"
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Use per-user data directory so rebuilds and out folders won't conflict with runtime DB
-const USER_DATA = app && typeof app.getPath === "function" ? app.getPath("userData") : path.join(__dirname, "..", "data")
-// ensure directory exists
-if (!fs.existsSync(USER_DATA)) fs.mkdirSync(USER_DATA, { recursive: true })
+// Use configurable DB path: prefer environment variable ECONOMIA_DB_FILE, otherwise fall back to settings or default
+function getDbFile() {
+	// prefer env var (for testing/debug), then settings file
+	try {
+		const s = require("../settings").getSettings()
+		if (process.env.ECONOMIA_DB_FILE) return process.env.ECONOMIA_DB_FILE
+		if (s && s.dbFile) return s.dbFile
+	} catch (err) {
+		// ignore and fallback
+	}
+	// If settings can't be read for some reason, fall back to app userData folder
+	try {
+		return path.join(app.getPath("userData"), "app.db")
+	} catch (e) {
+		// Last-resort fallback to current directory
+		return path.join(__dirname, "app.db")
+	}
+}
 
-const DB_FILE = path.join(USER_DATA, "encaixe.db")
 let db
-console.log("[DB] using encaixe DB file at:", DB_FILE)
+
+function ensureDirExistsFor(dbPath) {
+	const dir = path.dirname(dbPath)
+	if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+}
 
 export function initDB() {
 	return new Promise((resolve, reject) => {
+		const DB_FILE = getDbFile()
+		ensureDirExistsFor(DB_FILE)
 		const exists = fs.existsSync(DB_FILE)
+		console.log("[DB] using economia DB file at:", DB_FILE)
 		db = new sqlite3.Database(DB_FILE, (err) => {
 			if (err) return reject(err)
 			db.serialize(() => {
@@ -350,9 +370,7 @@ export function saveEconomiaRows(rows) {
 	return new Promise((resolve, reject) => {
 		try {
 			const stmt = db.prepare(
-				`INSERT INTO economia (data, artigo, ordem, modelo, material, cor_espessura, preco, previsto, encaixe, dif, porcent) VALUES (?,?,?,?,?,?,?,?,?,?,?)`
-			)
-
+						`INSERT INTO economia (data, artigo, ordem, modelo, material, cor_espessura, preco, previsto, encaixe, dif, porcent, header_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`				)
 			db.serialize(() => {
 				for (const r of rows) {
 					const data = r.Data ? new Date(r.Data).toISOString() : null
@@ -379,6 +397,7 @@ export function saveEconomiaRows(rows) {
 						encaixe,
 						dif,
 						porcent,
+						r.header_id || r.HeaderId || r.headerId || null,
 					])
 				}
 
@@ -393,9 +412,143 @@ export function saveEconomiaRows(rows) {
 	})
 }
 
+
+// Insert a header record and return its id
+export function insertEconomiaHeader(h) {
+	return new Promise((resolve, reject) => {
+		try {
+			const sql = `INSERT INTO economia_headers (data_fase, modelo, artigo, data, periodo) VALUES (?,?,?,?,?)`
+			db.run(sql, [h.dataFase || h.data_fase || null, h.modelo || null, h.artigo || h.artigo || null, h.data || null, h.periodo || null], function(err) {
+				if (err) return reject(err)
+				resolve({ inserted: this.lastID, id: this.lastID })
+			})
+		} catch (e) { reject(e) }
+	})
+}
+
+/**
+ * Inserir ou atualizar uma linha da tabela `economia` com o valor de encaixe.
+ * Procura por combinação (ordem, material, previsto, preco) e faz UPDATE; se não
+ * encontrar, faz INSERT. Retorna { id, dif, porcent, inserted?, updated? }.
+ */
+export function upsertEconomiaRow(r) {
+	return new Promise((resolve, reject) => {
+		try {
+			console.log('[DB] upsertEconomiaRow called with', JSON.stringify(r))
+			const ordem = r.Ordem || r.ordem || null
+			const material = r.Material || r.material || null
+			const preco = Number(r['PREÇO'] || r.PRECO || r.preco || 0)
+			const previsto = Number(r.Previsto || r.previsto || 0)
+			const encaixe = Number(r.Encaixe || r.encaixe || 0)
+
+			const dif = isFinite(encaixe) && isFinite(previsto) ? (encaixe - previsto) : null
+			const porcent = previsto && previsto !== 0 && dif != null ? (dif / previsto) : null
+
+			db.get(
+			`SELECT id FROM economia WHERE ordem = ? AND material = ? AND ABS(COALESCE(previsto,0) - ?) < 0.0001 AND ABS(COALESCE(preco,0) - ?) < 0.0001 AND COALESCE(cor_espessura,'') = ? LIMIT 1`,
+			[ordem, material, previsto, preco, (r['Cor/Espessura'] || r.cor_espessura || '')],
+				(err, row) => {
+					if (err) {
+						console.error('[DB] upsert SELECT error:', err)
+						return reject(err)
+					}
+
+					if (row && row.id) {
+						console.log('[DB] found existing row id', row.id, ' — updating')
+						db.run(
+							`UPDATE economia SET encaixe = ?, dif = ?, porcent = ? WHERE id = ?`,
+							[encaixe, dif, porcent, row.id],
+							function (uErr) {
+								if (uErr) {
+									console.error('[DB] upsert UPDATE error:', uErr)
+									return reject(uErr)
+								}
+								console.log('[DB] updated row id', row.id)
+								resolve({ updated: row.id, id: row.id, dif, porcent })
+							},
+						)
+					} else {
+						console.log('[DB] no existing row found — inserting new')
+						const stmt = db.prepare(
+							`INSERT INTO economia (data, artigo, ordem, modelo, material, cor_espessura, preco, previsto, encaixe, dif, porcent, header_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`
+						)
+						const data = r.Data ? new Date(r.Data).toISOString() : null
+						stmt.run(
+							data,
+							r.Artigo || r.artigo || null,
+							ordem,
+							r.Modelo || r.modelo || null,
+							material,
+							r['Cor/Espessura'] || r.cor_espessura || null,
+							preco,
+							previsto,
+							encaixe,
+							dif,
+							porcent,
+							r.header_id || r.HeaderId || r.headerId || null,
+
+							function (iErr) {
+								if (iErr) {
+									console.error('[DB] upsert INSERT error:', iErr)
+									return reject(iErr)
+								}
+								console.log('[DB] inserted new row id', this.lastID)
+								resolve({ inserted: this.lastID, id: this.lastID, dif, porcent })
+							},
+						)
+						stmt.finalize()
+					}
+				},
+			)
+		} catch (e) {
+			console.error('[DB] upsert exception', e)
+			reject(e)
+		}
+	})
+}
+
+/**
+ * Atualiza uma linha `economia` pelo id — usado pela UI do Banco de Dados
+ */
+export function updateEconomiaRowById(id, fields) {
+	return new Promise((resolve, reject) => {
+		if (!id) return reject(new Error('id is required'))
+		const allowed = ['encaixe', 'preco', 'previsto', 'dif', 'porcent', 'modelo', 'material', 'ordem', 'data', 'artigo', 'cor_espessura']
+		const sets = []
+		const vals = []
+		Object.keys(fields || {}).forEach(k => {
+			if (allowed.includes(k)) {
+				sets.push(`${k} = ?`)
+				vals.push(fields[k])
+			}
+		})
+		if (sets.length === 0) return resolve({ updated: 0 })
+		vals.push(id)
+		db.run(`UPDATE economia SET ${sets.join(', ')} WHERE id = ?`, vals, function(err) {
+			if (err) return reject(err)
+			resolve({ updated: this.changes || 0 })
+		})
+	})
+}
+
+/**
+ * Deleta várias linhas pelo id
+ */
+export function deleteEconomiaRows(ids) {
+	return new Promise((resolve, reject) => {
+		if (!Array.isArray(ids) || ids.length === 0) return resolve({ deleted: 0 })
+		const placeholders = ids.map(()=>'?').join(',')
+		db.run(`DELETE FROM economia WHERE id IN (${placeholders})`, ids, function(err) {
+			if (err) return reject(err)
+			resolve({ deleted: this.changes || 0 })
+		})
+	})
+}
+
 export function listEconomia(limit = 500) {
 	return new Promise((resolve, reject) => {
-		db.all("SELECT * FROM economia ORDER BY id DESC LIMIT ?", [limit], (err, rows) => {
+		// join with headers to include header info if present
+		db.all("SELECT e.*, h.data_fase as header_data_fase, h.modelo as header_modelo, h.artigo as header_artigo, h.data as header_data, h.periodo as header_periodo FROM economia e LEFT JOIN economia_headers h ON e.header_id = h.id ORDER BY e.id DESC LIMIT ?", [limit], (err, rows) => {
 			if (err) return reject(err)
 			resolve(rows || [])
 		})
@@ -448,6 +601,9 @@ export function getEconomiaByMaterial(limit = 10) {
 		)
 	})
 }
+
+// Previously this module ran header setup at load time which caused errors when `db` was not initialized.
+// Now `ensureEconomiaHeaders()` is provided as an exported function and should be called after `initDB()` completes.
 
 function runInsert(source, linha) {
 	return new Promise((resolve, reject) => {
@@ -525,4 +681,93 @@ export function clearLines() {
 			resolve({ deleted: this.changes || 0 })
 		})
 	})
+}
+
+// Ensure economia_headers table exists and economia has header_id column (call after DB init)
+export function ensureEconomiaHeaders() {
+	return new Promise((resolve, reject) => {
+		if (!db) return resolve()
+		db.run(`CREATE TABLE IF NOT EXISTS economia_headers (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			data_fase TEXT,
+			modelo TEXT,
+			artigo TEXT,
+			data TEXT,
+			periodo TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`, (err) => {
+			if (err) {
+				console.error('[DB] error creating economia_headers table:', err)
+				return resolve()
+			}
+			db.all('PRAGMA table_info(economia)', [], (pErr, cols) => {
+				// helper: ensure economia_headers has 'artigo' column (for older DBs)
+				const ensureHeadersTable = () => {
+					db.all('PRAGMA table_info(economia_headers)', [], (hErr, hcols) => {
+						if (hErr) {
+							console.error('[DB] error reading economia_headers table info:', hErr)
+							return resolve()
+						}
+						const hasArtigo = Array.isArray(hcols) && !!hcols.find(c => c.name === 'artigo')
+						if (!hasArtigo) {
+							console.log('[DB] migrating: adding artigo column to economia_headers')
+							db.run('ALTER TABLE economia_headers ADD COLUMN artigo TEXT', (altErr) => {
+								if (altErr) console.error('[DB] error adding artigo column to economia_headers:', altErr)
+								else console.log('[DB] artigo column added to economia_headers')
+								return resolve()
+							})
+						} else {
+							return resolve()
+						}
+					})
+				}
+
+				if (!pErr && Array.isArray(cols) && !cols.find(c => c.name === 'header_id')) {
+					db.run('ALTER TABLE economia ADD COLUMN header_id INTEGER', (aErr) => {
+						if (aErr) console.error('[DB] error adding header_id column to economia:', aErr)
+						// after altering economia, ensure header table columns
+					ensureHeadersTable()
+					})
+				} else {
+					// header_id exists, just ensure header table columns
+					ensureHeadersTable()
+				}
+			})
+		})
+	})
+}
+
+// Allow re-init and close for economia DB
+export function closeDB() {
+	if (db) {
+		db.close((err) => {
+			if (err) console.error('[DB] error closing economia DB:', err)
+		})
+		db = undefined
+	}
+}
+
+export async function reinitDB(newPath) {
+	if (newPath) process.env.ECONOMIA_DB_FILE = newPath
+	try {
+		closeDB()
+		// wait for new init
+		await initDB()
+		// ensure headers exist after init
+		await ensureEconomiaHeaders()
+		console.log('[DB] economia DB reinitialized')
+		return { success: true }
+	} catch (err) {
+		console.error('[DB] error reinitializing economia DB:', err)
+		return { success: false, message: String(err) }
+	}
+}
+// Return the currently used economia DB file path
+export function getCurrentDbFile() {
+	try {
+		return getDbFile()
+	} catch (err) {
+		console.error('[DB] error getting current economia DB file:', err)
+		return null
+	}
 }

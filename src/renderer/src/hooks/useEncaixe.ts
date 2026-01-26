@@ -134,7 +134,7 @@ export function useEncaixe() {
 					note: "Pedido teste",
 					customer: "ClienteX",
 					split_materials: false,
-					model: cadastro?.modelo || "\\\\modserver\\models\\esempio.cmz",
+					model: cadastro?.modelo || "O:\\Lectra\\Calcado\\Modelos\\COMELZ\\esempio.cmz",
 					qty: qtyRules,
 				}
 

@@ -59,6 +59,7 @@ export function ComponentesPage() {
 	}
 
 	function handleEdit(componente: Componente) {
+		console.debug('ComponentesPage.handleEdit called with componente =', JSON.stringify(componente))
 		setEditingComponente(componente)
 		setFormOpen(true)
 	}

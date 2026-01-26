@@ -1,10 +1,21 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { PageHeader } from "@renderer/components/common/PageHeader"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@renderer/components/ui/table"
-import { Button } from "@renderer/components/ui/button"
+
 import { ChartContainer } from "@renderer/components/ui/chart"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { Box, Zap } from "lucide-react"
+import { toast } from "@renderer/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@renderer/components/ui/alert-dialog"
 import "./EconomiaPage.css"
 import shoeImg from "../assets/images/shoe.svg"
 import rollsImg from "../assets/images/rolls.svg"
@@ -36,6 +47,15 @@ export default function EconomiaPage() {
   const [rows, setRows] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
+  // High contrast mode (persisted)
+  const [highContrast, setHighContrast] = useState<boolean>(() => {
+    try { return localStorage.getItem('economia:highContrast') === '1' } catch (e) { return false }
+  })
+
+  useEffect(() => {
+    try { localStorage.setItem('economia:highContrast', highContrast ? '1' : '0') } catch (e) {}
+  }, [highContrast])
+
   const [summary, setSummary] = useState<any>(null)
   const [byModelo, setByModelo] = useState<any[]>([])
   const [byMaterial, setByMaterial] = useState<any[]>([])
@@ -44,8 +64,61 @@ export default function EconomiaPage() {
   const [selectedPeriods, setSelectedPeriods] = useState<string[]>([])
   const [selectedModels, setSelectedModels] = useState<string[]>([])
 
+  // Valida formato YYYY/MM e limites razoáveis (mês 01-12, ano entre 2000 e nextYear)
+  const isValidPeriod = (p?: string) => {
+    if (!p || typeof p !== 'string') return false
+    const m = /^([0-9]{4})\/(0[1-9]|1[0-2])$/.exec(p.trim())
+    if (!m) return false
+    const year = Number(m[1])
+    const nextYear = new Date().getFullYear() + 1
+    return year >= 2000 && year <= nextYear
+  }
+
+
+
   // Prefer PNG versions of images when available; fallback to bundled SVGs
   const images = { shoe: shoePng || shoeImg, rolls: rollsPng || rollsImg, logo: vulcabrasPng || vulcabrasImg }
+
+  // Helpers for date display (DD-MM-YYYY) <-> ISO (YYYY-MM-DD)
+  const pad2 = (n:number) => String(n).padStart(2, '0')
+  const formatISOToDisplay = (iso?: string) => {
+    if (!iso) return ''
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
+    if (m) return `${m[3]}-${m[2]}-${m[1]}`
+    if (/^\d{2}-\d{2}-\d{4}$/.test(iso)) return iso
+    const d = new Date(iso)
+    if (isNaN(d.getTime())) return ''
+    return `${pad2(d.getDate())}-${pad2(d.getMonth()+1)}-${d.getFullYear()}`
+  }
+  const formatDisplayToISO = (disp?: string) => {
+    if (!disp) return ''
+    const m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(disp.trim())
+    if (m) return `${m[3]}-${m[2]}-${m[1]}`
+    if (/^\d{4}-\d{2}-\d{2}$/.test(disp)) return disp
+    const d = new Date(disp)
+    if (isNaN(d.getTime())) return ''
+    return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`
+  }
+  const getTodayDisplay = () => {
+    const d = new Date()
+    return `${pad2(d.getDate())}-${pad2(d.getMonth()+1)}-${d.getFullYear()}`
+  }
+
+  // Derive period YYYY/MM from various date string formats (ISO or dd-mm-yyyy or other parsable)
+  const getPeriodFromDateString = (s?: string) => {
+    if (!s) return ''
+    const isoMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(s)
+    if (isoMatch) return `${isoMatch[1]}/${isoMatch[2]}`
+    const dispMatch = /^(\d{2})-(\d{2})-(\d{4})$/.exec(s.trim())
+    if (dispMatch) return `${dispMatch[3]}/${dispMatch[2]}`
+    const d = new Date(s)
+    if (!isNaN(d.getTime())) return `${d.getFullYear()}/${pad2(d.getMonth()+1)}`
+    return ''
+  }
+  const getTodayPeriod = () => {
+    const d = new Date()
+    return `${d.getFullYear()}/${pad2(d.getMonth()+1)}`
+  }
 
   // Tabs state
   const [tab, setTab] = useState<'dashboard' | 'busca' | 'banco'>('dashboard')
@@ -56,13 +129,126 @@ export default function EconomiaPage() {
   const [cgcFilePath, setCgcFilePath] = useState<string | null>(null)
   const [searchResults, setSearchResults] = useState<{ line: number; text: string; parsed?: Record<string,string> }[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
+
+  // Header (FK) fields and saved header id
+  const [headerFields, setHeaderFields] = useState<{ dataFase?: string; modelo?: string; artigo?: string; data?: string; periodo?: string }>(() => ({ data: getTodayDisplay(), periodo: getTodayPeriod(), artigo: '' }))
+  const [headerId, setHeaderId] = useState<number | null>(null)
+
+  // Banco de Dados (persistido)
+  const [bancoRows, setBancoRows] = useState<any[]>([])
+  const [bancoLoading, setBancoLoading] = useState(false)
+  const [bancoSelected, setBancoSelected] = useState<number[]>([])
+  const [bancoEdits, setBancoEdits] = useState<Record<number, string>>({})
+
+  // Confirm dialog (replaces blocking window.confirm)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [confirmMessage, setConfirmMessage] = useState<string>('')
+  const confirmResolveRef = useRef<(ok: boolean) => void | null>(null)
+  const askConfirm = (msg: string) => {
+    setConfirmMessage(msg)
+    setConfirmOpen(true)
+    return new Promise<boolean>((resolve) => {
+      confirmResolveRef.current = (ok: boolean) => {
+        setConfirmOpen(false)
+        resolve(ok)
+      }
+    })
+  }
+
+  // Bloqueio temporário após confirmação cancelada — usa timestamp para contornar throttling de timers
+  const LOCK_DURATION_MS = 1000
+  const [encaixeLocked, setEncaixeLocked] = useState<Record<number, boolean>>({})
+  const encaixeLockedRef = useRef<Record<number, boolean>>({})
+  const encaixeLockedAtRef = useRef<Record<number, number>>({})
+  const [bancoLocked, setBancoLocked] = useState<Record<number, boolean>>({})
+  const bancoLockedRef = useRef<Record<number, boolean>>({})
+  const bancoLockedAtRef = useRef<Record<number, number>>({})
+
+  const unlockEncaixeIndex = (idx: number) => {
+    delete encaixeLockedRef.current[idx]
+    delete encaixeLockedAtRef.current[idx]
+    setEncaixeLocked(prev => { const copy = { ...prev }; delete copy[idx]; return copy })
+    encaixeAllowEditRef.current[idx] = true
+  }
+  const tryUnlockEncaixeIndex = (idx: number) => {
+    const start = encaixeLockedAtRef.current[idx]
+    if (!start) return false
+    if (Date.now() - start >= LOCK_DURATION_MS) {
+      unlockEncaixeIndex(idx)
+      return true
+    }
+    return false
+  }
+
+  const unlockBancoIndex = (id: number) => {
+    delete bancoLockedRef.current[id]
+    delete bancoLockedAtRef.current[id]
+    setBancoLocked(prev => { const copy = { ...prev }; delete copy[id]; return copy })
+    bancoAllowEditRef.current[id] = true
+  }
+  const tryUnlockBancoIndex = (id: number) => {
+    const start = bancoLockedAtRef.current[id]
+    if (!start) return false
+    if (Date.now() - start >= LOCK_DURATION_MS) {
+      unlockBancoIndex(id)
+      return true
+    }
+    return false
+  }
+
+  // Charts should only render after the dashboard tab is visible — avoids Recharts measuring width/height = -1
+  const [chartsReady, setChartsReady] = useState(false)
+
+  useEffect(() => {
+    let raf = 0
+    if (tab === 'dashboard') {
+      // wait a frame so layout settles (sidebar animations, CSS) before rendering charts
+      raf = window.requestAnimationFrame(() => setChartsReady(true))
+    } else {
+      setChartsReady(false)
+    }
+    return () => { window.cancelAnimationFrame(raf) }
+  }, [tab])
   
   // Estado para valores editáveis de "Encaixe" por linha
   const [encaixeValues, setEncaixeValues] = useState<Record<number, string>>({})
+  // Marca se o usuário fez uma entrada (digitou/colou) no campo — usado para ignorar mudanças via spinner/scroll
+  const [encaixeTouched, setEncaixeTouched] = useState<Record<number, boolean>>({})
+  // Marca semelhante para o Banco de Dados
+  const [bancoTouched, setBancoTouched] = useState<Record<number, boolean>>({})
+  // Ref to track in-flight header save promises so multiple callers can await the same promise
+  const headerSavedPromiseRef = useRef<Record<number, Promise<number | null> | undefined>>({})
+  // Refs para marcação síncrona (evita bloqueio causado por atualização assíncrona de state)
+  const encaixeTouchedRef = useRef<Record<number, boolean>>({})
+  const bancoTouchedRef = useRef<Record<number, boolean>>({})
+  // Refs para permitir edição imediata após cancelamento (bypass temporário do bloqueio)
+  const encaixeAllowEditRef = useRef<Record<number, boolean>>({})
+  const bancoAllowEditRef = useRef<Record<number, boolean>>({})
   
   // Função para atualizar valor de Encaixe
   const handleEncaixeChange = (idx: number, value: string) => {
-    setEncaixeValues(prev => ({ ...prev, [idx]: value }))
+    // Permitir edição imediata se marcado por um cancelamento recente
+    if (encaixeAllowEditRef.current[idx]) {
+      setEncaixeValues(prevState => ({ ...prevState, [idx]: value }))
+      // limpar a permissão depois do primeiro caractere
+      encaixeAllowEditRef.current[idx] = false
+      return
+    }
+
+    // Ignorar alterações iniciais vindas de spinner/scroll quando o campo estava vazio e o usuário não digitou
+    const prev = encaixeValues[idx]
+    const touchedNow = !!encaixeTouchedRef.current[idx] || !!encaixeTouched[idx]
+    if ((prev === undefined || prev === '') && value !== '' && !touchedNow) {
+      return
+    }
+
+    // Se usuario digitou e header não salvo, tente salvar automaticamente a partir do headerFields ou linha atual
+    if (!headerId) {
+      const row = searchResults[idx]
+      ensureHeaderSaved(row?.parsed, idx)
+    }
+
+    setEncaixeValues(prevState => ({ ...prevState, [idx]: value }))
   }
   
   // Função para calcular valores
@@ -90,6 +276,135 @@ export default function EconomiaPage() {
   
   const calcEconomia = (dif: number, preco: number): number => {
     return dif * preco
+  }
+
+  // Salva o encaixe no banco (upsert) e foca o próximo input quando Enter for pressionado
+  const saveEncaixeAndFocusNext = async (idx: number, row: any) => {
+    // Não salvar se usuário não digitou nada ou não alterou o valor
+    const currentInput = encaixeValues[idx]
+    const prevInput = (row.parsed?.['Encaixe'] ?? '').toString()
+    if (currentInput === undefined || String(currentInput).trim() === '') {
+      // nada a salvar
+      return
+    }
+    if (String(currentInput) === prevInput) {
+      // se valor não mudou, apenas foca próximo (comportamento do Enter) e não salva
+      const next = document.querySelector<HTMLInputElement>(`.encaixe-input[data-idx="${idx + 1}"]`)
+      if (next) next.focus()
+      return
+    }
+
+    const valStr = currentInput
+    const val = parseFloat(String(valStr).replace(',', '.')) || 0
+
+    // Verificação percentual: se diferir >= 30% do Previsto, pedir confirmação
+    const previstoNum = parseFloat(row.parsed?.['Previsto'] || '0') || 0
+    if (previstoNum > 0) {
+      const difCheck = val - previstoNum
+      const pct = Math.abs(difCheck) / previstoNum
+      if (pct >= 0.3) {
+        const dir = val > previstoNum ? 'maior' : 'menor'
+        const ok = await askConfirm(`Valor de Encaixe (${val.toFixed(2)}) é ${(pct * 100).toFixed(1)}% ${dir} que o Previsto (${previstoNum.toFixed(2)}). Deseja confirmar?`)
+        if (!ok) {
+          // reverter o valor visível para o anterior e bloquear temporariamente a edição
+          const prevStr = prevInput !== undefined && prevInput !== null ? String(prevInput) : ''
+
+          setEncaixeValues(prevState => ({ ...prevState, [idx]: prevStr }))
+          setSearchResults(prevSR => {
+            const updatedSR = [...prevSR]
+            updatedSR[idx] = {
+              ...row,
+              parsed: {
+                ...row.parsed,
+                'Encaixe': prevStr,
+              }
+            }
+            return updatedSR
+          })
+
+          const now = Date.now()
+          setEncaixeLocked(prev => ({ ...prev, [idx]: true }))
+          encaixeLockedRef.current[idx] = true
+          encaixeLockedAtRef.current[idx] = now
+
+          toast({ title: 'Alteração cancelada', description: 'Encaixe não foi alterado — campo liberado em instantes' })
+
+          // fallback para liberar quando o timer rodar normalmente
+          setTimeout(() => {
+            unlockEncaixeIndex(idx)
+          }, LOCK_DURATION_MS)
+
+          return
+        }
+      }
+    }
+
+    // Ensure header is saved (try to create automatically using headerFields or row data)
+    let headerToUse = headerId
+    if (!headerToUse) {
+      const created = await ensureHeaderSaved(row.parsed, idx)
+      if (created) headerToUse = created
+    }
+
+    const payload = {
+      // Preferir a data definida no cabeçalho (field `data`) quando disponível — converte para ISO para armazenamento
+      Data: headerFields.data ? formatDisplayToISO(headerFields.data) : (row.parsed?.['Data'] || row.parsed?.['DATA FASE'] || null),
+      Artigo: row.parsed?.['Artigo'] || null,
+      Ordem: row.parsed?.['Ordem'] || null,
+      Modelo: row.parsed?.['Modelo'] || null,
+      Material: row.parsed?.['Material'] || null,
+      'Cor/Espessura': row.parsed?.['Cor/Espessura'] || null,
+      'PREÇO': parseFloat(row.parsed?.['PREÇO'] || '0') || 0,
+      Previsto: parseFloat(row.parsed?.['Previsto'] || '0') || 0,
+      Encaixe: val,
+      header_id: headerToUse || null,
+    }
+
+    try {
+      const res = await (window as any).api.economia.upsertEncaixe(payload)
+      if (!res || !res.success) throw new Error(res?.error || 'Erro ao salvar')
+
+      // Atualizar UI localmente (dif, % e manter encaixe exibido)
+      const updated = [...searchResults]
+      const previsto = parseFloat(row.parsed?.['Previsto'] || '0') || 0
+      const dif = val - previsto
+      const perc = previsto !== 0 ? (dif / previsto) * 100 : 0
+      updated[idx] = {
+        ...row,
+        parsed: {
+          ...row.parsed,
+          'Encaixe': val.toFixed(2),
+          'Dif': dif.toFixed(2),
+          '%': perc.toFixed(1),
+        },
+      }
+      setSearchResults(updated)
+
+      // Marcar campo como não tocado após salvar (state + ref)
+      setEncaixeTouched(prev => ({ ...prev, [idx]: false }))
+      encaixeTouchedRef.current[idx] = false
+
+      // Refresh do banco e das tabelas dependentes
+      try {
+        const all = await (window as any).api.economia.list(1000)
+        if (Array.isArray(all)) {
+          setRows(all)
+          setBancoRows(all)
+        }
+      } catch (e) {
+        console.warn('Não foi possível atualizar listagem do banco automaticamente', e)
+      }
+
+      // feedback visual
+      toast({ title: 'Encaixe salvo', description: `Linha ${idx + 1} atualizada` })
+
+      // foco no próximo input (se existir)
+      const next = document.querySelector<HTMLInputElement>(`.encaixe-input[data-idx="${idx + 1}"]`)
+      if (next) next.focus()
+    } catch (err) {
+      toast({ title: 'Erro ao salvar', description: String(err) })
+      console.error(err)
+    }
   }
 
   // Função para buscar no arquivo CGC
@@ -133,10 +448,70 @@ export default function EconomiaPage() {
         }))
         setSearchResults(formattedResults)
 
+        // make sure the results container is scrolled to top and the first row is padded so it's visible below the sticky header
+        requestAnimationFrame(() => {
+          const cont = document.querySelector<HTMLDivElement>(".busca-table-container")
+          if (!cont) return
+
+          // scroll to top
+          cont.scrollTop = 0
+
+          // compute heights of header areas above the table (controls + status + optional sticky header)
+          const controls = document.querySelector<HTMLDivElement>('.busca-controls')
+          const status = document.querySelector<HTMLDivElement>('.busca-status-bar')
+          const controlsH = Math.ceil(controls?.getBoundingClientRect().height || 0)
+          const statusH = Math.ceil(status?.getBoundingClientRect().height || 0)
+
+          // Compute raw offset (controls + status) and add small gap.
+          // We intentionally do NOT include the table's own sticky thead height here
+          // because the thead is positioned inside the scroll container.
+          const rawOffset = controlsH + statusH + 8
+
+          // Clamp to a sane maximum to avoid very large empty gaps on small viewports
+          // Reduced MAX_SPACER to keep the header closer to the controls and avoid large empty areas
+          const MAX_SPACER = 32
+          const totalOffset = Math.min(rawOffset, MAX_SPACER)
+
+          // create or update a spacer element above the table so the header/status doesn't overlap rows
+          let spacer = cont.querySelector<HTMLDivElement>('.busca-table-spacer')
+          if (!spacer) {
+            spacer = document.createElement('div')
+            spacer.className = 'busca-table-spacer'
+            cont.insertBefore(spacer, cont.firstChild)
+          }
+          spacer.style.height = `${totalOffset}px`
+
+          // clear any inline padding applied previously to first row cells (we rely on spacer now)
+          const firstCells = Array.from(cont.querySelectorAll('tbody tr:first-child td')) as HTMLTableCellElement[]
+          firstCells.forEach(c => { c.style.paddingTop = '' })
+        })
+
+        // Atualizar filtros de período com os períodos presentes nos resultados (ex.: 2026/01)
+        const srPeriods = Array.from(new Set(formattedResults.map(fr => fr.parsed?.['Periodo (Ano/Mês)']).filter(Boolean) as string[])).filter((p)=>isValidPeriod(p)) as string[]
+        if (srPeriods.length > 0) {
+          // mesclar com os períodos já disponíveis e selecionar apenas os períodos dos resultados
+          setAvailablePeriods(prev => Array.from(new Set([...prev, ...srPeriods])).filter((p)=>isValidPeriod(p)).sort().reverse() as string[])
+          setSelectedPeriods(srPeriods)
+        }
+
         // Prefill local Encaixe inputs with parsed Encaixe when available
         const initialEncaixe: Record<number,string> = {}
         formattedResults.forEach((fr, i) => { initialEncaixe[i] = fr.parsed?.['Encaixe'] || '' })
-        setEncaixeValues(initialEncaixe) 
+        setEncaixeValues(initialEncaixe)
+
+        // Prefill header fields from first result (Data Fase, Modelo, Data, Período) — only fill missing fields so user's defaults (ex: hoje) are preserved
+        if (formattedResults.length > 0) {
+          const first = formattedResults[0].parsed || {}
+          const derivedPeriodo = first['Periodo (Ano/Mês)'] || getPeriodFromDateString(first['Data'] || first['DATA FASE'] || '')
+          setHeaderFields(prev => ({
+            dataFase: prev.dataFase || formatISOToDisplay(first['DATA FASE'] || first['Data'] || ''),
+            modelo: prev.modelo || first['Modelo'] || '',
+            artigo: prev.artigo || (first['Artigo'] || ''),
+            data: prev.data || formatISOToDisplay(first['Data'] || first['DATA FASE'] || ''),
+            periodo: prev.periodo || derivedPeriodo || getTodayPeriod()
+          }))
+          setHeaderId(null)
+        }
       }
     } catch (err) {
       console.error('Erro ao buscar:', err)
@@ -155,10 +530,62 @@ export default function EconomiaPage() {
         setSelectedFileName(result.filePath.split(/[/\\]/).pop() || 'CGC.txt')
         setSearchResults([]) // Limpar resultados anteriores
         setEncaixeValues({}) // Limpar valores de encaixe
+        // Preserve Data/Período defaults: set Data to today (DD-MM-YYYY) and Período to YYYY/MM
+        setHeaderFields({ data: getTodayDisplay(), periodo: getTodayPeriod() })
+        setHeaderId(null)
       }
     } catch (err) {
       console.error('Erro ao selecionar arquivo:', err)
     }
+  }
+
+  // Salva cabeçalho (insere economia_headers e guarda id)
+  // Manual save/clear removed — header is saved automatically when user starts editing Encaixe
+
+  // Ensure header is saved (create automatically) — uses headerFields if present otherwise tries to build from rowParsed
+  const ensureHeaderSaved = async (rowParsed?: Record<string,string>, idx?: number) => {
+    if (headerId) return headerId
+
+    // If there's already an in-flight promise for this idx, await it
+    if (idx !== undefined && headerSavedPromiseRef.current[idx]) {
+      return await headerSavedPromiseRef.current[idx]
+    }
+
+    const maybe = {
+      dataFase: headerFields.dataFase || rowParsed?.['DATA FASE'] || rowParsed?.['Data'] || '',
+      modelo: headerFields.modelo || rowParsed?.['Modelo'] || '',
+      artigo: headerFields.artigo || rowParsed?.['Artigo'] || '',
+      data: headerFields.data || rowParsed?.['Data'] || '',
+      periodo: headerFields.periodo || rowParsed?.['Periodo (Ano/Mês)'] || getPeriodFromDateString(rowParsed?.['Data'] || rowParsed?.['DATA FASE'] || '') || getTodayPeriod()
+    }
+
+    // if nothing to save, don't create
+    if (!maybe.dataFase && !maybe.modelo && !maybe.data && !maybe.periodo) return null
+
+    const p = (async () => {
+      try {
+        // convert display date (DD-MM-YYYY) to ISO (YYYY-MM-DD) for storage
+        const toInsert = { ...maybe, data: formatDisplayToISO(maybe.data) }
+        const res = await (window as any).api.economia.insertHeader(toInsert)
+        if (res && res.result && res.result.id) {
+          setHeaderId(res.result.id)
+          // merge only non-empty values so we don't overwrite user's defaults with empty strings
+          const toApply: Record<string,string> = {}
+          Object.entries(maybe).forEach(([k,v]) => { if (v !== undefined && v !== null && String(v).trim() !== '') (toApply as any)[k] = v })
+          setHeaderFields(prev => ({ ...prev, ...toApply }))
+          toast({ title: 'Cabeçalho criado automaticamente', description: `ID ${res.result.id}` })
+          return res.result.id
+        }
+      } catch (e) {
+        console.warn('Erro ao criar cabeçalho automaticamente', e)
+      }
+      return null
+    })()
+
+    if (idx !== undefined) headerSavedPromiseRef.current[idx] = p
+    const id = await p
+    if (idx !== undefined) delete headerSavedPromiseRef.current[idx]
+    return id
   }
 
   useEffect(() => {
@@ -188,7 +615,7 @@ export default function EconomiaPage() {
             try {
               const dt = new Date(r.data)
               const p = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`
-              periodsSet.add(p)
+              if (isValidPeriod(p)) periodsSet.add(p)
             } catch(e) {}
           }
           if (r.modelo) modelsSet.add(r.modelo)
@@ -254,13 +681,55 @@ export default function EconomiaPage() {
   // rerun applyFilters when rows or selections change
   useEffect(()=>{ applyFilters() }, [rows, selectedPeriods, selectedModels])
 
+  // Fetch persisted economia rows for the "Banco de Dados" tab
+  const fetchBancoRows = async () => {
+    setBancoLoading(true)
+    try {
+      const res = await (window as any).api.economia.list(1000)
+      if (Array.isArray(res)) setBancoRows(res)
+    } catch (err) {
+      console.error('Erro ao carregar banco de dados (economia):', err)
+      setBancoRows([])
+    } finally {
+      setBancoLoading(false)
+    }
+  }
+
+  // clear any inline padding applied to first row when there are no search results
+  useEffect(() => {
+    if (searchResults.length === 0) {
+      requestAnimationFrame(() => {
+        const cont = document.querySelector<HTMLDivElement>(".busca-table-container")
+        if (!cont) return
+        // remove spacer if present
+        const spacer = cont.querySelector<HTMLDivElement>('.busca-table-spacer')
+        if (spacer) spacer.remove()
+        const firstCells = Array.from(cont.querySelectorAll('tbody tr:first-child td')) as HTMLTableCellElement[]
+        firstCells.forEach(c => { c.style.paddingTop = '' })
+      })
+    }
+  }, [searchResults.length])
+
+  // Fetch banco rows when user opens the Banco tab
+  useEffect(() => {
+    if (tab === 'banco') fetchBancoRows()
+  }, [tab])
+
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${highContrast ? 'high-contrast' : ''}`}>
       <PageHeader
         title="Economia Dashboard"
         description="Corte - Economia de Encaixe"
         logo={images.logo}
-        action={null}
+        action={(
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+              <input type="checkbox" checked={highContrast} onChange={(e)=>setHighContrast(e.target.checked)} />
+              <span>Alto contraste</span>
+            </label>
+            <small style={{ color: 'var(--ev-c-text-2)', fontSize: 12 }}>Alterna texto escuro / fundo claro</small>
+          </div>
+        )}
       />
 
       {/* Tabs */}
@@ -324,7 +793,7 @@ export default function EconomiaPage() {
             <div className="card-stats-economia">
               <div className="card-icon"><img src={shoeImg} alt="shoe" className="shoe-icon"/></div>
               <div className="label">Total Economia (R$)</div>
-              <div className="value">{summary ? (summary.totalDif || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
+              <div className="value">{summary ? Math.abs(summary.totalDif || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
             </div>
             <div className="card-stats-economia">
               <div className="card-icon"><img src={rollsImg} alt="rolos" className="rolls-icon"/></div>
@@ -334,7 +803,7 @@ export default function EconomiaPage() {
             <div className="card-stats-economia">
               <div className="card-icon"><Zap className="economia-icon" /></div>
               <div className="label">Média por pedido</div>
-              <div className="value">{summary ? (summary.avgDif || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
+              <div className="value">{summary ? Math.abs(summary.avgDif || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
             </div>
             <div className="card-stats-economia">
               <div className="card-icon"><Box className="economia-icon" /></div>
@@ -345,27 +814,30 @@ export default function EconomiaPage() {
 
           <div className="economia-charts-container">
             <div className="economia-filters">
-              <h3 className="font-semibold mb-2">FILTROS</h3>
-              <div className="mb-3">
-                <div className="font-medium">Período</div>
-                <div className="h-44 overflow-auto border rounded mt-2 p-2 bg-muted/5">
+              <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:12}}>
+                <h3 className="font-semibold mb-2 filter-title">FILTROS</h3>
+              </div> 
+              <div className="mb-3" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,width:'100%'}}>
+                <div style={{display:'flex',flexDirection:'column',gap:6,width:'100%'}}>
+                  <div className="font-medium">Período</div>
+                  <div className="h-44 overflow-auto border rounded mt-2 p-2 filter-box periodo-list">
                   {availablePeriods.map(p=> (
-                    <label key={p} className="block text-sm">
+                    <label key={p} className="block text-sm period-row">
                       <input type="checkbox" checked={selectedPeriods.includes(p)} onChange={(e)=>{
                         if (e.target.checked) setSelectedPeriods(s=>Array.from(new Set([...s,p])))
                         else setSelectedPeriods(s=>s.filter(x=>x!==p))
-                      }} /> <span className="ml-2">{p}</span>
+                      }} /> <span className="ml-2 period-text">{p}</span>
                     </label>
                   ))}
                 </div>
-                <div className="flex gap-2 mt-2">
-                  <Button onClick={()=>setSelectedPeriods(availablePeriods)}>Todos</Button>
-                  <Button onClick={()=>setSelectedPeriods([])}>Limpar</Button>
+
+                {/* Alto contraste moved to header */}
                 </div>
+                {/* local buttons removed — moved to top for better layout */}
               </div>
               <div>
                 <div className="font-medium">Modelo</div>
-                <div className="h-44 overflow-auto border rounded mt-2 p-2 bg-muted/5">
+                <div className="h-44 overflow-auto border rounded mt-2 p-2 filter-box">
                   {availableModels.map(m=> (
                     <label key={m} className="block text-sm">
                       <input type="checkbox" checked={selectedModels.includes(m)} onChange={(e)=>{
@@ -375,16 +847,13 @@ export default function EconomiaPage() {
                     </label>
                   ))}
                 </div>
-                <div className="flex gap-2 mt-2">
-                  <Button onClick={()=>setSelectedModels(availableModels)}>Todos</Button>
-                  <Button onClick={()=>setSelectedModels([])}>Limpar</Button>
-                </div>
+                {/* local buttons removed — moved to top for better layout */}
               </div>
             </div>
             <div className="charts-right">
               <div className="bg-card rounded-xl border border-border p-4">
                 <h3 className="font-semibold mb-2">Modelos - Performance Negativa</h3>
-                {byModelo && byModelo.length > 0 ? (
+                {byModelo && byModelo.length > 0 && chartsReady ? (
                   <ChartContainer config={{ total: { color: '#2563eb' } }}>
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={byModelo.map((i:any)=>({ name: i.name, total: Math.abs(i.total) }))} layout="vertical" margin={{ left: 10, right: 10 }}>
@@ -402,7 +871,7 @@ export default function EconomiaPage() {
               </div>
               <div className="bg-card rounded-xl border border-border p-4">
                 <h3 className="font-semibold mb-2">Materiais - Performance Negativa</h3>
-                {byMaterial && byMaterial.length > 0 ? (
+                {byMaterial && byMaterial.length > 0 && chartsReady ? (
                   <ChartContainer config={{ total: { color: '#ef4444' } }}>
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={byMaterial.map((i:any)=>({ name: i.name, total: Math.abs(i.total) }))} layout="vertical" margin={{ left: 10, right: 10 }}>
@@ -446,7 +915,7 @@ export default function EconomiaPage() {
                     rows.slice(0, 200).map((r:any) => (
                       <TableRow key={r.id}>
                         <TableCell>{r.id}</TableCell>
-                        <TableCell>{r.data ? new Date(r.data).toLocaleString() : ''}</TableCell>
+                        <TableCell>{r.data ? formatISOToDisplay(r.data) : ''}</TableCell>
                         <TableCell>{r.artigo}</TableCell>
                         <TableCell>{r.ordem}</TableCell>
                         <TableCell>{r.modelo}</TableCell>
@@ -480,69 +949,98 @@ export default function EconomiaPage() {
           </div>
 
           {/* Search Controls */}
-          <div className="busca-controls">
-            <div className="busca-input-group">
-              <label className="busca-input-label">Número da OF</label>
-              <div className="busca-input-wrapper">
-                <svg className="busca-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="8"/>
-                  <path d="m21 21-4.35-4.35"/>
-                </svg>
-                <input 
-                  className="busca-input-field" 
-                  value={searchTerm} 
-                  onChange={(e)=>setSearchTerm(e.target.value)} 
-                  placeholder="Ex: 435018688"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleSearchCGC()
-                    }
-                  }}
-                />
+          <div className={`busca-controls ${searchResults && searchResults.length > 0 ? 'has-results' : ''}`} style={{alignItems:'flex-start', justifyContent:'space-between'}}>
+            {/* Header box moved to the LEFT so it's visible before search */}
+            <div className="busca-header-side">
+              <div className="header-field">
+                <label>Data Fase</label>
+                <input className="header-input" value={headerFields.dataFase || ''} onChange={(e)=>setHeaderFields(h=>({ ...h, dataFase: e.target.value }))} placeholder="Ex: 2025-12-09" />
+              </div>
+              <div className="header-field">
+                <label>Modelo</label>
+                <input className="header-input" value={headerFields.modelo || ''} onChange={(e)=>setHeaderFields(h=>({ ...h, modelo: e.target.value }))} placeholder="Ex: Corte Corre" />
+              </div>
+              <div className="header-field">
+                <label>Artigo</label>
+                <input className="header-input" value={headerFields.artigo || ''} onChange={(e)=>setHeaderFields(h=>({ ...h, artigo: e.target.value }))} placeholder="Ex: COR43245330" />
+              </div>
+              <div className="header-field">
+                <label>Data</label>
+                <input className="header-input" value={headerFields.data || ''} onChange={(e)=>setHeaderFields(h=>({ ...h, data: e.target.value }))} placeholder="DD-MM-YYYY" />
+              </div>
+              <div className="header-field">
+                <label>Período</label>
+                <input className="header-input" value={headerFields.periodo || ''} onChange={(e)=>setHeaderFields(h=>({ ...h, periodo: e.target.value }))} placeholder="YYYY/MM" />
+              </div>
+              <div className="header-actions">
+                {headerId ? <small style={{marginLeft:8}}>Cabeçalho ID: <strong>{headerId}</strong></small> : null}
               </div>
             </div>
-            
-            <div className="busca-button-group">
-              <button 
-                className="busca-btn busca-btn-primary" 
-                onClick={handleSearchCGC}
-                disabled={searchLoading}
-              >
-                {searchLoading ? (
-                  <>
-                    <svg className="busca-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                    </svg>
-                    Buscando...
-                  </>
-                ) : (
-                  <>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="11" cy="11" r="8"/>
-                      <path d="m21 21-4.35-4.35"/>
-                    </svg>
-                    Buscar
-                  </>
-                )}
-              </button>
-              <button 
-                className="busca-btn busca-btn-secondary" 
-                onClick={handleSelectFile}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14,2 14,8 20,8"/>
-                </svg>
-                Selecionar Arquivo
-              </button>
-              {searchResults.length > 0 && (
+
+            <div style={{display:'flex',gap:12,flex:1,justifyContent:'flex-end',alignItems:'center'}}>
+              <div className="busca-input-group" style={{minWidth:220,maxWidth:420}}>
+                <label className="busca-input-label">Número da OF</label>
+                <div className="busca-input-wrapper">
+                  <svg className="busca-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                  </svg>
+                  <input 
+                    className="busca-input-field" 
+                    value={searchTerm} 
+                    onChange={(e)=>setSearchTerm(e.target.value)} 
+                    placeholder="Ex: 435018688"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSearchCGC()
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="busca-button-group">
                 <button 
-                  className="busca-btn busca-btn-ghost" 
-                  onClick={()=>{ setSearchResults([]); setSearchTerm('') }}
+                  className="busca-btn busca-btn-primary" 
+                  onClick={handleSearchCGC}
+                  disabled={searchLoading}
                 >
-                  Limpar
+                  {searchLoading ? (
+                    <>
+                      <svg className="busca-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                      </svg>
+                      Buscando...
+                    </>
+                  ) : (
+                    <>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                      </svg>
+                      Buscar
+                    </>
+                  )}
                 </button>
-              )}
+                <button 
+                  className="busca-btn busca-btn-secondary" 
+                  onClick={handleSelectFile}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14,2 14,8 20,8"/>
+                  </svg>
+                  Selecionar Arquivo
+                </button>
+                {searchResults.length > 0 && (
+                  <button 
+                    className="busca-btn busca-btn-ghost" 
+                    onClick={()=>{ setSearchResults([]); setSearchTerm(''); setSelectedPeriods(availablePeriods) }}
+                  >
+                    Limpar
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -582,17 +1080,13 @@ export default function EconomiaPage() {
                 <h3>Nenhum resultado</h3>
                 <p>Selecione o arquivo CGC e digite o número da OF para buscar</p>
               </div>
-            ) : (
-              <div className="busca-table-container">
-                <table className="busca-table-pro">
+                ) : (
+                <div className="busca-table-container">
+                  <table className="busca-table-pro">
                   <thead>
                     <tr>
                       <th className="col-num">#</th>
-                      <th className="col-data">Data</th>
-                      <th className="col-artigo">Artigo</th>
-                      <th className="col-datafase">Data Fase</th>
                       <th className="col-ordem">Ordem</th>
-                      <th className="col-modelo">Modelo</th>
                       <th className="col-material">Material</th>
                       <th className="col-cor">Cor/Espessura</th>
                       <th className="col-preco">Preço</th>
@@ -600,8 +1094,7 @@ export default function EconomiaPage() {
                       <th className="col-encaixe">Encaixe</th>
                       <th className="col-dif">Dif</th>
                       <th className="col-percent">%</th>
-                      <th className="col-economia">Economia</th>
-                      <th className="col-periodo">Período</th>
+                      <th className="col-economia">Economia</th> 
                     </tr>
                   </thead>
                   <tbody>
@@ -615,21 +1108,43 @@ export default function EconomiaPage() {
                       return (
                         <tr key={`${r.line}-${idx}`}>
                           <td className="col-num">{idx + 1}</td>
-                          <td className="col-data">{new Date().toLocaleDateString('pt-BR')}</td>
-                          <td className="col-artigo">{r.parsed?.['Artigo'] || '-'}</td>
-                          <td className="col-datafase">{r.parsed?.['DATA FASE'] || r.parsed?.['Data'] || '-'} </td>
                           <td className="col-ordem">{r.parsed?.['Ordem'] || '-'}</td>
-                          <td className="col-modelo">{r.parsed?.['Modelo'] || '-'}</td>
-                          <td className="col-material">{r.parsed?.['Material'] || '-'}</td>
+                          <td className="col-material">{r.parsed?.['Material'] || '-'}</td> 
                           <td className="col-cor">{r.parsed?.['Cor/Espessura'] || '-'}</td>
                           <td className="col-preco">{preco.toFixed(2)}</td>
                           <td className="col-previsto">{previsto.toFixed(2)}</td>
                           <td className="col-encaixe">
                             <input
                               type="number"
-                              className="encaixe-input"
+                              className={`encaixe-input ${encaixeLocked[idx] ? 'locked' : ''}`}
+                              data-idx={idx}
                               value={encaixeValues[idx] ?? ''}
+                              disabled={!!encaixeLocked[idx]}
+                              onFocus={() => { tryUnlockEncaixeIndex(idx) }}
                               onChange={(e) => handleEncaixeChange(idx, e.target.value)}
+                              onKeyDown={(e) => {
+                                // Se estiver bloqueado, tentar desbloquear (evita delays por throttling); se ainda bloqueado, impedir entrada
+                                if (encaixeLockedRef.current[idx]) {
+                                  const unlocked = tryUnlockEncaixeIndex(idx)
+                                  if (!unlocked) { e.preventDefault(); return }
+                                }
+
+                                // Marcar como "tocado" apenas quando o usuário de fato digita (números, vírgula, ponto, backspace, delete, sinal)
+                                if (/^[0-9.,\-]$/.test(e.key) || e.key === 'Backspace' || e.key === 'Delete') {
+                                  setEncaixeTouched(prev => ({ ...prev, [idx]: true }))
+                                  encaixeTouchedRef.current[idx] = true
+                                }
+                                if (e.key === 'Enter') { e.preventDefault(); saveEncaixeAndFocusNext(idx, r) }
+                              }}
+                              onPaste={() => { setEncaixeTouched(prev => ({ ...prev, [idx]: true })); encaixeTouchedRef.current[idx] = true }}
+                              onBlur={() => {
+                                // Se o próximo elemento focado for outro input de encaixe, não salvar imediatamente
+                                const next = document.activeElement as HTMLElement | null
+                                if (next && next.classList && next.classList.contains('encaixe-input')) {
+                                  return
+                                }
+                                saveEncaixeAndFocusNext(idx, r)
+                              }}
                               placeholder="0.00"
                               step="0.01"
                             />
@@ -643,13 +1158,12 @@ export default function EconomiaPage() {
                           <td className={`col-economia ${economia > 0 ? 'positive' : economia < 0 ? 'negative' : ''}`}>
                             {economia !== 0 ? economia.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'}
                           </td>
-                          <td className="col-periodo">{`${new Date().getFullYear()}/${String(new Date().getMonth()+1).padStart(2,'0')}`}</td>
                         </tr>
                       )
                     })}
                   </tbody>
-                </table>
-              </div>
+                    </table>
+                  </div>
             )}
           </div>
         </div>
@@ -657,9 +1171,195 @@ export default function EconomiaPage() {
       {tab === 'banco' && (
         <div style={{padding: 32, background: 'var(--economia-gradient)', borderRadius: 12, color: '#fff', minHeight: 400}}>
           <h2 style={{fontSize: 24, fontWeight: 700, marginBottom: 16}}>Banco de Dados</h2>
-          <p>Conteúdo do banco de dados aqui...</p>
+          <div style={{marginTop: 18}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
+              <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                <button className="busca-btn busca-btn-secondary" onClick={fetchBancoRows} disabled={bancoLoading}>Atualizar</button>
+                <button className="busca-btn busca-btn-ghost" onClick={async ()=>{ if (await askConfirm('Limpar todo o banco de economia?')) { await (window as any).api.economia.clear(); fetchBancoRows() } }}>Limpar banco</button>
+              </div>
+              <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                <button className="busca-btn" onClick={()=>{ setBancoSelected(bancoRows.map(r=>r.id)); }}>Selecionar todos</button>
+                <button className="busca-btn busca-btn-ghost" onClick={async ()=>{
+                  if (bancoSelected.length === 0) { alert('Nenhuma linha selecionada'); return }
+                  if (!(await askConfirm(`Apagar ${bancoSelected.length} linha(s) selecionada(s)?`))) return
+                  const res = await (window as any).api.economia.deleteRows(bancoSelected)
+                  if (res && res.success) {
+                    toast({ title: 'Linhas apagadas', description: `${res.result?.deleted || 0} registros removidos` })
+                    setBancoSelected([])
+                    fetchBancoRows()
+                  } else {
+                    toast({ title: 'Erro', description: String(res?.error || 'Não foi possível apagar') })
+                  }
+                }}>Apagar selecionadas</button>
+                <button className="busca-btn busca-btn-secondary" onClick={async ()=>{
+                  // salvar todas as edições locais
+                  const ids = Object.keys(bancoEdits).map(k=>Number(k))
+                  if (ids.length === 0) { toast({ title: 'Nada para salvar', description: 'Nenhuma alteração encontrada' }); return }
+                  try {
+                    await Promise.all(ids.map(id => (window as any).api.economia.updateRow(id, { encaixe: Number(bancoEdits[id]) })))
+                    toast({ title: 'Alterações salvas', description: `${ids.length} linha(s) atualizadas` })
+                    setBancoEdits({})
+                    fetchBancoRows()
+                  } catch (e) {
+                    toast({ title: 'Erro ao salvar', description: String(e) })
+                  }
+                }}>Salvar alterações</button>
+              </div>
+            </div>
+
+            {bancoLoading ? (
+              <div className="busca-loading"><span>Carregando registros do banco...</span></div>
+            ) : bancoRows.length === 0 ? (
+              <div className="busca-empty"><h3>Nenhum registro salvo</h3><p>Salve um encaixe na aba "Busca Dados" para persistir aqui.</p></div>
+            ) : (
+              <div className="busca-table-container">
+                <table className="busca-table-pro">
+                  <thead>
+                    <tr>
+                      <th style={{width:40}}><input type="checkbox" checked={bancoSelected.length === bancoRows.length && bancoRows.length>0} onChange={(e)=>{ if (e.target.checked) setBancoSelected(bancoRows.map(r=>r.id)) ; else setBancoSelected([]) }} /></th>
+                      <th className="col-num">#</th>
+                      <th className="col-data">Data</th>
+                      <th className="col-artigo">Artigo</th>
+                      <th className="col-datafase">Data Fase</th>
+                      <th className="col-ordem">Ordem</th>
+                      <th className="col-modelo">Modelo</th>
+                      <th className="col-material">Material</th>
+                      <th className="col-cor">Cor/Espessura</th>
+                      <th className="col-preco">Preço</th>
+                      <th className="col-previsto">Previsto</th>
+                      <th className="col-encaixe">Encaixe</th>
+                      <th className="col-dif">Dif</th>
+                      <th className="col-percent">%</th>
+                      <th className="col-periodo">Período</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bancoRows.map((r, i) => (
+                      <tr key={r.id || `${i}`}>
+                        <td><input type="checkbox" checked={bancoSelected.includes(r.id)} onChange={(e)=>{ if (e.target.checked) setBancoSelected(s=>Array.from(new Set([...s, r.id]))) ; else setBancoSelected(s=>s.filter(x=>x!==r.id)) }} /></td>
+                        <td className="col-num">{i + 1}</td>
+                        <td className="col-data">{r.data ? formatISOToDisplay(r.data) : '-'}</td>
+                        <td className="col-artigo">{r.artigo || '-'}</td>
+                        <td className="col-datafase">{r.header_data_fase || r.data ? (r.header_data_fase || (r.data ? formatISOToDisplay(r.data) : '-')) : '-'}</td>
+                        <td className="col-ordem">{r.ordem || '-'}</td>
+                        <td className="col-modelo">{r.header_modelo || r.modelo || '-'}</td>
+                        <td className="col-material">{r.material || '-'}</td>
+                        <td className="col-cor">{r.cor_espessura || '-'}</td>
+                        <td className="col-preco">{r.preco != null ? Number(r.preco).toFixed(2) : '-'}</td>
+                        <td className="col-previsto">{r.previsto != null ? Number(r.previsto).toFixed(2) : '-'}</td>
+                        <td className="col-encaixe">
+                          <input
+                            className={`encaixe-input ${bancoLocked[r.id] ? 'locked' : ''}`}
+                            data-rowid={r.id}
+                            value={ bancoEdits[r.id] !== undefined ? bancoEdits[r.id] : (r.encaixe != null ? Number(r.encaixe).toFixed(2) : '') }
+                            disabled={!!bancoLocked[r.id]}
+                            onFocus={() => { tryUnlockBancoIndex(r.id) }}
+                            onChange={(e) => {
+                              if (bancoLockedRef.current[r.id]) {
+                                if (!tryUnlockBancoIndex(r.id)) return
+                              }
+                              const val = e.target.value
+                              // permitir edição imediata se marcado por cancelamento
+                              if (bancoAllowEditRef.current[r.id]) {
+                                setBancoEdits(prevState => ({ ...prevState, [r.id]: val }))
+                                bancoAllowEditRef.current[r.id] = false
+                                return
+                              }
+                              const prev = bancoEdits[r.id] !== undefined ? bancoEdits[r.id] : (r.encaixe != null ? Number(r.encaixe).toFixed(2) : '')
+                              // Ignorar alterações vindas de spinner/scroll quando campo vazio e usuário não digitou
+                              const touchedNow = !!bancoTouchedRef.current[r.id] || !!bancoTouched[r.id]
+                              if ((prev === '' || prev === undefined) && val !== '' && !touchedNow) return
+                              setBancoEdits(prevState => ({ ...prevState, [r.id]: val }))
+                            }}
+                            onBlur={async (e) => {
+                              const vRaw = String(e.target.value)
+                              // se usuário não digitou nada e valor anterior é nulo, não salva
+                              if (vRaw.trim() === '' && (r.encaixe == null || r.encaixe === undefined)) return
+                              const v = parseFloat(vRaw.replace(',', '.')) || 0
+                              const prev = r.encaixe != null ? Number(r.encaixe) : null
+                              if (prev !== null && prev === v) return
+
+                              // Verificação percentual: se diferir >= 30% do Previsto, pedir confirmação
+                              const previstoNum = r.previsto != null ? Number(r.previsto) : (r.previsto ? parseFloat(String(r.previsto)) : 0)
+                              if (previstoNum > 0) {
+                                const pct = Math.abs(v - previstoNum) / previstoNum
+                                if (pct >= 0.3) {
+                                  const dir = v > previstoNum ? 'maior' : 'menor'
+                                  const ok = await askConfirm(`Valor de Encaixe (${v.toFixed(2)}) é ${(pct * 100).toFixed(1)}% ${dir} que o Previsto (${previstoNum.toFixed(2)}). Deseja confirmar?`)
+                                  if (!ok) {
+                                    // reverter valor visível e bloquear temporariamente a edição
+                                    setBancoEdits(prevState => ({ ...prevState, [r.id]: prev !== null ? prev.toFixed(2) : '' }))
+                                    setBancoTouched(prev => ({ ...prev, [r.id]: true }))
+                                    bancoTouchedRef.current[r.id] = true
+
+                                    const now = Date.now()
+                                    setBancoLocked(prev => ({ ...prev, [r.id]: true }))
+                                    bancoLockedRef.current[r.id] = true
+                                    bancoLockedAtRef.current[r.id] = now
+
+                                    toast({ title: 'Alteração cancelada', description: 'Encaixe não foi alterado — campo liberado em instantes' })
+
+                                    // fallback para liberar quando o timer rodar normalmente
+                                    setTimeout(() => {
+                                      unlockBancoIndex(r.id)
+                                    }, LOCK_DURATION_MS)
+
+                                    return
+                                  }
+                                }
+                              }
+
+                              try {
+                                const res = await (window as any).api.economia.updateRow(r.id, { encaixe: v })
+                                if (res && res.success) {
+                                  toast({ title: 'Encaixe salvo', description: `Linha ${i+1} atualizada` })
+                                  // marcar como não tocado após salvar
+                                  setBancoTouched(prev => ({ ...prev, [r.id]: false }))
+                                  bancoTouchedRef.current[r.id] = false
+                                  fetchBancoRows()
+                                }
+                              } catch (err) {
+                                toast({ title: 'Erro', description: String(err) })
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (bancoLockedRef.current[r.id]) {
+                                if (!tryUnlockBancoIndex(r.id)) { e.preventDefault(); return }
+                              }
+                              if (/^[0-9.,\-]$/.test(e.key) || e.key === 'Backspace' || e.key === 'Delete') {
+                                setBancoTouched(prev => ({ ...prev, [r.id]: true }))
+                                bancoTouchedRef.current[r.id] = true
+                              }
+                              if (e.key === 'Enter') { (e.target as HTMLInputElement).blur() }
+                            }}
+                            onPaste={() => { setBancoTouched(prev => ({ ...prev, [r.id]: true })); bancoTouchedRef.current[r.id] = true }}
+                          />
+                        </td>
+                        <td className={`col-dif ${r.dif > 0 ? 'positive' : r.dif < 0 ? 'negative' : ''}`}>{r.dif != null ? Number(r.dif).toFixed(2) : '-'}</td>
+                        <td className={`col-percent ${r.porcent > 0 ? 'positive' : r.porcent < 0 ? 'negative' : ''}`}>{r.porcent != null ? `${(Number(r.porcent) * 100).toFixed(1)}%` : '-'}</td>
+                        <td className="col-periodo">{r.header_periodo || (r.data ? `${new Date(r.data).getFullYear()}/${String(new Date(r.data).getMonth()+1).padStart(2,'0')}` : '-')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
+    {/* Confirm dialog (non-blocking) */}
+    <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirmação</AlertDialogTitle>
+          <AlertDialogDescription>{confirmMessage}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => confirmResolveRef.current && confirmResolveRef.current(false)}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={() => confirmResolveRef.current && confirmResolveRef.current(true)}>Confirmar</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </div>
   )
 }

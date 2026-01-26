@@ -296,6 +296,7 @@ export interface Componente {
 	espacamento?: number
 	compMaximo?: number
 	percPerda?: number
+	redutorLargura?: number
 	coresDisponiveis?: string[]
 	tamanhos?: { tamanhoInicial: number; tamanhoFinal: number }[]
 }
@@ -316,7 +317,8 @@ type ComponenteRow = {
 	espacamento?: number
 	comp_maximo?: number
 	perc_perda?: number
-}
+	redutor_largura?: number
+} 
 
 export interface ComponenteDados {
 	materialId: number
@@ -328,11 +330,12 @@ export interface ComponenteDados {
 	espacamento?: number
 	compMaximo?: number
 	percPerda?: number
+	redutorLargura?: number
 	coresDisponiveis?: string[]
 	modeloCorId?: number
 	setorId?: number
 	numeroTecido?: string
-}
+} 
 
 export function listComponentes(modelo_id: number): Promise<Componente[]> {
 	return new Promise((resolve) => {
@@ -341,7 +344,7 @@ export function listComponentes(modelo_id: number): Promise<Componente[]> {
 
 			const loadComponentes = new Promise<ComponenteRow[]>((res, rej) => {
 				database.all(
-					`SELECT id, modelo_id, modelo_cor_id, setor_id, numero_tecido, nome, apelido, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda
+					`SELECT id, modelo_id, modelo_cor_id, setor_id, numero_tecido, nome, apelido, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda, redutor_largura
 					 FROM componentes WHERE modelo_id = ? ORDER BY id`,
 					[modelo_id],
 					(err: Error | null, rows: ComponenteRow[]) => {
@@ -440,6 +443,7 @@ export function listComponentes(modelo_id: number): Promise<Componente[]> {
 							espacamento: r.espacamento || 0,
 							compMaximo: r.comp_maximo || 0,
 							percPerda: r.perc_perda || 0,
+							redutorLargura: r.redutor_largura || 0,
 							coresDisponiveis: (ccMap.get(r.id) || []).map((id) => String(id)),
 							tamanhos: tamMap.get(r.id) || [],
 						}
@@ -478,6 +482,7 @@ export function addComponente(
 			const espacamento = dados?.espacamento || null
 			const comp_maximo = dados?.compMaximo || null
 			const perc_perda = dados?.percPerda || null
+			const redutor_largura = dados?.redutorLargura ?? null
 			// Se modelo_cor_id não informado, usar primeira cor de coresDisponiveis
 			let modelo_cor_id = dados?.modeloCorId || null
 			if (
@@ -493,8 +498,8 @@ export function addComponente(
 			const numero_tecido = dados?.numeroTecido || ""
 
 			database.run(
-				`INSERT INTO componentes (modelo_id, modelo_cor_id, setor_id, numero_tecido, nome, apelido, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda)
-					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				`INSERT INTO componentes (modelo_id, modelo_cor_id, setor_id, numero_tecido, nome, apelido, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda, redutor_largura)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 				[
 					modelo_id,
 					modelo_cor_id,
@@ -510,8 +515,9 @@ export function addComponente(
 					espacamento,
 					comp_maximo,
 					perc_perda,
+					redutor_largura,
 				],
-				function (err: Error | null) {
+				function (err: Error | null) { 
 					if (err) {
 						console.error("Erro ao criar componente (SQL):", err)
 						resolve({
@@ -572,6 +578,7 @@ export function updateComponente(
 			// Extrair campos individuais de `dados` (compatível com front-end atual)
 			const material_id = dados?.materialId || null
 			const apelido = dados?.apelido || ""
+			console.log('[DB] updateComponente called for componente', componente_id, 'apelido:', JSON.stringify(apelido))
 			const tipo_tecido = dados?.tipoTecido || null
 			const conjugacao_navalha = dados?.conjugacaoNavalha || null
 			const placa_par = dados?.placaPar || null
@@ -579,9 +586,10 @@ export function updateComponente(
 			const espacamento = dados?.espacamento || null
 			const comp_maximo = dados?.compMaximo || null
 			const perc_perda = dados?.percPerda || null
+			const redutor_largura = dados?.redutorLargura || null
 
 			database.run(
-				`UPDATE componentes SET nome = ?, apelido = ?, modelo_cor_id = ?, setor_id = ?, numero_tecido = ?, material_id = ?, tipo_tecido = ?, conjugacao_navalha = ?, placa_par = ?, camadas = ?, espacamento = ?, comp_maximo = ?, perc_perda = ? WHERE id = ? AND modelo_id = ?`,
+				`UPDATE componentes SET nome = ?, apelido = ?, modelo_cor_id = ?, setor_id = ?, numero_tecido = ?, material_id = ?, tipo_tecido = ?, conjugacao_navalha = ?, placa_par = ?, camadas = ?, espacamento = ?, comp_maximo = ?, perc_perda = ?, redutor_largura = ? WHERE id = ? AND modelo_id = ?`,
 				[
 					nome,
 					apelido,
@@ -596,6 +604,7 @@ export function updateComponente(
 					espacamento,
 					comp_maximo,
 					perc_perda,
+					redutor_largura,
 					componente_id,
 					modelo_id,
 				],
@@ -606,6 +615,12 @@ export function updateComponente(
 					}
 
 					const updateTamanhos = () => {
+					// Verificar valor salvo imediatamente após o UPDATE
+					database.get("SELECT apelido FROM componentes WHERE id = ? AND modelo_id = ?", [componente_id, modelo_id], (getErr: Error | null, row?: { apelido?: string }) => {
+						if (getErr) console.error('[DB] SELECT after UPDATE error', getErr)
+						else console.log('[DB] SELECT after UPDATE for componente', componente_id, 'apelido in DB =', row?.apelido)
+					})
+
 						if (tamanhos !== undefined) {
 							database.run(
 								"DELETE FROM tamanhos WHERE componente_id = ?",
@@ -823,7 +838,7 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 
 		const loadComponentesForModelo = (modelo: ModeloRow): void => {
 			database.all(
-				"SELECT id, modelo_id, numero_tecido, nome, apelido, modelo_cor_id, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda, setor_id FROM componentes WHERE modelo_id = ? ORDER BY id",
+				"SELECT id, modelo_id, numero_tecido, nome, apelido, modelo_cor_id, material_id, tipo_tecido, conjugacao_navalha, placa_par, camadas, espacamento, comp_maximo, perc_perda, redutor_largura, setor_id FROM componentes WHERE modelo_id = ? ORDER BY id",
 				[modelo.id],
 				async (err: Error | null, compRows: ComponenteRow[]) => {
 					if (err || !compRows || compRows.length === 0) {
@@ -970,23 +985,29 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 															)
 
 															const mat = comp.material_id
-																? matMap.get(comp.material_id)
-																: null
-															
-															// Get setor name
-															const setorNome = comp.setor_id
-																? setorMap.get(comp.setor_id) || ""
-																: ""
-															
-															const info: CadastroInfo = {
-																artigo: modelo.artigo,
-																modelo: modelo.nome,
-																componente: comp.nome,
-																apelido: comp.apelido || "",
-																material: mat?.artigo || "",
-																cor: corNames,
-																largura: mat?.largura?.toString() || "",
-																tipoTecido: comp.tipo_tecido || 0,
+						? matMap.get(comp.material_id)
+						: null
+						
+						// Get setor name
+						const setorNome = comp.setor_id
+							? setorMap.get(comp.setor_id) || ""
+							: ""
+						
+						// Apply redutor_largura if present (stored as centesimos, e.g., 3 -> 0.03)
+						const redutor = (comp as any).redutor_largura || 0
+						let larguraAjustada = mat?.largura ?? 0
+						if (redutor) {
+							larguraAjustada = Math.round((larguraAjustada - redutor / 100) * 100) / 100
+						}
+						const info: CadastroInfo = {
+							artigo: modelo.artigo,
+							modelo: modelo.nome,
+							componente: comp.nome,
+							apelido: comp.apelido || "",
+							material: mat?.artigo || "",
+							cor: corNames,
+				tipoTecido: (comp as any).tipo_tecido || 0,
+							largura: larguraAjustada?.toString() || "",
 																paresCriac: tamanhosStr,
 																conjugNavalha: comp.conjugacao_navalha || "",
 																placaPorPar: comp.placa_par || "",
@@ -1033,6 +1054,47 @@ export function getCadastroByArtigo(artigo: string): Promise<CadastroInfo[]> {
 		}
 
 		tryNextVariant()
+	})
+}
+
+// ------------------ Migration helpers ------------------
+
+export function hasColumnRedutorLargura(): Promise<boolean> {
+	return new Promise((resolve) => {
+		const db = getDatabase()
+		db.all("PRAGMA table_info('componentes')", [], (err: Error | null, rows: any[]) => {
+			if (err) {
+				console.error('[models] PRAGMA table_info error', err)
+				return resolve(false)
+			}
+			const found = (rows || []).some((r) => String(r.name).toLowerCase() === 'redutor_largura')
+			resolve(found)
+		})
+	})
+}
+
+export function addRedutorLarguraColumn(): Promise<{ success: boolean; message: string }> {
+	return new Promise(async (resolve) => {
+		try {
+			const exists = await hasColumnRedutorLargura()
+			if (exists) {
+				return resolve({ success: true, message: 'Coluna já existe' })
+			}
+			const db = getDatabase()
+			db.run(
+				'ALTER TABLE componentes ADD COLUMN redutor_largura NUMERIC DEFAULT 0',
+				(err: Error | null) => {
+					if (err) {
+						console.error('[models] Error adding redutor_largura column:', err)
+						return resolve({ success: false, message: err.message || String(err) })
+					}
+					resolve({ success: true, message: 'Coluna adicionada com sucesso' })
+				},
+			)
+		} catch (e: any) {
+			console.error('[models] addRedutorLarguraColumn exception', e)
+			resolve({ success: false, message: e?.message || String(e) })
+		}
 	})
 }
 

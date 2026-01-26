@@ -1,16 +1,17 @@
 import fs from "fs"
 import path from "path"
 import sqlite3 from "sqlite3"
-
-const DB_PATH = path.join("C:", "Aincrad", "CuttingRoom")
-const DB_FILE = path.join(DB_PATH, "app.db")
-
-// Criar diretório se não existir
-if (!fs.existsSync(DB_PATH)) {
-	fs.mkdirSync(DB_PATH, { recursive: true })
-}
+import { getDatabaseFilePath } from "../settings"
 
 let db: sqlite3.Database | undefined
+
+function ensureDbDirExists(dbPath: string) {
+	const DB_DIR = path.dirname(dbPath)
+	if (!fs.existsSync(DB_DIR)) {
+		fs.mkdirSync(DB_DIR, { recursive: true })
+	}
+}
+
 
 // Tipos de permissões do sistema
 export type UserRole = string // Agora é dinâmico
@@ -217,7 +218,10 @@ export function clearRolesCache(): void {
 }
 
 export function initDatabase(): void {
-	db = new sqlite3.Database(DB_FILE, (err) => {
+	const dbPath = getDatabaseFilePath()
+	ensureDbDirExists(dbPath)
+	console.log(`[DB] using economia DB file at: ${dbPath}`)
+	db = new sqlite3.Database(dbPath, (err) => {
 		if (err) {
 			console.error("Erro ao conectar ao banco de dados:", err)
 		}
@@ -336,6 +340,7 @@ export function initDatabase(): void {
 			espacamento REAL,
 			comp_maximo REAL,
 			perc_perda REAL,
+			redutor_largura NUMERIC DEFAULT 0,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (modelo_id) REFERENCES modelos(id),
 			FOREIGN KEY (modelo_cor_id) REFERENCES modelo_cores(id),
@@ -348,6 +353,13 @@ export function initDatabase(): void {
 	database.run(`ALTER TABLE componentes ADD COLUMN apelido TEXT DEFAULT ''`, (err) => {
 		if (err && !err.message.includes("duplicate column")) {
 			console.error("Erro ao adicionar coluna 'apelido' em 'componentes':", err)
+		}
+	})
+
+	// Migração para adicionar a coluna 'redutor_largura' se ela não existir.
+	database.run(`ALTER TABLE componentes ADD COLUMN redutor_largura NUMERIC DEFAULT 0`, (err) => {
+		if (err && !err.message.includes("duplicate column")) {
+			console.error("Erro ao adicionar coluna 'redutor_largura' em 'componentes':", err)
 		}
 	})
 
@@ -441,5 +453,6 @@ export function closeDatabase(): void {
 				console.error("Erro ao fechar banco de dados:", err)
 			}
 		})
+		db = undefined
 	}
 }
