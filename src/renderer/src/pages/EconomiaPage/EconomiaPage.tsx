@@ -3,7 +3,7 @@ import { PageHeader } from "@renderer/components/common/PageHeader"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@renderer/components/ui/table"
 
 import { ChartContainer } from "@renderer/components/ui/chart"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, Cell } from "recharts"
 import { toast } from "@renderer/hooks/use-toast"
 import {
   AlertDialog,
@@ -60,6 +60,8 @@ export default function EconomiaPage() {
   const [summary, setSummary] = useState<any>(null)
   const [byModelo, setByModelo] = useState<any[]>([])
   const [byModeloPos, setByModeloPos] = useState<any[]>([])
+  const [modelView, setModelView] = useState<'brl'|'pct'>('brl')
+  const [materialView, setMaterialView] = useState<'brl'|'pct'>('brl')
   const [byMaterial, setByMaterial] = useState<any[]>([])
   // positive materials (summing dif > 0) — materiais passando do Previsto
   const [byMaterialPos, setByMaterialPos] = useState<any[]>([])
@@ -668,28 +670,41 @@ export default function EconomiaPage() {
     setSummary({ totalDif, ordemCount, avgDif })
 
     // byModelo and byMaterial from filtered
-    const modeloMap = new Map<string,number>()
-    const materialMap = new Map<string,number>()
+    const modeloMap = new Map<string,{ totalDif:number, totalPrev:number }>()
+    const materialMap = new Map<string,{ totalDif:number, totalPrev:number }>()
     filtered.forEach((r:any)=>{
       const m = r.modelo || 'N/A'
       const mat = r.material || 'N/A'
-      modeloMap.set(m, (modeloMap.get(m)||0) + (Number(r.dif)||0))
-      materialMap.set(mat, (materialMap.get(mat)||0) + (Number(r.dif)||0))
+      const dif = Number(r.dif)||0
+      const prev = Number(r.previsto)||0
+      const cur = modeloMap.get(m) || { totalDif: 0, totalPrev: 0 }
+      modeloMap.set(m, { totalDif: cur.totalDif + dif, totalPrev: cur.totalPrev + prev })
+
+      const cm = materialMap.get(mat) || { totalDif: 0, totalPrev: 0 }
+      materialMap.set(mat, { totalDif: cm.totalDif + dif, totalPrev: cm.totalPrev + prev })
     })
     // only include negative totals (consumo excedente)
-    const allModels = Array.from(modeloMap.entries()).map(([name,total])=>({name,total}))
-    const bm = allModels.filter(item => item.total < 0).sort((a,b)=>Math.abs(b.total)-Math.abs(a.total)).slice(0,20)
-    const bmPos = allModels.filter(item => item.total > 0).sort((a,b)=>Math.abs(b.total)-Math.abs(a.total)).slice(0,20)
+    const allModels = Array.from(modeloMap.entries()).map(([name,totals])=>({name, totalDif: totals.totalDif, totalPrev: totals.totalPrev}))
+    const bm = allModels.filter(item => item.totalDif < 0).sort((a,b)=>Math.abs(b.totalDif)-Math.abs(a.totalDif)).slice(0,20)
+    const bmPos = allModels.filter(item => item.totalDif > 0).sort((a,b)=>Math.abs(b.totalDif)-Math.abs(a.totalDif)).slice(0,20)
 
     // materials: split into negatives (performance negativa) and positives (passando do Previsto)
-    const allMaterials = Array.from(materialMap.entries()).map(([name,total])=>({name,total}))
-    const bmat = allMaterials.filter(item => item.total < 0).sort((a,b)=>Math.abs(b.total)-Math.abs(a.total)).slice(0,20)
-    const bmatPos = allMaterials.filter(item => item.total > 0).sort((a,b)=>Math.abs(b.total)-Math.abs(a.total)).slice(0,20)
+    // convert materials map into objects with totals and prevs
+    const allMaterials = Array.from(materialMap.entries()).map(([name, totals]) => ({ name, totalDif: totals.totalDif, totalPrev: totals.totalPrev }))
+    // negative totals (consumo excedente)
+    const bmat = allMaterials.filter(item => item.totalDif < 0).slice(0)
+    const bmatPos = allMaterials.filter(item => item.totalDif > 0).slice(0)
+
+    // when sorting for BRL use absolute totalDif; when sorting for pct we'll sort later when building chart data
+    bmat.sort((a,b)=>Math.abs(b.totalDif)-Math.abs(a.totalDif))
+    bmat.splice(20)
+    bmatPos.sort((a,b)=>Math.abs(b.totalDif)-Math.abs(a.totalDif))
+    bmatPos.splice(20)
 
     setByModelo(bm)
     setByModeloPos(bmPos)
     setByMaterial(bmat)
-    setByMaterialPos(bmatPos) 
+    setByMaterialPos(bmatPos)
   }
 
   // rerun applyFilters when rows or selections change
@@ -731,14 +746,12 @@ export default function EconomiaPage() {
 
   // derived model counters (positives = passando do Previsto)
   const modelCountPos = byModeloPos ? byModeloPos.length : 0
-  const modelTotalPos = (byModeloPos || []).reduce((s:any,i:any)=>s + (Number(i.total)||0),0)
+  const modelTotalPos = (byModeloPos || []).reduce((s:any,i:any)=>s + (Number(i.totalDif)||0),0)
 
   // derived material counters (negatives = performance negativa)
-  const materialCountNeg = byMaterial ? byMaterial.length : 0
-  const materialTotalNeg = Math.abs((byMaterial || []).reduce((s:any,i:any)=>s + (Number(i.total)||0),0))
   // derived material counters (positives = passando do Previsto)
   const materialCountPos = byMaterialPos ? byMaterialPos.length : 0
-  const materialTotalPos = (byMaterialPos || []).reduce((s:any,i:any)=>s + (Number(i.total)||0),0)
+  const materialTotalPos = (byMaterialPos || []).reduce((s:any,i:any)=>s + (Number(i.totalDif)||0),0)
 
   return (
     <div className={`space-y-6 ${highContrast ? 'high-contrast' : ''}`}>
@@ -843,6 +856,7 @@ export default function EconomiaPage() {
               <div className="label">Valor Matérias (passando do Previsto)</div>
               <div className="value">{materialTotalPos.toLocaleString(undefined, { style: 'currency', currency: 'BRL' })}</div>
             </div>
+
           </div>
 
           <div className="economia-charts-container">
@@ -885,19 +899,51 @@ export default function EconomiaPage() {
             </div>
             <div className="charts-right">
               <div className="bg-card rounded-xl border border-border p-4">
-                <h3 className="font-semibold mb-2">Modelos - Performance Negativa</h3>
-                {byModelo && byModelo.length > 0 && chartsReady ? (
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold mb-2">Modelos - Performance Negativa</h3>
+                  <div className="flex items-center space-x-2">
+                    <button className={`px-2 py-1 text-sm rounded ${modelView==='brl' ? 'bg-blue-600 text-white' : 'bg-transparent border'}`} onClick={()=>setModelView('brl')} title="R$: soma absoluta do excesso por modelo (impacto financeiro)">R$</button>
+                    <button className={`px-2 py-1 text-sm rounded ${modelView==='pct' ? 'bg-blue-600 text-white' : 'bg-transparent border'}`} onClick={()=>setModelView('pct')} title="%: excesso relativo ao previsto = (sum(dif)/sum(previsto))*100">%</button>
+                  </div>
+                </div>
+                {byModelo && (byModelo.length > 0 || (byModeloPos && byModeloPos.length>0)) && chartsReady ? (
                   <ChartContainer config={{ total: { color: '#2563eb' } }}>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={byModelo.map((i:any)=>({ name: i.name, total: Math.abs(i.total) }))} layout="vertical" margin={{ left: 10, right: 10 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" />
-                        <YAxis dataKey="name" type="category" width={140} />
-                        <Tooltip formatter={(value: number | undefined) => value?.toLocaleString(undefined,{ style: 'currency', currency: 'BRL' }) ?? ''} />
-                        <Bar dataKey="total" fill="#2563eb">
-                          <LabelList dataKey="total" position="insideRight" fill="#fff" formatter={(value: any) => (typeof value === 'number' ? value.toLocaleString(undefined,{ style: 'currency', currency: 'BRL' }) : '')} />
-                        </Bar>
-                      </BarChart>
+                    <ResponsiveContainer width="100%" height={350}>
+                      {(() => {
+                        // top 5 negatives and top 5 positives
+                        const neg = (byModelo || []).slice(0,5) // already sorted by abs desc
+                        const pos = (byModeloPos || []).slice(0,5)
+                        const buildValue = (item:any) => {
+                          const dif = Number(item.totalDif)||0
+                          const prev = Number(item.totalPrev)||0
+                          if (modelView === 'brl') return Math.abs(dif)
+                          return prev === 0 ? 0 : Math.abs((dif / prev) * 100)
+                        }
+                        const data = [
+                          ...neg.map((n:any) => ({ name: n.name, value: buildValue(n), sign: 'neg' })),
+                          ...pos.map((p:any) => ({ name: p.name, value: -buildValue(p), sign: 'pos' })),
+                        ]
+                        if (data.length === 0) return <div className="chart-placeholder">Sem dados para exibir</div>
+                        return (
+                          <BarChart data={data} margin={{ left: 20, right: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" type="category" interval={0} tick={{ fontSize: 12 }} height={80} />
+                            <YAxis type="number" />
+                            <Tooltip formatter={(value: number | undefined) => {
+                              if (value === undefined || value === null) return ''
+                              return modelView === 'brl'
+                                ? Math.abs(value).toLocaleString(undefined,{ style: 'currency', currency: 'BRL' })
+                                : `${Math.abs(Number(value)).toFixed(1)}%`
+                            }} />
+                            <Bar dataKey="value">
+                              {data.map((entry:any, idx:number) => (
+                                <Cell key={`c-${idx}`} fill={entry.sign==='neg' ? '#2563eb' : '#10b981'} />
+                              ))}
+                              <LabelList dataKey="value" position="top" formatter={(value:any)=> (modelView==='brl' ? Math.abs(value).toLocaleString(undefined,{ style:'currency', currency:'BRL'}) : `${Math.abs(value).toFixed(1)}%`)} />
+                            </Bar>
+                          </BarChart>
+                        )
+                      })()}
                     </ResponsiveContainer>
                   </ChartContainer>
                 ) : (
@@ -905,19 +951,50 @@ export default function EconomiaPage() {
                 )}
               </div>
               <div className="bg-card rounded-xl border border-border p-4">
-                <h3 className="font-semibold mb-2">Materiais - Performance Negativa</h3>
-                {byMaterial && byMaterial.length > 0 && chartsReady ? (
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold mb-2">Materiais - Performance Negativa</h3>
+                  <div className="flex items-center space-x-2">
+                    <button className={`px-2 py-1 text-sm rounded ${materialView==='brl' ? 'bg-red-600 text-white' : 'bg-transparent border'}`} onClick={()=>setMaterialView('brl')} title="R$: soma absoluta do excesso por material (impacto financeiro)">R$</button>
+                    <button className={`px-2 py-1 text-sm rounded ${materialView==='pct' ? 'bg-red-600 text-white' : 'bg-transparent border'}`} onClick={()=>setMaterialView('pct')} title="%: excesso relativo ao previsto = (sum(dif)/sum(previsto))*100">%</button>
+                  </div>
+                </div>
+                {byMaterial && (byMaterial.length > 0) && chartsReady ? (
                   <ChartContainer config={{ total: { color: '#ef4444' } }}>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={byMaterial.map((i:any)=>({ name: i.name, total: Math.abs(i.total) }))} layout="vertical" margin={{ left: 10, right: 10 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" />
-                        <YAxis dataKey="name" type="category" width={140} />
-                        <Tooltip formatter={(value: number | undefined) => value?.toLocaleString(undefined,{ style: 'currency', currency: 'BRL' }) ?? ''} />
-                        <Bar dataKey="total" fill="#ef4444">
-                          <LabelList dataKey="total" position="insideRight" fill="#fff" formatter={(value: any) => (typeof value === 'number' ? value.toLocaleString(undefined,{ style: 'currency', currency: 'BRL' }) : '')} />
-                        </Bar>
-                      </BarChart>
+                    <ResponsiveContainer width="100%" height={350}>
+                      {(() => {
+                        const neg = (byMaterial || []).slice(0,5)
+                        const pos = (byMaterialPos || []).slice(0,5)
+                        const buildValue = (item:any) => {
+                          const dif = Number(item.totalDif)||0
+                          const prev = Number(item.totalPrev)||0
+                          if (materialView === 'brl') return Math.abs(dif)
+                          return prev === 0 ? 0 : Math.abs((dif / prev) * 100)
+                        }
+                        const data = [
+                          ...neg.map((n:any) => ({ name: n.name, value: buildValue(n), sign: 'neg' })),
+                          ...pos.map((p:any) => ({ name: p.name, value: -buildValue(p), sign: 'pos' })),
+                        ]
+                        if (data.length === 0) return <div className="chart-placeholder">Sem dados para exibir</div>
+                        return (
+                          <BarChart data={data} margin={{ left: 20, right: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" type="category" interval={0} tick={{ fontSize: 12 }} height={80} />
+                            <YAxis type="number" />
+                            <Tooltip formatter={(value: number | undefined) => {
+                              if (value === undefined || value === null) return ''
+                              return materialView === 'brl'
+                                ? Math.abs(value).toLocaleString(undefined,{ style: 'currency', currency: 'BRL' })
+                                : `${Math.abs(Number(value)).toFixed(1)}%`
+                            }} />
+                            <Bar dataKey="value">
+                              {data.map((entry:any, idx:number) => (
+                                <Cell key={`c-m-${idx}`} fill={entry.sign==='neg' ? '#ef4444' : '#10b981'} />
+                              ))}
+                              <LabelList dataKey="value" position="top" formatter={(value:any)=> (materialView==='brl' ? Math.abs(value).toLocaleString(undefined,{ style:'currency', currency:'BRL'}) : `${Math.abs(value).toFixed(1)}%`)} />
+                            </Bar>
+                          </BarChart>
+                        )
+                      })()}
                     </ResponsiveContainer>
                   </ChartContainer>
                 ) : (
