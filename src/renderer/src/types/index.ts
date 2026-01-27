@@ -78,6 +78,7 @@ export interface QtyRuleComelz {
 	parts?: number
 	material?: string
 	items?: number
+	extra?: string
 }
 
 // Pedido Emma

@@ -860,7 +860,7 @@ export default function EconomiaPage() {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis type="number" />
                         <YAxis dataKey="name" type="category" width={140} />
-                        <Tooltip formatter={(value:number) => value.toLocaleString(undefined,{ style: 'currency', currency: 'BRL' })} />
+                        <Tooltip formatter={(value: number | undefined) => value?.toLocaleString(undefined,{ style: 'currency', currency: 'BRL' }) ?? ''} />
                         <Bar dataKey="total" fill="#2563eb" />
                       </BarChart>
                     </ResponsiveContainer>
@@ -878,7 +878,7 @@ export default function EconomiaPage() {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis type="number" />
                         <YAxis dataKey="name" type="category" width={140} />
-                        <Tooltip formatter={(value:number) => value.toLocaleString(undefined,{ style: 'currency', currency: 'BRL' })} />
+                        <Tooltip formatter={(value: number | undefined) => value?.toLocaleString(undefined,{ style: 'currency', currency: 'BRL' }) ?? ''} />
                         <Bar dataKey="total" fill="#ef4444" />
                       </BarChart>
                     </ResponsiveContainer>
