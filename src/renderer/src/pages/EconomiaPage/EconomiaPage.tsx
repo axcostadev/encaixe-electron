@@ -4,7 +4,6 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 
 import { ChartContainer } from "@renderer/components/ui/chart"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from "recharts"
-import { Box, Zap } from "lucide-react"
 import { toast } from "@renderer/hooks/use-toast"
 import {
   AlertDialog,
@@ -17,12 +16,14 @@ import {
   AlertDialogTitle,
 } from "@renderer/components/ui/alert-dialog"
 import "./EconomiaPage.css"
-import shoeImg from "../assets/images/shoe.svg"
-import rollsImg from "../assets/images/rolls.svg"
-import vulcabrasImg from "../assets/images/vulcabras.svg"
-import shoePng from "../assets/images/shoe.png"
-import rollsPng from "../assets/images/rolls.png"
-import vulcabrasPng from "../assets/images/vulcabras.png"
+import shoeImg from "@renderer/assets/images/shoe.svg"
+import shoeIcon from "@renderer/assets/images/icone_sapato.svg"
+import rollsImg from "@renderer/assets/images/rolls.svg"
+import vulcabrasImg from "@renderer/assets/images/vulcabras.svg"
+import shoePng from "@renderer/assets/images/shoe.png"
+import rollsPng from "@renderer/assets/images/rolls.png"
+import vulcabrasPng from "@renderer/assets/images/vulcabras.png"
+import matirialIcon from "@renderer/assets/images/icone_rolo_material.svg"
 
 export interface CadastroInfo {
   id?: number
@@ -789,26 +790,34 @@ export default function EconomiaPage() {
         <>
           {/* top badges removed per user request */}
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-            <div className="card-stats-economia">
-              <div className="card-icon"><img src={shoeImg} alt="shoe" className="shoe-icon"/></div>
-              <div className="label">Total Economia (R$)</div>
-              <div className="value">{summary ? Math.abs(summary.totalDif || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
+            <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-[#488fce] rounded-2xl flex flex-row justify-center items-center gap-10 px-10 py-6 text-white" style={{ minWidth: 360, maxWidth: 720, whiteSpace: 'nowrap' }}>
+              <div className="card-icon"><span className="text-5xl md:text-6xl whitespace-nowrap">R$</span></div>
+              {/* <div className="label hidden">Total Economia (R$)</div> */}
+              <div className="value text-3xl md:text-4xl lg:text-4xl font-extrabold whitespace-nowrap">{summary ? Math.abs(summary.totalDif || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'}</div>
             </div>
             <div className="card-stats-economia">
-              <div className="card-icon"><img src={rollsImg} alt="rolos" className="rolls-icon"/></div>
+              <div className="card-icon"><img src={shoeIcon} alt="rolos" className="rolls-icon"/></div>
               <div className="label">Pedidos</div>
               <div className="value">{summary ? summary.ordemCount : 0}</div>
             </div>
             <div className="card-stats-economia">
-              <div className="card-icon"><Zap className="economia-icon" /></div>
+              <div className="card-icon"><img src={shoeIcon} alt="rolos" className="rolls-icon fill-red-700"/></div>
               <div className="label">Média por pedido</div>
               <div className="value">{summary ? Math.abs(summary.avgDif || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
             </div>
+
             <div className="card-stats-economia">
-              <div className="card-icon"><Box className="economia-icon" /></div>
-              <div className="label">Linhas</div>
-              <div className="value">{rows.length}</div>
+              <div className="card-icon"><img src={matirialIcon} alt="rolos" className="rolls-icon fill-red-700"/></div>
+              <div className="label">Média por pedido</div>
+              <div className="value">{summary ? Math.abs(summary.avgDif || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
+            </div>
+
+            {/* Matérias: soma dos valores que passaram do consumo (R$) */}
+            <div className="card-stats-economia">
+              <div className="card-icon"><img src={matirialIcon} alt="materias" className="rolls-icon fill-red-700"/></div>
+              <div className="label">Valor Matérias</div>
+              <div className="value">{byMaterial ? Math.abs(byMaterial.reduce((s:any,i:any)=>s + (Number(i.total)||0),0)).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
             </div>
           </div>
 
