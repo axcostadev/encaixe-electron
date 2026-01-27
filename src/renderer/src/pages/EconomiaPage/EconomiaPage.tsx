@@ -59,7 +59,10 @@ export default function EconomiaPage() {
 
   const [summary, setSummary] = useState<any>(null)
   const [byModelo, setByModelo] = useState<any[]>([])
+  const [byModeloPos, setByModeloPos] = useState<any[]>([])
   const [byMaterial, setByMaterial] = useState<any[]>([])
+  // positive materials (summing dif > 0) — materiais passando do Previsto
+  const [byMaterialPos, setByMaterialPos] = useState<any[]>([])
   const [availablePeriods, setAvailablePeriods] = useState<string[]>([])
   const [availableModels, setAvailableModels] = useState<string[]>([])
   const [selectedPeriods, setSelectedPeriods] = useState<string[]>([])
@@ -673,10 +676,20 @@ export default function EconomiaPage() {
       modeloMap.set(m, (modeloMap.get(m)||0) + (Number(r.dif)||0))
       materialMap.set(mat, (materialMap.get(mat)||0) + (Number(r.dif)||0))
     })
-    const bm = Array.from(modeloMap.entries()).map(([name,total])=>({name,total})).sort((a,b)=>Math.abs(b.total)-Math.abs(a.total)).slice(0,20)
-    const bmat = Array.from(materialMap.entries()).map(([name,total])=>({name,total})).sort((a,b)=>Math.abs(b.total)-Math.abs(a.total)).slice(0,20)
+    // only include negative totals (consumo excedente)
+    const allModels = Array.from(modeloMap.entries()).map(([name,total])=>({name,total}))
+    const bm = allModels.filter(item => item.total < 0).sort((a,b)=>Math.abs(b.total)-Math.abs(a.total)).slice(0,20)
+    const bmPos = allModels.filter(item => item.total > 0).sort((a,b)=>Math.abs(b.total)-Math.abs(a.total)).slice(0,20)
+
+    // materials: split into negatives (performance negativa) and positives (passando do Previsto)
+    const allMaterials = Array.from(materialMap.entries()).map(([name,total])=>({name,total}))
+    const bmat = allMaterials.filter(item => item.total < 0).sort((a,b)=>Math.abs(b.total)-Math.abs(a.total)).slice(0,20)
+    const bmatPos = allMaterials.filter(item => item.total > 0).sort((a,b)=>Math.abs(b.total)-Math.abs(a.total)).slice(0,20)
+
     setByModelo(bm)
+    setByModeloPos(bmPos)
     setByMaterial(bmat)
+    setByMaterialPos(bmatPos) 
   }
 
   // rerun applyFilters when rows or selections change
@@ -715,6 +728,17 @@ export default function EconomiaPage() {
   useEffect(() => {
     if (tab === 'banco') fetchBancoRows()
   }, [tab])
+
+  // derived model counters (positives = passando do Previsto)
+  const modelCountPos = byModeloPos ? byModeloPos.length : 0
+  const modelTotalPos = (byModeloPos || []).reduce((s:any,i:any)=>s + (Number(i.total)||0),0)
+
+  // derived material counters (negatives = performance negativa)
+  const materialCountNeg = byMaterial ? byMaterial.length : 0
+  const materialTotalNeg = Math.abs((byMaterial || []).reduce((s:any,i:any)=>s + (Number(i.total)||0),0))
+  // derived material counters (positives = passando do Previsto)
+  const materialCountPos = byMaterialPos ? byMaterialPos.length : 0
+  const materialTotalPos = (byMaterialPos || []).reduce((s:any,i:any)=>s + (Number(i.total)||0),0)
 
   return (
     <div className={`space-y-6 ${highContrast ? 'high-contrast' : ''}`}>
@@ -797,27 +821,27 @@ export default function EconomiaPage() {
               <div className="value text-3xl md:text-4xl lg:text-4xl font-extrabold whitespace-nowrap">{summary ? Math.abs(summary.totalDif || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'}</div>
             </div>
             <div className="card-stats-economia">
-              <div className="card-icon"><img src={shoeIcon} alt="rolos" className="rolls-icon"/></div>
-              <div className="label">Pedidos</div>
-              <div className="value">{summary ? summary.ordemCount : 0}</div>
+              <div className="card-icon"><img src={shoeIcon} alt="modelos" className="rolls-icon"/></div>
+              <div className="label">Modelos (passando do Previsto)</div>
+              <div className="value">{modelCountPos}</div>
             </div>
             <div className="card-stats-economia">
-              <div className="card-icon"><img src={shoeIcon} alt="rolos" className="rolls-icon fill-red-700"/></div>
-              <div className="label">Média por pedido</div>
-              <div className="value">{summary ? Math.abs(summary.avgDif || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
+              <div className="card-icon"><img src={shoeIcon} alt="valor-modelos" className="rolls-icon fill-red-700"/></div>
+              <div className="label">Valor Modelos</div>
+              <div className="value">{modelTotalPos.toLocaleString(undefined, { style: 'currency', currency: 'BRL' })}</div>
             </div>
 
-            <div className="card-stats-economia">
-              <div className="card-icon"><img src={matirialIcon} alt="rolos" className="rolls-icon fill-red-700"/></div>
-              <div className="label">Média por pedido</div>
-              <div className="value">{summary ? Math.abs(summary.avgDif || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
-            </div>
-
-            {/* Matérias: soma dos valores que passaram do consumo (R$) */}
             <div className="card-stats-economia">
               <div className="card-icon"><img src={matirialIcon} alt="materias" className="rolls-icon fill-red-700"/></div>
-              <div className="label">Valor Matérias</div>
-              <div className="value">{byMaterial ? Math.abs(byMaterial.reduce((s:any,i:any)=>s + (Number(i.total)||0),0)).toLocaleString(undefined, { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}</div>
+              <div className="label">Qtd Matérias (passando do Previsto)</div>
+              <div className="value">{materialCountPos}</div>
+            </div>
+
+            {/* Matérias: soma dos valores que passaram do Previsto (R$) */}
+            <div className="card-stats-economia">
+              <div className="card-icon"><img src={matirialIcon} alt="materias" className="rolls-icon fill-red-700"/></div>
+              <div className="label">Valor Matérias (passando do Previsto)</div>
+              <div className="value">{materialTotalPos.toLocaleString(undefined, { style: 'currency', currency: 'BRL' })}</div>
             </div>
           </div>
 
