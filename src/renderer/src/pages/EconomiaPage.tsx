@@ -3,7 +3,7 @@ import { PageHeader } from "@renderer/components/common/PageHeader"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@renderer/components/ui/table"
 
 import { ChartContainer } from "@renderer/components/ui/chart"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from "recharts"
 import { Box, Zap } from "lucide-react"
 import { toast } from "@renderer/hooks/use-toast"
 import {
@@ -861,7 +861,9 @@ export default function EconomiaPage() {
                         <XAxis type="number" />
                         <YAxis dataKey="name" type="category" width={140} />
                         <Tooltip formatter={(value: number | undefined) => value?.toLocaleString(undefined,{ style: 'currency', currency: 'BRL' }) ?? ''} />
-                        <Bar dataKey="total" fill="#2563eb" />
+                        <Bar dataKey="total" fill="#2563eb">
+                          <LabelList dataKey="total" position="insideRight" fill="#fff" formatter={(value: any) => (typeof value === 'number' ? value.toLocaleString(undefined,{ style: 'currency', currency: 'BRL' }) : '')} />
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartContainer>
@@ -879,7 +881,9 @@ export default function EconomiaPage() {
                         <XAxis type="number" />
                         <YAxis dataKey="name" type="category" width={140} />
                         <Tooltip formatter={(value: number | undefined) => value?.toLocaleString(undefined,{ style: 'currency', currency: 'BRL' }) ?? ''} />
-                        <Bar dataKey="total" fill="#ef4444" />
+                        <Bar dataKey="total" fill="#ef4444">
+                          <LabelList dataKey="total" position="insideRight" fill="#fff" formatter={(value: any) => (typeof value === 'number' ? value.toLocaleString(undefined,{ style: 'currency', currency: 'BRL' }) : '')} />
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartContainer>
