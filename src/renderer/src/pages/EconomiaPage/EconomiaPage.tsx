@@ -3,7 +3,7 @@ import { PageHeader } from "@renderer/components/common/PageHeader"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@renderer/components/ui/table"
 
 import { ChartContainer } from "@renderer/components/ui/chart"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, Cell } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LabelList, Cell } from "recharts"
 import { toast } from "@renderer/hooks/use-toast"
 import {
   AlertDialog,
@@ -282,6 +282,17 @@ export default function EconomiaPage() {
   
   const calcEconomia = (dif: number, preco: number): number => {
     return dif * preco
+  }
+
+  // Custom vertical tick renderer for X axis labels
+  const VerticalTick = ({ x, y, payload }: any) => {
+    // move tick labels slightly down and rotate for vertical rendering to avoid overlap with value labels
+    const ty = y + 24
+    return (
+      <text x={x} y={ty} textAnchor="end" transform={`rotate(-90 ${x} ${ty})`} style={{ fontSize: 12 }}>
+        {payload && payload.value}
+      </text>
+    )
   }
 
   // Salva o encaixe no banco (upsert) e foca o próximo input quando Enter for pressionado
@@ -907,8 +918,7 @@ export default function EconomiaPage() {
                   </div>
                 </div>
                 {byModelo && (byModelo.length > 0 || (byModeloPos && byModeloPos.length>0)) && chartsReady ? (
-                  <ChartContainer config={{ total: { color: '#2563eb' } }}>
-                    <ResponsiveContainer width="100%" height={350}>
+                  <ChartContainer config={{ total: { color: '#2563eb' } }} className="h-[600px] aspect-auto">
                       {(() => {
                         // top 5 negatives and top 5 positives
                         const neg = (byModelo || []).slice(0,5) // already sorted by abs desc
@@ -927,7 +937,7 @@ export default function EconomiaPage() {
                         return (
                           <BarChart data={data} margin={{ left: 20, right: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" type="category" interval={0} tick={{ fontSize: 12 }} height={80} />
+                            <XAxis dataKey="name" type="category" interval={0} tick={VerticalTick} height={200} />
                             <YAxis type="number" />
                             <Tooltip formatter={(value: number | undefined) => {
                               if (value === undefined || value === null) return ''
@@ -939,12 +949,11 @@ export default function EconomiaPage() {
                               {data.map((entry:any, idx:number) => (
                                 <Cell key={`c-${idx}`} fill={entry.sign==='neg' ? '#2563eb' : '#10b981'} />
                               ))}
-                              <LabelList dataKey="value" position="top" formatter={(value:any)=> (modelView==='brl' ? Math.abs(value).toLocaleString(undefined,{ style:'currency', currency:'BRL'}) : `${Math.abs(value).toFixed(1)}%`)} />
+                              <LabelList dataKey="value" position="insideTop" fill="#fff" formatter={(value:any)=> (modelView==='brl' ? Math.abs(value).toLocaleString(undefined,{ style:'currency', currency:'BRL'}) : `${Math.abs(value).toFixed(1)}%`)} />
                             </Bar>
                           </BarChart>
                         )
                       })()}
-                    </ResponsiveContainer>
                   </ChartContainer>
                 ) : (
                   <div className="chart-placeholder">Sem dados para exibir</div>
@@ -959,8 +968,7 @@ export default function EconomiaPage() {
                   </div>
                 </div>
                 {byMaterial && (byMaterial.length > 0) && chartsReady ? (
-                  <ChartContainer config={{ total: { color: '#ef4444' } }}>
-                    <ResponsiveContainer width="100%" height={350}>
+                  <ChartContainer config={{ total: { color: '#ef4444' } }} className="h-[520px] aspect-auto">
                       {(() => {
                         const neg = (byMaterial || []).slice(0,5)
                         const pos = (byMaterialPos || []).slice(0,5)
@@ -978,7 +986,7 @@ export default function EconomiaPage() {
                         return (
                           <BarChart data={data} margin={{ left: 20, right: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" type="category" interval={0} tick={{ fontSize: 12 }} height={80} />
+                            <XAxis dataKey="name" type="category" interval={0} tick={VerticalTick} height={200} />
                             <YAxis type="number" />
                             <Tooltip formatter={(value: number | undefined) => {
                               if (value === undefined || value === null) return ''
@@ -990,12 +998,11 @@ export default function EconomiaPage() {
                               {data.map((entry:any, idx:number) => (
                                 <Cell key={`c-m-${idx}`} fill={entry.sign==='neg' ? '#ef4444' : '#10b981'} />
                               ))}
-                              <LabelList dataKey="value" position="top" formatter={(value:any)=> (materialView==='brl' ? Math.abs(value).toLocaleString(undefined,{ style:'currency', currency:'BRL'}) : `${Math.abs(value).toFixed(1)}%`)} />
+                              <LabelList dataKey="value" position="insideTop" fill="#fff" formatter={(value:any)=> (materialView==='brl' ? Math.abs(value).toLocaleString(undefined,{ style:'currency', currency:'BRL'}) : `${Math.abs(value).toFixed(1)}%`)} />
                             </Bar>
                           </BarChart>
                         )
                       })()}
-                    </ResponsiveContainer>
                   </ChartContainer>
                 ) : (
                   <div className="chart-placeholder">Sem dados para exibir</div>
