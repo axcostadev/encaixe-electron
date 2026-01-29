@@ -516,17 +516,18 @@ export default function EconomiaPage() {
         formattedResults.forEach((fr, i) => { initialEncaixe[i] = fr.parsed?.['Encaixe'] || '' })
         setEncaixeValues(initialEncaixe)
 
-        // Prefill header fields from first result (Data Fase, Modelo, Data, Período) — only fill missing fields so user's defaults (ex: hoje) are preserved
+        // Prefill header fields from first result (Data Fase, Modelo, Data, Período)
+        // NOTE: overwrite previous header values so each search reflects the file's metadata
         if (formattedResults.length > 0) {
           const first = formattedResults[0].parsed || {}
           const derivedPeriodo = first['Periodo (Ano/Mês)'] || getPeriodFromDateString(first['Data'] || first['DATA FASE'] || '')
-          setHeaderFields(prev => ({
-            dataFase: prev.dataFase || formatISOToDisplay(first['DATA FASE'] || first['Data'] || ''),
-            modelo: prev.modelo || first['Modelo'] || '',
-            artigo: prev.artigo || (first['Artigo'] || ''),
-            data: prev.data || formatISOToDisplay(first['Data'] || first['DATA FASE'] || ''),
-            periodo: prev.periodo || derivedPeriodo || getTodayPeriod()
-          }))
+          setHeaderFields({
+            dataFase: formatISOToDisplay(first['DATA FASE'] || first['Data'] || '') || getTodayDisplay(),
+            modelo: first['Modelo'] || '',
+            artigo: first['Artigo'] || '',
+            data: formatISOToDisplay(first['Data'] || first['DATA FASE'] || '') || getTodayDisplay(),
+            periodo: derivedPeriodo || getTodayPeriod()
+          })
           setHeaderId(null)
         }
       }
