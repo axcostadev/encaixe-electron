@@ -525,7 +525,8 @@ export default function EconomiaPage() {
             dataFase: formatISOToDisplay(first['DATA FASE'] || first['Data'] || '') || getTodayDisplay(),
             modelo: first['Modelo'] || '',
             artigo: first['Artigo'] || '',
-            data: formatISOToDisplay(first['Data'] || first['DATA FASE'] || '') || getTodayDisplay(),
+            // Always use today's date for `data` when populating from a search result
+            data: getTodayDisplay(),
             periodo: derivedPeriodo || getTodayPeriod()
           })
           setHeaderId(null)

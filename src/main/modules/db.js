@@ -9,15 +9,17 @@ const __dirname = path.dirname(__filename)
 
 // Use configurable DB path: prefer environment variable ECONOMIA_DB_FILE, otherwise fall back to settings or default
 function getDbFile() {
-	// prefer env var (for testing/debug), then settings file
+	// Prefer environment variable, then the configured path returned by settings.getDatabaseFilePath()
+	// This ensures the configured DEFAULT (in settings.ts) is respected instead of silently
+	// falling back to the app's userData folder.
 	try {
-		const s = require("../settings").getSettings()
 		if (process.env.ECONOMIA_DB_FILE) return process.env.ECONOMIA_DB_FILE
-		if (s && s.dbFile) return s.dbFile
+		const dbPath = require("../settings").getDatabaseFilePath()
+		if (dbPath) return dbPath
 	} catch (err) {
 		// ignore and fallback
 	}
-	// If settings can't be read for some reason, fall back to app userData folder
+	// Fallback to app userData folder if everything else fails
 	try {
 		return path.join(app.getPath("userData"), "app.db")
 	} catch (e) {
