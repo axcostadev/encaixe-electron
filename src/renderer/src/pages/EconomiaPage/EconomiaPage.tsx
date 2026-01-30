@@ -757,14 +757,13 @@ export default function EconomiaPage() {
     if (tab === 'banco') fetchBancoRows()
   }, [tab])
 
-  // derived model counters (positives = passando do Previsto)
-  const modelCountPos = byModeloPos ? byModeloPos.length : 0
-  const modelTotalPos = (byModeloPos || []).reduce((s:any,i:any)=>s + (Number(i.totalDif)||0),0)
+  // derived model counters (use negative-performance models for the dashboard cards)
+  const modelCountNeg = byModelo ? byModelo.length : 0
+  const modelTotalNeg = (byModelo || []).reduce((s:any,i:any)=>s + Math.abs(Number(i.totalDif)||0),0)
 
-  // derived material counters (negatives = performance negativa)
-  // derived material counters (positives = passando do Previsto)
-  const materialCountPos = byMaterialPos ? byMaterialPos.length : 0
-  const materialTotalPos = (byMaterialPos || []).reduce((s:any,i:any)=>s + (Number(i.totalDif)||0),0)
+  // derived material counters (use negative-performance materials for the dashboard cards)
+  const materialCountNeg = byMaterial ? byMaterial.length : 0
+  const materialTotalNeg = (byMaterial || []).reduce((s:any,i:any)=>s + Math.abs(Number(i.totalDif)||0),0)
 
   return (
     <div className={`space-y-6 ${highContrast ? 'high-contrast' : ''}`}>
@@ -848,26 +847,26 @@ export default function EconomiaPage() {
             </div>
             <div className="card-stats-economia">
               <div className="card-icon"><img src={shoeIcon} alt="modelos" className="rolls-icon"/></div>
-              <div className="label">Modelos (passando do Previsto)</div>
-              <div className="value">{modelCountPos}</div>
+              <div className="label">Modelos (performance negativa)</div>
+              <div className="value">{modelCountNeg}</div>
             </div>
             <div className="card-stats-economia">
               <div className="card-icon"><img src={shoeIcon} alt="valor-modelos" className="rolls-icon fill-red-700"/></div>
-              <div className="label">Valor Modelos</div>
-              <div className="value">{modelTotalPos.toLocaleString(undefined, { style: 'currency', currency: 'BRL' })}</div>
+              <div className="label">Valor Modelos (performance negativa)</div>
+              <div className="value">{modelTotalNeg.toLocaleString(undefined, { style: 'currency', currency: 'BRL' })}</div>
             </div>
 
             <div className="card-stats-economia">
               <div className="card-icon"><img src={matirialIcon} alt="materias" className="rolls-icon fill-red-700"/></div>
-              <div className="label">Qtd Matérias (passando do Previsto)</div>
-              <div className="value">{materialCountPos}</div>
+              <div className="label">Materiais (performance negativa)</div>
+              <div className="value">{materialCountNeg}</div>
             </div>
 
-            {/* Matérias: soma dos valores que passaram do Previsto (R$) */}
+            {/* Matérias: soma dos valores com performance negativa (R$) */}
             <div className="card-stats-economia">
               <div className="card-icon"><img src={matirialIcon} alt="materias" className="rolls-icon fill-red-700"/></div>
-              <div className="label">Valor Matérias (passando do Previsto)</div>
-              <div className="value">{materialTotalPos.toLocaleString(undefined, { style: 'currency', currency: 'BRL' })}</div>
+              <div className="label">Valor Materiais (performance negativa)</div>
+              <div className="value">{materialTotalNeg.toLocaleString(undefined, { style: 'currency', currency: 'BRL' })}</div>
             </div>
 
           </div>
@@ -924,7 +923,7 @@ export default function EconomiaPage() {
                       {(() => {
                         // top 5 negatives and top 5 positives
                         const neg = (byModelo || []).slice(0,5) // already sorted by abs desc
-                        const pos = (byModeloPos || []).slice(0,5)
+                        const pos = (byModeloPos || []).slice(0,5).sort((a:any,b:any)=>Math.abs(a.totalDif)-Math.abs(b.totalDif))
                         const buildValue = (item:any) => {
                           const dif = Number(item.totalDif)||0
                           const prev = Number(item.totalPrev)||0
@@ -972,8 +971,8 @@ export default function EconomiaPage() {
                 {byMaterial && (byMaterial.length > 0) && chartsReady ? (
                   <ChartContainer config={{ total: { color: '#ef4444' } }} className="h-[520px] aspect-auto">
                       {(() => {
-                        const neg = (byMaterial || []).slice(0,5)
-                        const pos = (byMaterialPos || []).slice(0,5)
+                        const neg = (byMaterial || []).slice(0,15)
+                        const pos = (byMaterialPos || []).slice(0,5).sort((a:any,b:any)=>Math.abs(a.totalDif)-Math.abs(b.totalDif))
                         const buildValue = (item:any) => {
                           const dif = Number(item.totalDif)||0
                           const prev = Number(item.totalPrev)||0
