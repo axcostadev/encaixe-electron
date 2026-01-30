@@ -7,6 +7,8 @@ const CONFIG_FILE = path.join(app.getPath("userData"), "config.json")
 const DEFAULTS = {
   // Caminho completo para o arquivo .db. Pode ser alterado pelo usuário na UI.
   dbFile: path.join("C:", "Aincrad", "CuttingRoom", "app.db"),
+  // Se true, permite que o usuário altere o caminho do DB de economia na UI.
+  allowEconomiaDbChange: false,
 }
 
 function loadSettingsSync(): Record<string, any> {
@@ -43,6 +45,11 @@ function saveSettingsSync(data: Record<string, any>): void {
 
 export function getSettings(): Record<string, any> {
   return loadSettingsSync()
+}
+
+export function getAllowEconomiaDbChange(): boolean {
+  const s = loadSettingsSync()
+  return !!s.allowEconomiaDbChange
 }
 
 export function setSettings(updates: Record<string, any>): Record<string, any> {

@@ -9,23 +9,20 @@ const __dirname = path.dirname(__filename)
 
 // Use configurable DB path: prefer environment variable ECONOMIA_DB_FILE, otherwise fall back to settings or default
 function getDbFile() {
-	// Prefer environment variable, then the configured path returned by settings.getDatabaseFilePath()
-	// This ensures the configured DEFAULT (in settings.ts) is respected instead of silently
-	// falling back to the app's userData folder.
+	// Force economia DB to a fixed, project-wide path unless the user has enabled
+	// permission to change the economia DB path in the settings (allowEconomiaDbChange).
+	const FORCED_ECONOMIA_PATH = path.join('C:', 'Aincrad', 'CuttingRoom', 'app.db')
 	try {
-		if (process.env.ECONOMIA_DB_FILE) return process.env.ECONOMIA_DB_FILE
-		const dbPath = require("../settings").getDatabaseFilePath()
-		if (dbPath) return dbPath
-	} catch (err) {
-		// ignore and fallback
-	}
-	// Fallback to app userData folder if everything else fails
-	try {
-		return path.join(app.getPath("userData"), "app.db")
+		const settings = require('../settings')
+		if (typeof settings.getAllowEconomiaDbChange === 'function' && settings.getAllowEconomiaDbChange()) {
+			// user is allowed to change: prefer ENV override, then setting value
+			if (process.env.ECONOMIA_DB_FILE) return process.env.ECONOMIA_DB_FILE
+			return settings.getDatabaseFilePath()
+		}
 	} catch (e) {
-		// Last-resort fallback to current directory
-		return path.join(__dirname, "app.db")
+		// ignore and fall back to forced path
 	}
+	return FORCED_ECONOMIA_PATH
 }
 
 let db
@@ -37,7 +34,10 @@ function ensureDirExistsFor(dbPath) {
 
 export function initDB() {
 	return new Promise((resolve, reject) => {
-		const DB_FILE = getDbFile()
+		let DB_FILE = getDbFile()
+
+
+
 		ensureDirExistsFor(DB_FILE)
 		const exists = fs.existsSync(DB_FILE)
 		console.log("[DB] using economia DB file at:", DB_FILE)
@@ -750,8 +750,23 @@ export function closeDB() {
 }
 
 export async function reinitDB(newPath) {
-	if (newPath) process.env.ECONOMIA_DB_FILE = newPath
 	try {
+		// If caller provided a newPath, only apply it when user allowed changes via settings
+		if (newPath) {
+			try {
+				const settings = require('../settings')
+				if (typeof settings.getAllowEconomiaDbChange === 'function' && settings.getAllowEconomiaDbChange()) {
+					// persist new path and apply via env so initDB picks it up
+					settings.setSettings({ dbFile: newPath })
+					process.env.ECONOMIA_DB_FILE = newPath
+					console.log('[DB] reinitDB: applying new economia DB path:', newPath)
+				} else {
+					console.log('[DB] reinitDB: newPath ignored because allowEconomiaDbChange is disabled')
+				}
+			} catch (e) {
+				console.error('[DB] reinitDB settings check error:', e)
+			}
+		}
 		closeDB()
 		// wait for new init
 		await initDB()
