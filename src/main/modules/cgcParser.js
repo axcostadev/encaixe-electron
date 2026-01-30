@@ -115,7 +115,8 @@ export async function parseCGC(caminho) {
 			const componente = linha.substring(12, 23).trim() // Col 13-23 (0-based 12-23)
 			const corEspessura = linha.substring(52, 66).trim()  // Usuário especificou col 53-66 (0-based 52-65)
 			const precoStr = linha.substring(68, 77).trim()  // Col 69-77 (0-based 68-76)
-			const qtdPrevStr = linha.substring(92, 101).trim()  // Col 92-101 (0-based 79-86)
+			// 'Previsto' deve vir das col 78-88 (1-based). Em substring: start=77, end=88
+			const qtdPrevStr = linha.substring(77, 88).trim()  // Col 78-88 (0-based 77-88)
 			const totPrevStr = linha.substring(76, 85).trim()
 			const qtdServStr = linha.substring(86, 94).trim()
 			const totServStr = linha.substring(95, 104).trim()
