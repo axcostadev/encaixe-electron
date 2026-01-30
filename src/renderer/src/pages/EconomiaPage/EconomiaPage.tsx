@@ -920,7 +920,7 @@ export default function EconomiaPage() {
                   </div>
                 </div>
                 {byModelo && (byModelo.length > 0 || (byModeloPos && byModeloPos.length>0)) && chartsReady ? (
-                  <ChartContainer config={{ total: { color: '#2563eb' } }} className="h-[600px] aspect-auto">
+                  <ChartContainer config={{ total: { color: '#ef4444' } }} className="h-[600px] aspect-auto">
                       {(() => {
                         // top 5 negatives and top 5 positives
                         const neg = (byModelo || []).slice(0,5) // already sorted by abs desc
@@ -949,7 +949,7 @@ export default function EconomiaPage() {
                             }} />
                             <Bar dataKey="value">
                               {data.map((entry:any, idx:number) => (
-                                <Cell key={`c-${idx}`} fill={entry.sign==='neg' ? '#2563eb' : '#10b981'} />
+                                <Cell key={`c-${idx}`} fill={entry.sign==='neg' ? '#ef4444' : '#10b981'} />
                               ))}
                               <LabelList dataKey="value" position="insideTop" fill="#fff" formatter={(value:any)=> (modelView==='brl' ? Math.abs(value).toLocaleString(undefined,{ style:'currency', currency:'BRL'}) : `${Math.abs(value).toFixed(1)}%`)} />
                             </Bar>
