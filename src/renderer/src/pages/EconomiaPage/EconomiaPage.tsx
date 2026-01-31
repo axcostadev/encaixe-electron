@@ -657,17 +657,32 @@ export default function EconomiaPage() {
 
   // Apply filters client-side and recompute aggregates
   const applyFilters = () => {
+    // helper to derive period YYYY/MM from banco row (supports header_periodo fallback)
+    const getRowPeriod = (r:any) => {
+      const hp = r.header_periodo || r.header_periodo === 0 ? String(r.header_periodo) : ''
+      if (hp) {
+        const m = /^(\d{4})\/(\d{1,2})$/.exec(hp.trim())
+        if (m) return `${m[1]}/${m[2].padStart(2,'0')}`
+        if (isValidPeriod(hp.trim())) return hp.trim()
+      }
+      if (r.data) {
+        try {
+          const dt = new Date(r.data)
+          return `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`
+        } catch (e) {}
+      }
+      return ''
+    }
+
     const filtered = rows.filter((r:any) => {
       let okPeriod = true
       let okModel = true
-      if (selectedPeriods && selectedPeriods.length > 0) {
-        if (r.data) {
-          try {
-            const dt = new Date(r.data)
-            const p = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`
-            okPeriod = selectedPeriods.includes(p)
-          } catch(e) { okPeriod = false }
-        } else okPeriod = false
+      // If there are period filters but none selected, treat as 'no period selected' => exclude all rows
+      if (selectedPeriods && selectedPeriods.length === 0) {
+        okPeriod = false
+      } else if (selectedPeriods && selectedPeriods.length > 0) {
+        const p = getRowPeriod(r)
+        okPeriod = p ? selectedPeriods.includes(p) : false
       }
       if (selectedModels && selectedModels.length > 0) {
         okModel = selectedModels.includes(r.modelo)
@@ -675,43 +690,45 @@ export default function EconomiaPage() {
       return okPeriod && okModel
     })
 
-    // summary: totalDif, ordemCount (distinct), avgDif per order
+    // summary: totalDif, ordemCount (distinct), avgDif per order, totalEconomia (soma-produto preco * dif)
     const totalDif = filtered.reduce((s:any,r:any)=>s + (Number(r.dif)||0), 0)
+    const totalEconomia = filtered.reduce((s:any,r:any)=> s + ((Number(r.dif)||0) * (Number(r.preco)||0)), 0)
     const ordSet = new Set(filtered.map((r:any)=>r.ordem))
     const ordemCount = ordSet.size
     const avgDif = ordemCount > 0 ? totalDif / ordemCount : 0
-    setSummary({ totalDif, ordemCount, avgDif })
+    setSummary({ totalDif, ordemCount, avgDif, totalEconomia })
 
     // byModelo and byMaterial from filtered
-    const modeloMap = new Map<string,{ totalDif:number, totalPrev:number }>()
-    const materialMap = new Map<string,{ totalDif:number, totalPrev:number }>()
+    // accumulate dif, previsto and economia (dif * preco)
+    const modeloMap = new Map<string,{ totalDif:number, totalPrev:number, totalEcon:number }>()
+    const materialMap = new Map<string,{ totalDif:number, totalPrev:number, totalEcon:number }>()
     filtered.forEach((r:any)=>{
       const m = r.modelo || 'N/A'
       const mat = r.material || 'N/A'
       const dif = Number(r.dif)||0
       const prev = Number(r.previsto)||0
-      const cur = modeloMap.get(m) || { totalDif: 0, totalPrev: 0 }
-      modeloMap.set(m, { totalDif: cur.totalDif + dif, totalPrev: cur.totalPrev + prev })
+      const econ = dif * (Number(r.preco)||0)
 
-      const cm = materialMap.get(mat) || { totalDif: 0, totalPrev: 0 }
-      materialMap.set(mat, { totalDif: cm.totalDif + dif, totalPrev: cm.totalPrev + prev })
+      const cur = modeloMap.get(m) || { totalDif: 0, totalPrev: 0, totalEcon: 0 }
+      modeloMap.set(m, { totalDif: cur.totalDif + dif, totalPrev: cur.totalPrev + prev, totalEcon: cur.totalEcon + econ })
+
+      const cm = materialMap.get(mat) || { totalDif: 0, totalPrev: 0, totalEcon: 0 }
+      materialMap.set(mat, { totalDif: cm.totalDif + dif, totalPrev: cm.totalPrev + prev, totalEcon: cm.totalEcon + econ })
     })
-    // only include negative totals (consumo excedente)
-    const allModels = Array.from(modeloMap.entries()).map(([name,totals])=>({name, totalDif: totals.totalDif, totalPrev: totals.totalPrev}))
+
+    // convert to arrays and split negative/positive based on totalDif (performance direction)
+    const allModels = Array.from(modeloMap.entries()).map(([name,totals])=>({ name, totalDif: totals.totalDif, totalPrev: totals.totalPrev, totalEcon: totals.totalEcon }))
     const bm = allModels.filter(item => item.totalDif < 0).sort((a,b)=>Math.abs(b.totalDif)-Math.abs(a.totalDif)).slice(0,20)
     const bmPos = allModels.filter(item => item.totalDif > 0).sort((a,b)=>Math.abs(b.totalDif)-Math.abs(a.totalDif)).slice(0,20)
 
-    // materials: split into negatives (performance negativa) and positives (passando do Previsto)
-    // convert materials map into objects with totals and prevs
-    const allMaterials = Array.from(materialMap.entries()).map(([name, totals]) => ({ name, totalDif: totals.totalDif, totalPrev: totals.totalPrev }))
-    // negative totals (consumo excedente)
+    const allMaterials = Array.from(materialMap.entries()).map(([name, totals]) => ({ name, totalDif: totals.totalDif, totalPrev: totals.totalPrev, totalEcon: totals.totalEcon }))
     const bmat = allMaterials.filter(item => item.totalDif < 0).slice(0)
     const bmatPos = allMaterials.filter(item => item.totalDif > 0).slice(0)
 
-    // when sorting for BRL use absolute totalDif; when sorting for pct we'll sort later when building chart data
-    bmat.sort((a,b)=>Math.abs(b.totalDif)-Math.abs(a.totalDif))
+    // when sorting for BRL use absolute totalEcon; when sorting for pct we'll sort later when building chart data
+    bmat.sort((a,b)=>Math.abs(b.totalEcon)-Math.abs(a.totalEcon))
     bmat.splice(20)
-    bmatPos.sort((a,b)=>Math.abs(b.totalDif)-Math.abs(a.totalDif))
+    bmatPos.sort((a,b)=>Math.abs(b.totalEcon)-Math.abs(a.totalEcon))
     bmatPos.splice(20)
 
     setByModelo(bm)
@@ -759,11 +776,12 @@ export default function EconomiaPage() {
 
   // derived model counters (use negative-performance models for the dashboard cards)
   const modelCountNeg = byModelo ? byModelo.length : 0
-  const modelTotalNeg = (byModelo || []).reduce((s:any,i:any)=>s + Math.abs(Number(i.totalDif)||0),0)
+  // total monetary impact across negative models (soma absoluta de totalEcon)
+  const modelTotalNeg = (byModelo || []).reduce((s:any,i:any)=>s + Math.abs(Number(i.totalEcon)||0),0)
 
   // derived material counters (use negative-performance materials for the dashboard cards)
   const materialCountNeg = byMaterial ? byMaterial.length : 0
-  const materialTotalNeg = (byMaterial || []).reduce((s:any,i:any)=>s + Math.abs(Number(i.totalDif)||0),0)
+  const materialTotalNeg = (byMaterial || []).reduce((s:any,i:any)=>s + Math.abs(Number(i.totalEcon)||0),0)
 
   return (
     <div className={`space-y-6 ${highContrast ? 'high-contrast' : ''}`}>
@@ -843,7 +861,7 @@ export default function EconomiaPage() {
             <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-[#488fce] rounded-2xl flex flex-row justify-center items-center gap-10 px-10 py-6 text-white" style={{ minWidth: 360, maxWidth: 720, whiteSpace: 'nowrap' }}>
               <div className="card-icon"><span className="text-5xl md:text-6xl whitespace-nowrap">R$</span></div>
               {/* <div className="label hidden">Total Economia (R$)</div> */}
-              <div className="value text-3xl md:text-4xl lg:text-4xl font-extrabold whitespace-nowrap">{summary ? Math.abs(summary.totalDif || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'}</div>
+              <div className="value text-3xl md:text-4xl lg:text-4xl font-extrabold whitespace-nowrap">{summary ? Math.abs(summary.totalEconomia || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'}</div>
             </div>
             <div className="card-stats-economia">
               <div className="card-icon"><img src={shoeIcon} alt="modelos" className="rolls-icon"/></div>
@@ -923,11 +941,12 @@ export default function EconomiaPage() {
                       {(() => {
                         // top 5 negatives and top 5 positives
                         const neg = (byModelo || []).slice(0,5) // already sorted by abs desc
-                        const pos = (byModeloPos || []).slice(0,5).sort((a:any,b:any)=>Math.abs(a.totalDif)-Math.abs(b.totalDif))
+                        const pos = (byModeloPos || []).slice(0,5).sort((a:any,b:any)=>Math.abs(a.totalEcon)-Math.abs(b.totalEcon))
                         const buildValue = (item:any) => {
                           const dif = Number(item.totalDif)||0
                           const prev = Number(item.totalPrev)||0
-                          if (modelView === 'brl') return Math.abs(dif)
+                          const econ = Number(item.totalEcon)||0
+                          if (modelView === 'brl') return Math.abs(econ)
                           return prev === 0 ? 0 : Math.abs((dif / prev) * 100)
                         }
                         const data = [
@@ -972,11 +991,12 @@ export default function EconomiaPage() {
                   <ChartContainer config={{ total: { color: '#ef4444' } }} className="h-[520px] aspect-auto">
                       {(() => {
                         const neg = (byMaterial || []).slice(0,15)
-                        const pos = (byMaterialPos || []).slice(0,5).sort((a:any,b:any)=>Math.abs(a.totalDif)-Math.abs(b.totalDif))
+                        const pos = (byMaterialPos || []).slice(0,5).sort((a:any,b:any)=>Math.abs(a.totalEcon)-Math.abs(b.totalEcon))
                         const buildValue = (item:any) => {
                           const dif = Number(item.totalDif)||0
                           const prev = Number(item.totalPrev)||0
-                          if (materialView === 'brl') return Math.abs(dif)
+                          const econ = Number(item.totalEcon)||0
+                          if (materialView === 'brl') return Math.abs(econ)
                           return prev === 0 ? 0 : Math.abs((dif / prev) * 100)
                         }
                         const data = [
@@ -1026,13 +1046,14 @@ export default function EconomiaPage() {
                     <TableHead>Encaixe</TableHead>
                     <TableHead>Previsto</TableHead>
                     <TableHead>Dif</TableHead>
+                    <TableHead>Economia (R$)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
-                    <TableRow><TableCell colSpan={9}>Carregando...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={10}>Carregando...</TableCell></TableRow>
                   ) : rows.length === 0 ? (
-                    <TableRow><TableCell colSpan={9}>Nenhum registro</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={10}>Nenhum registro</TableCell></TableRow>
                   ) : (
                     rows.slice(0, 200).map((r:any) => (
                       <TableRow key={r.id}>
@@ -1044,7 +1065,8 @@ export default function EconomiaPage() {
                         <TableCell>{r.material}</TableCell>
                         <TableCell>{r.encaixe?.toLocaleString(undefined,{ style: 'currency', currency: 'BRL' })}</TableCell>
                         <TableCell>{r.previsto?.toLocaleString(undefined,{ style: 'currency', currency: 'BRL' })}</TableCell>
-                        <TableCell>{r.dif?.toLocaleString(undefined,{ style: 'currency', currency: 'BRL' })}</TableCell>
+                        <TableCell>{r.dif != null ? Number(r.dif).toLocaleString('pt-BR',{ style: 'currency', currency: 'BRL' }) : '-'}</TableCell>
+                        <TableCell>{(r.dif != null && r.preco != null) ? (Number(r.dif) * Number(r.preco)).toLocaleString('pt-BR',{ style: 'currency', currency: 'BRL' }) : '-'}</TableCell>
                       </TableRow>
                     ))
                   )}
