@@ -14,7 +14,7 @@ import {
 	loadLicenseFromDisk,
 	persistLicense,
 } from "./storage"
-import type { LicensePayload, LicenseStatus } from "./types"
+import type { LicenseStatus } from "./types"
 import {
 	buildStatus,
 	decodeToken,

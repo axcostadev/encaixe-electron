@@ -1,4 +1,4 @@
-import { createHash, verify as verifySig } from "crypto"
+import { verify as verifySig } from "crypto"
 import { app } from "electron"
 import { PUBLIC_KEY } from "./config"
 import { getHardwareFingerprint } from "./fingerprint"
