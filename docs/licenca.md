@@ -17,6 +17,140 @@ Campos aceitos (ver `src/main/license/index.ts`):
 - **Novos:** `allowedFingerprints[]`, `graceDays`, `revocationListVersion`, `productPath`, `version: 1 | 2`.
 
 ## Fluxo de ativação/validação
+
+### Diagrama de ativação
+
+```mermaid
+sequenceDiagram
+    participant U as Usuário
+    participant R as Renderer (React)
+    participant P as Preload
+    participant M as Main Process
+    participant FS as Filesystem
+![![![![alt text](image-2.png)](image-1.png)](image-1.png)](image.png)
+    U->>R: Cola token de licença
+    R->>P: api.license.activate(token)
+    P->>M: ipcRenderer.invoke("license:activate")
+    
+    M->>M: decodeToken(token)
+    M->>M: verifyPayloadSignature(payload, sig)
+    
+    alt Assinatura inválida
+        M-->>R: {valid: false, code: "INVALID_SIGNATURE"}
+    else Assinatura OK
+        M->>M: validatePayload(payload, fingerprint)
+        
+        alt Payload inválido (expirado, fingerprint, etc)
+            M-->>R: {valid: false, code: "EXPIRED|FINGERPRINT_MISMATCH|..."}
+        else Payload válido
+            M->>FS: Salva license.json (plaintext)
+            M->>FS: Salva license.enc (AES-GCM)
+            M->>M: resetAttempts()
+            M-->>R: {valid: true, code: "OK"}
+        end
+    end
+    
+    R->>U: Exibe status da licença
+```
+
+### Diagrama de validação (requireLicense)
+
+```mermaid
+flowchart TD
+    A[Handler IPC chamado] --> B{ensureLicensed}
+    B --> C[getLicenseStatus]
+    C --> D{license.json existe?}
+    
+    D -->|Sim| E[Carrega plaintext]
+    D -->|Não| F{license.enc existe?}
+    
+    F -->|Sim| G[Tenta descriptografar]
+    F -->|Não| H[NO_LICENSE]
+    
+    G -->|Sucesso| E
+    G -->|Falha| H
+    
+    E --> I[decodeToken + verifySignature]
+    I --> J{Assinatura OK?}
+    
+    J -->|Não| K[INVALID_SIGNATURE]
+    J -->|Sim| L[validatePayload]
+    
+    L --> M{Expirado?}
+    M -->|Sim| N{graceDays > 0?}
+    N -->|Sim, dentro| O[EXPIRED_GRACE ✓]
+    N -->|Não ou fora| P[EXPIRED ✗]
+    
+    M -->|Não| Q{Fingerprint OK?}
+    Q -->|Não| R[FINGERPRINT_MISMATCH ✗]
+    Q -->|Sim| S{Feature permitida?}
+    
+    S -->|Não| T[FEATURE_MISSING ✗]
+    S -->|Sim| U[OK ✓]
+    
+    H --> V[Bloqueia handler]
+    K --> V
+    P --> V
+    R --> V
+    T --> V
+    
+    O --> W[Permite handler]
+    U --> W
+```
+
+### Arquitetura geral
+
+```mermaid
+graph TB
+    subgraph Renderer
+        LP[LicensePage]
+        LSP[LicenseStatusPage]
+        LC[LicenseContext]
+    end
+    
+    subgraph Preload
+        API[api.license]
+    end
+    
+    subgraph Main
+        IPC[IPC Handlers]
+        LIC[license/index.ts]
+        RL[requireLicense]
+        FM[FEATURE_MAP]
+    end
+    
+    subgraph Storage
+        LJ[license.json]
+        LE[license.enc]
+        LA[license.attempts.json]
+    end
+    
+    subgraph External
+        GEN[license-generator.ts]
+        KEYS[Ed25519 Keys]
+    end
+    
+    LP --> LC
+    LSP --> LC
+    LC --> API
+    API -->|IPC| IPC
+    IPC --> LIC
+    LIC --> RL
+    RL --> FM
+    LIC --> LJ
+    LIC --> LE
+    LIC --> LA
+    GEN --> KEYS
+    KEYS -.->|public key| LIC
+
+    style LP fill:#4CAF50
+    style LSP fill:#4CAF50
+    style LIC fill:#2196F3
+    style RL fill:#FF9800
+    style LE fill:#9C27B0
+```
+
+### Passos resumidos
 1) Renderer chama IPC `license:activate` com o token base64url.
 2) Main decodifica, verifica assinatura, aplica validações (expiração + carência, fingerprint/whitelist, productPath).
 3) Persistência dupla: plaintext + cópia criptografada (AES-GCM com chave derivada de fingerprint/nonce).
