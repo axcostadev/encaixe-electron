@@ -1,5 +1,3 @@
-import { app, BrowserWindow } from "electron"
-import { machineIdSync } from "node-machine-id"
 import {
 	createCipheriv,
 	createDecipheriv,
@@ -7,9 +5,13 @@ import {
 	randomBytes,
 	verify as verifySig,
 } from "crypto"
+import { app } from "electron"
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs"
+import { machineIdSync } from "node-machine-id"
 import os from "os"
 import { dirname, join } from "path"
+import { antiDebugCheck } from "../utils/anti-debug"
+import { checkCanary } from "../utils/anti-tampering"
 
 export type LicensePayload = {
 	licenseId: string
@@ -55,19 +57,16 @@ MCowBQYDK2VwAyEAUJRKJDGB3BxqiSH60D2xYIXF0SaKAEPFTPQCTJVJrRs=
 
 const LICENSE_PATH = () => join(app.getPath("userData"), "license.json")
 const LICENSE_ENC_PATH = () => join(app.getPath("userData"), "license.enc")
-const ATTEMPT_PATH = () => join(app.getPath("userData"), "license.attempts.json")
+const ATTEMPT_PATH = () =>
+	join(app.getPath("userData"), "license.attempts.json")
 const MAX_ATTEMPTS = 5
 const BLOCK_WINDOW_MS = 30_000
 
-let attemptState: { count: number; blockedUntil: number } = { count: 0, blockedUntil: 0 }
+let attemptState: { count: number; blockedUntil: number } = {
+	count: 0,
+	blockedUntil: 0,
+}
 let cachedStatus: LicenseStatus | null = null
-
-// ========== SECURITY HARDENING ==========
-
-// Canary value - if tampered, license fails
-const CANARY_SEED = 0x5f3759df
-let canaryValue = CANARY_SEED ^ 0xdeadbeef
-const CANARY_CHECK = () => (canaryValue ^ 0xdeadbeef) === CANARY_SEED
 
 // Clock skew detection - stored timestamp of last valid check
 const CLOCK_PATH = () => join(app.getPath("userData"), ".clock")
@@ -77,9 +76,6 @@ const MAX_CLOCK_DRIFT_MS = 24 * 60 * 60 * 1000 // 24h backwards tolerance
 // Heartbeat interval ref
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null
 const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
-
-// Anti-debug flags
-let debugDetected = false
 
 const FEATURE_MAP: Record<string, string> = {
 	modelos: "full",
@@ -102,57 +98,6 @@ const FEATURE_MAP: Record<string, string> = {
 
 function nowMs(): number {
 	return Date.now()
-}
-
-// ========== ANTI-TAMPERING ==========
-
-function checkCanary(): boolean {
-	if (!CANARY_CHECK()) {
-		console.error("Integrity check failed")
-		return false
-	}
-	return true
-}
-
-function corruptCanary(): void {
-	// Called when tampering is suspected
-	canaryValue = 0
-}
-
-// ========== ANTI-DEBUG ==========
-
-function detectDebugger(): boolean {
-	try {
-		// Check if DevTools is open in any window
-		const windows = BrowserWindow.getAllWindows()
-		for (const win of windows) {
-			if (win.webContents.isDevToolsOpened()) {
-				return true
-			}
-		}
-		// Check for common debug environment variables
-		if (process.env.ELECTRON_ENABLE_LOGGING || process.env.ELECTRON_DEBUG_NOTIFICATIONS) {
-			return true
-		}
-		// Check for inspector
-		const inspector = (process as any).binding?.('inspector')
-		if (inspector?.isEnabled?.()) {
-			return true
-		}
-	} catch (_) {
-		// Ignore detection failures
-	}
-	return false
-}
-
-function antiDebugCheck(): boolean {
-	if (debugDetected) return false
-	if (detectDebugger()) {
-		debugDetected = true
-		corruptCanary()
-		return false
-	}
-	return true
 }
 
 // ========== CLOCK SKEW DETECTION ==========
@@ -234,7 +179,10 @@ function loadAttempts(): void {
 	try {
 		const raw = readFileSync(ATTEMPT_PATH(), "utf8")
 		const parsed = JSON.parse(raw) as { count: number; blockedUntil: number }
-		if (typeof parsed.count === "number" && typeof parsed.blockedUntil === "number") {
+		if (
+			typeof parsed.count === "number" &&
+			typeof parsed.blockedUntil === "number"
+		) {
 			attemptState = parsed
 		}
 	} catch (_) {
@@ -252,7 +200,10 @@ function saveAttempts(): void {
 	}
 }
 
-function decodeToken(token: string): { payload: LicensePayload; signature: Buffer } {
+function decodeToken(token: string): {
+	payload: LicensePayload
+	signature: Buffer
+} {
 	const parts = token.split(".")
 	if (parts.length !== 2) {
 		throw new Error("TOKEN_FORMAT")
@@ -309,7 +260,10 @@ function decryptToken(fingerprint: string): string | null {
 	}
 }
 
-function verifyPayloadSignature(payload: LicensePayload, signature: Buffer): boolean {
+function verifyPayloadSignature(
+	payload: LicensePayload,
+	signature: Buffer,
+): boolean {
 	try {
 		const canonical = canonicalStringify(payload)
 		return verifySig(null, Buffer.from(canonical), PUBLIC_KEY, signature)
@@ -333,7 +287,11 @@ function getHardwareFingerprint(): string {
 		.digest("hex")
 }
 
-function persistLicense(token: string, payload: LicensePayload, fingerprint: string) {
+function persistLicense(
+	token: string,
+	payload: LicensePayload,
+	fingerprint: string,
+) {
 	const path = LICENSE_PATH()
 	const dir = dirname(path)
 	if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
@@ -354,12 +312,18 @@ function persistLicense(token: string, payload: LicensePayload, fingerprint: str
 	}
 }
 
-function loadLicenseFromDiskPlain(): { token?: string; payload?: LicensePayload } | null {
+function loadLicenseFromDiskPlain(): {
+	token?: string
+	payload?: LicensePayload
+} | null {
 	try {
 		const path = LICENSE_PATH()
 		if (!existsSync(path)) return null
 		const raw = readFileSync(path, "utf8")
-		const parsed = JSON.parse(raw) as { token?: string; payload?: LicensePayload }
+		const parsed = JSON.parse(raw) as {
+			token?: string
+			payload?: LicensePayload
+		}
 		return { token: parsed.token, payload: parsed.payload }
 	} catch (err) {
 		console.error("loadLicenseFromDisk", err)
@@ -375,33 +339,64 @@ function buildStatus(
 	token?: string,
 ): LicenseStatus {
 	const fingerprint = getHardwareFingerprint()
-	const base: LicenseStatus = { valid, code, message, license: payload, fingerprint, token }
+	const base: LicenseStatus = {
+		valid,
+		code,
+		message,
+		license: payload,
+		fingerprint,
+		token,
+	}
 	return base
 }
 
-function validatePayload(payload: LicensePayload, fingerprint: string): LicenseStatus {
+function validatePayload(
+	payload: LicensePayload,
+	fingerprint: string,
+): LicenseStatus {
 	if (!payload || (payload.version !== 1 && payload.version !== 2)) {
 		return buildStatus(false, "MALFORMED", "Licença malformada")
 	}
 
 	const fingerprintAllowed = Boolean(
 		(payload.allowedFingerprints || []).includes(fingerprint) ||
-		(!payload.allowedFingerprints || payload.allowedFingerprints.length === 0),
+			!payload.allowedFingerprints ||
+			payload.allowedFingerprints.length === 0,
 	)
 
-	if (payload.hwFingerprint && payload.hwFingerprint !== fingerprint && !fingerprintAllowed) {
-		return buildStatus(false, "FINGERPRINT_MISMATCH", "Licença não corresponde a este dispositivo")
+	if (
+		payload.hwFingerprint &&
+		payload.hwFingerprint !== fingerprint &&
+		!fingerprintAllowed
+	) {
+		return buildStatus(
+			false,
+			"FINGERPRINT_MISMATCH",
+			"Licença não corresponde a este dispositivo",
+		)
 	}
 
-	if (!fingerprintAllowed && payload.allowedFingerprints && payload.allowedFingerprints.length > 0) {
-		return buildStatus(false, "FINGERPRINT_MISMATCH", "Fingerprint não autorizado para esta licença")
+	if (
+		!fingerprintAllowed &&
+		payload.allowedFingerprints &&
+		payload.allowedFingerprints.length > 0
+	) {
+		return buildStatus(
+			false,
+			"FINGERPRINT_MISMATCH",
+			"Fingerprint não autorizado para esta licença",
+		)
 	}
 
 	if (payload.productPath) {
 		try {
 			const appPath = app.getAppPath()
 			if (!appPath.includes(payload.productPath)) {
-				return buildStatus(false, "MALFORMED", "Licença não corresponde a esta instalação")
+				return buildStatus(
+					false,
+					"MALFORMED",
+					"Licença não corresponde a esta instalação",
+				)
 			}
 		} catch (_) {
 			// ignore path check failures
@@ -411,9 +406,17 @@ function validatePayload(payload: LicensePayload, fingerprint: string): LicenseS
 	if (isExpired(payload)) {
 		const graceDays = payload.graceDays ?? 0
 		if (graceDays > 0) {
-			const diffDays = Math.ceil((Date.now() - new Date(payload.expiresAt ?? 0).getTime()) / (1000 * 60 * 60 * 24))
+			const diffDays = Math.ceil(
+				(Date.now() - new Date(payload.expiresAt ?? 0).getTime()) /
+					(1000 * 60 * 60 * 24),
+			)
 			if (diffDays <= graceDays) {
-				return buildStatus(true, "EXPIRED_GRACE", "Licença em período de carência", payload)
+				return buildStatus(
+					true,
+					"EXPIRED_GRACE",
+					"Licença em período de carência",
+					payload,
+				)
 			}
 		}
 		return buildStatus(false, "EXPIRED", "Licença expirada", payload)
@@ -484,7 +487,11 @@ export function getLicenseStatus(): LicenseStatus {
 		}
 
 		if (!token || !payload) {
-			cachedStatus = buildStatus(false, "NO_LICENSE", "Nenhuma licença encontrada")
+			cachedStatus = buildStatus(
+				false,
+				"NO_LICENSE",
+				"Nenhuma licença encontrada",
+			)
 			return cachedStatus
 		}
 
@@ -495,7 +502,11 @@ export function getLicenseStatus(): LicenseStatus {
 		}
 
 		if (!verifyPayloadSignature(payload, signature)) {
-			cachedStatus = buildStatus(false, "INVALID_SIGNATURE", "Assinatura inválida")
+			cachedStatus = buildStatus(
+				false,
+				"INVALID_SIGNATURE",
+				"Assinatura inválida",
+			)
 			return cachedStatus
 		}
 
@@ -552,14 +563,14 @@ export function requireLicense(feature?: string): LicenseStatus {
 	if (!checkCanary()) {
 		return buildStatus(false, "INTERNAL_ERROR", "Falha de integridade")
 	}
-	
+
 	// Periodic anti-debug (not every call to avoid perf hit)
 	if (Math.random() < 0.1) {
 		if (!antiDebugCheck()) {
 			return buildStatus(false, "INTERNAL_ERROR", "Ambiente comprometido")
 		}
 	}
-	
+
 	const status = cachedStatus ?? getLicenseStatus()
 	if (!status.valid) {
 		return {
@@ -574,7 +585,9 @@ export function requireLicense(feature?: string): LicenseStatus {
 		const requiredFeature = FEATURE_MAP[feature]
 		const features = status.license.features || []
 		const hasFull = features.includes("full")
-		const hasRequired = requiredFeature ? features.includes(requiredFeature) : true
+		const hasRequired = requiredFeature
+			? features.includes(requiredFeature)
+			: true
 		if (!hasFull && !hasRequired) {
 			return {
 				valid: false,
@@ -606,7 +619,11 @@ function heartbeat(): void {
 		return
 	}
 	if (!checkClockSkew()) {
-		cachedStatus = buildStatus(false, "INTERNAL_ERROR", "Manipulação de relógio detectada")
+		cachedStatus = buildStatus(
+			false,
+			"INTERNAL_ERROR",
+			"Manipulação de relógio detectada",
+		)
 		return
 	}
 	// Re-validate license
@@ -634,20 +651,28 @@ function stopHeartbeat(): void {
 export function initLicense() {
 	loadAttempts()
 	loadLastValidTime()
-	
+
 	// Pre-flight security checks
 	if (!checkLicenseFileIntegrity()) {
-		cachedStatus = buildStatus(false, "MALFORMED", "Arquivo de licença corrompido")
+		cachedStatus = buildStatus(
+			false,
+			"MALFORMED",
+			"Arquivo de licença corrompido",
+		)
 		return
 	}
-	
+
 	if (!checkClockSkew()) {
-		cachedStatus = buildStatus(false, "INTERNAL_ERROR", "Erro de sincronização de tempo")
+		cachedStatus = buildStatus(
+			false,
+			"INTERNAL_ERROR",
+			"Erro de sincronização de tempo",
+		)
 		return
 	}
-	
+
 	cachedStatus = getLicenseStatus()
-	
+
 	// Start background monitoring
 	if (cachedStatus.valid) {
 		startHeartbeat()
