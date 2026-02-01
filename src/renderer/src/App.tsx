@@ -5,6 +5,7 @@ import { TooltipProvider } from "@renderer/components/ui/tooltip"
 import { AppProvider } from "@renderer/contexts/AppContext"
 import { AuthProvider, useAuth } from "@renderer/contexts/AuthContext"
 import type { User } from "@renderer/contexts/AuthContext"
+import { LicenseProvider, useLicense } from "@renderer/contexts/LicenseContext"
 import { SetoresProvider } from "@renderer/contexts/SetoresContext"
 import { ComponentesPage } from "@renderer/pages/ComponentesPage"
 import { CoresPage } from "@renderer/pages/CoresPage"
@@ -16,6 +17,8 @@ import ManualPage from "@renderer/pages/ManualPage"
 import EconomiaPage from "@renderer/pages/EconomiaPage/EconomiaPage"
 import SetupPage from "@renderer/pages/SetupPage"
 import NotFound from "@renderer/pages/NotFound"
+import LicenseStatusPage from "@renderer/pages/LicenseStatusPage"
+import LicensePage from "@renderer/pages/LicensePage"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import {
 	HashRouter,
@@ -30,11 +33,29 @@ const queryClient = new QueryClient()
 
 function AuthenticatedApp() {
 	const { user, login } = useAuth()
+	const { isValid, loading: licenseLoading } = useLicense()
 	const navigate = useNavigate()
 
 	const handleLogin = (u: User) => {
 		login(u)
 		navigate("/", { replace: true })
+	}
+
+	if (licenseLoading) {
+		return (
+			<div className="flex h-screen items-center justify-center text-sm text-muted-foreground">
+				Validando licença...
+			</div>
+		)
+	}
+
+	if (user && !isValid) {
+		return (
+			<Routes>
+				<Route path="/license" element={<LicensePage />} />
+				<Route path="*" element={<Navigate to="/license" replace />} />
+			</Routes>
+		)
 	}
 
 	return user ? (
@@ -49,6 +70,7 @@ function AuthenticatedApp() {
 				<Route path="/componentes" element={<ComponentesPage />} />
 				<Route path="/manual" element={<ManualPage />} />
 				<Route path="/setup" element={<SetupPage />} />
+				<Route path="/license-info" element={<LicenseStatusPage />} />
 				<Route path="*" element={<NotFound />} />
 			</Routes>
 		</MainLayout>
@@ -64,19 +86,21 @@ function App() {
 	return (
 		<>
 			<QueryClientProvider client={queryClient}>
-				<AuthProvider>
-					<AppProvider>
-						<SetoresProvider>
-							<TooltipProvider>
-								<Toaster />
-								<Sonner />
-								<HashRouter>
-									<AuthenticatedApp />
-								</HashRouter>
-							</TooltipProvider>
-						</SetoresProvider>
-					</AppProvider>
-				</AuthProvider>
+				<LicenseProvider>
+					<AuthProvider>
+						<AppProvider>
+							<SetoresProvider>
+								<TooltipProvider>
+									<Toaster />
+									<Sonner />
+									<HashRouter>
+										<AuthenticatedApp />
+									</HashRouter>
+								</TooltipProvider>
+							</SetoresProvider>
+						</AppProvider>
+					</AuthProvider>
+				</LicenseProvider>
 			</QueryClientProvider>
 		</>
 	)

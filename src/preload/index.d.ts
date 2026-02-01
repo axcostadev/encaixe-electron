@@ -95,6 +95,44 @@ interface UserPermissions {
 	canManageRoles: boolean
 }
 
+interface LicensePayload {
+	licenseId: string
+	productId: string
+	customerId?: string
+	issuedAt: string
+	expiresAt?: string
+	features: string[]
+	maxActivations?: number
+	hwFingerprint?: string
+	allowedFingerprints?: string[]
+	graceDays?: number
+	revocationListVersion?: number
+	productPath?: string
+	nonce: string
+	version: 1 | 2
+}
+
+interface LicenseStatus {
+	valid: boolean
+	code:
+		| "OK"
+		| "NO_LICENSE"
+		| "INVALID_SIGNATURE"
+		| "EXPIRED"
+		| "EXPIRED_GRACE"
+		| "FINGERPRINT_MISMATCH"
+		| "FEATURE_MISSING"
+		| "MALFORMED"
+		| "RATE_LIMIT"
+		| "INTERNAL_ERROR"
+	message?: string
+	license?: LicensePayload
+	retryInSeconds?: number
+	attemptsLeft?: number
+	fingerprint?: string
+	token?: string
+}
+
 interface UserListResponse {
 	success: boolean
 	users?: User[]
@@ -199,6 +237,12 @@ interface RolesAPI {
 		newName: string,
 		newDisplayName: string,
 	) => Promise<RoleResponse>
+}
+
+interface LicenseAPI {
+	status: () => Promise<LicenseStatus>
+	activate: (token: string) => Promise<LicenseStatus>
+	fingerprint: () => Promise<{ fingerprint: string }>
 }
 
 interface Modelo {
@@ -344,6 +388,7 @@ declare global {
 		electron: ElectronAPI
 		api: {
 			auth: AuthAPI
+			license: LicenseAPI
 			users: UsersAPI
 			roles: RolesAPI
 			modelos: ModelosAPI

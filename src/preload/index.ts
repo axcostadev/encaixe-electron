@@ -117,6 +117,11 @@ const api = {
 		resetAdmin: (password: string) =>
 			ipcRenderer.invoke("auth:reset-admin", password),
 	},
+	license: {
+		status: () => ipcRenderer.invoke("license:status"),
+		activate: (token: string) => ipcRenderer.invoke("license:activate", token),
+		fingerprint: () => ipcRenderer.invoke("license:fingerprint"),
+	},
 	// Gerenciamento de usuários (Setup)
 	users: {
 		list: () => ipcRenderer.invoke("users:list"),

@@ -12,6 +12,7 @@ import {
 	X,
 	Settings,
 	LogOut,
+	ShieldCheck,
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
 
@@ -34,6 +35,7 @@ const menuItems: MenuItem[] = [
 	{ path: "/manual", label: "Manual", icon: Book, permission: "canViewManual" },
 	{ path: "/economia", label: "Economia Dashboard", icon: LayoutDashboard, permission: "canViewEconomia" },
 	{ path: "/setup", label: "Configurações", icon: Settings, permission: "canAccessSetup" },
+	{ path: "/license-info", label: "Licença", icon: ShieldCheck, permission: "canAccessSetup" },
 ]
 
 export function Sidebar({

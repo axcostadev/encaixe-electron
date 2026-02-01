@@ -56,6 +56,13 @@ import * as conversorEmma from "../modules/conversorEmma.js"
 import * as conversorLectra from "../modules/conversorLectra.js"
 import * as cgcParser from "../modules/cgcParser.js"
 import { getSettings, setSettings } from "../settings"
+import {
+	activateLicense,
+	getFingerprint,
+	getLicenseStatus,
+	initLicense,
+	requireLicense,
+} from "../license"
 
 // Type definitions
 interface LinhaCTF {
@@ -185,6 +192,34 @@ export function setupIPC(): void {
 	// Inicializar banco de dados
 	initDatabase()
 
+	// Inicializar sistema de licença (validação offline)
+	initLicense()
+
+	const ensureLicensed = (feature?: string) => {
+		const status = requireLicense(feature)
+		if (!status.valid) {
+			return {
+				success: false,
+				code: status.code,
+				message: status.message || "Licença requerida",
+			}
+		}
+		return null
+	}
+
+	// IPC de licença (status, ativação e fingerprint)
+	ipcMain.handle("license:status", async () => {
+		return getLicenseStatus()
+	})
+
+	ipcMain.handle("license:activate", async (_event, token: string) => {
+		return activateLicense(token)
+	})
+
+	ipcMain.handle("license:fingerprint", async () => {
+		return getFingerprint()
+	})
+
 	// Inicializar banco de dados do electron-app e garantir headers
 	db.initDB()
 		.then(() => db.ensureEconomiaHeaders && db.ensureEconomiaHeaders())
@@ -265,6 +300,8 @@ export function setupIPC(): void {
 
 	// Listar todos os usuários
 	ipcMain.handle("users:list", async () => {
+		const guard = ensureLicensed("usuarios")
+		if (guard) return guard
 		return await listUsers()
 	})
 
@@ -278,6 +315,8 @@ export function setupIPC(): void {
 			email: string,
 			role: string,
 		) => {
+			const guard = ensureLicensed("usuarios")
+			if (guard) return guard
 			return await createUser(username, password, email, role as "admin" | "editor" | "viewer")
 		},
 	)
@@ -296,6 +335,8 @@ export function setupIPC(): void {
 				active?: boolean
 			},
 		) => {
+			const guard = ensureLicensed("usuarios")
+			if (guard) return guard
 			return await updateUser(id, {
 				username: data.username,
 				email: data.email,
@@ -308,11 +349,15 @@ export function setupIPC(): void {
 
 	// Deletar usuário
 	ipcMain.handle("users:delete", async (_event, id: number) => {
+		const guard = ensureLicensed("usuarios")
+		if (guard) return guard
 		return await deleteUser(id)
 	})
 
 	// Obter permissões por role
 	ipcMain.handle("users:get-permissions", async (_event, role: string) => {
+		const guard = ensureLicensed("usuarios")
+		if (guard) return guard
 		// Primeiro tenta buscar do banco (roles customizados)
 		const result = await getPermissionsByRoleName(role)
 		if (result.success && result.permissions) {
@@ -330,16 +375,22 @@ export function setupIPC(): void {
 	
 	// Listar todos os roles
 	ipcMain.handle("roles:list", async () => {
+		const guard = ensureLicensed("roles")
+		if (guard) return guard
 		return await listRoles()
 	})
 
 	// Buscar role por ID
 	ipcMain.handle("roles:get", async (_event, id: number) => {
+		const guard = ensureLicensed("roles")
+		if (guard) return guard
 		return await getRoleById(id)
 	})
 
 	// Buscar role por nome
 	ipcMain.handle("roles:get-by-name", async (_event, name: string) => {
+		const guard = ensureLicensed("roles")
+		if (guard) return guard
 		return await getRoleByName(name)
 	})
 
@@ -353,6 +404,8 @@ export function setupIPC(): void {
 			description: string,
 			permissions: UserPermissions
 		) => {
+			const guard = ensureLicensed("roles")
+			if (guard) return guard
 			return await createRole(name, displayName, description, permissions)
 		}
 	)
@@ -369,12 +422,16 @@ export function setupIPC(): void {
 				permissions?: UserPermissions
 			}
 		) => {
+			const guard = ensureLicensed("roles")
+			if (guard) return guard
 			return await updateRole(id, data)
 		}
 	)
 
 	// Deletar role
 	ipcMain.handle("roles:delete", async (_event, id: number) => {
+		const guard = ensureLicensed("roles")
+		if (guard) return guard
 		return await deleteRole(id)
 	})
 
@@ -382,6 +439,8 @@ export function setupIPC(): void {
 	ipcMain.handle(
 		"roles:duplicate",
 		async (_event, sourceId: number, newName: string, newDisplayName: string) => {
+			const guard = ensureLicensed("roles")
+			if (guard) return guard
 			return await duplicateRole(sourceId, newName, newDisplayName)
 		}
 	)
@@ -393,12 +452,16 @@ export function setupIPC(): void {
 
 	// Modelos
 	ipcMain.handle("modelos:list", async () => {
+		const guard = ensureLicensed("modelos")
+		if (guard) return guard
 		return await listModelos()
 	})
 
 	ipcMain.handle(
 		"modelos:create",
 		async (_event, artigo: string, nome: string) => {
+			const guard = ensureLicensed("modelos")
+			if (guard) return guard
 			return await createModelo(artigo, nome)
 		},
 	)
@@ -406,21 +469,29 @@ export function setupIPC(): void {
 	ipcMain.handle(
 		"modelos:update",
 		async (_event, id: number, artigo: string, nome: string) => {
+			const guard = ensureLicensed("modelos")
+			if (guard) return guard
 			return await updateModelo(id, artigo, nome)
 		},
 	)
 
 	ipcMain.handle("modelos:delete", async (_event, id: number) => {
+		const guard = ensureLicensed("modelos")
+		if (guard) return guard
 		return await deleteModelo(id)
 	})
 
 	// Cores do modelo
 	ipcMain.handle("modelos:cores:list", async (_event, modelo_id: number) => {
+		const guard = ensureLicensed("cores")
+		if (guard) return guard
 		return await listModeloCores(modelo_id)
 	})
 
 	// Componentes do modelo
 	ipcMain.handle("componentes:list", async (_event, modelo_id: number) => {
+		const guard = ensureLicensed("componentes")
+		if (guard) return guard
 		return await listComponentes(modelo_id)
 	})
 
@@ -433,6 +504,8 @@ export function setupIPC(): void {
 			dados: ComponenteDados | null,
 			tamanhos: { tamanhoInicial: number; tamanhoFinal: number }[],
 		) => {
+			const guard = ensureLicensed("componentes")
+			if (guard) return guard
 			return await addComponente(modelo_id, nome, dados, tamanhos)
 		},
 	)
@@ -447,6 +520,8 @@ export function setupIPC(): void {
 			dados: ComponenteDados | null,
 			tamanhos: { tamanhoInicial: number; tamanhoFinal: number }[],
 		) => {
+			const guard = ensureLicensed("componentes")
+			if (guard) return guard
 			console.log('[IPC] componentes:update called', { modelo_id, componente_id, nome, dados, tamanhos })
 			return await updateComponente(
 				modelo_id,
@@ -461,6 +536,8 @@ export function setupIPC(): void {
 	ipcMain.handle(
 		"componentes:delete",
 		async (_event, modelo_id: number, componente_id: number) => {
+			const guard = ensureLicensed("componentes")
+			if (guard) return guard
 			return await deleteComponente(modelo_id, componente_id)
 		},
 	)
@@ -468,16 +545,22 @@ export function setupIPC(): void {
 	ipcMain.handle(
 		"modelos:cores:add",
 		async (_event, modelo_id: number, abreviada: string, completa: string) => {
+			const guard = ensureLicensed("cores")
+			if (guard) return guard
 			return await addModeloCor(modelo_id, abreviada, completa)
 		},
 	)
 
 	ipcMain.handle("modelos:cores:delete", async (_event, id: number) => {
+		const guard = ensureLicensed("cores")
+		if (guard) return guard
 		return await deleteModeloCor(id)
 	})
 
 	// Materiais
 	ipcMain.handle("materiais:list", async () => {
+		const guard = ensureLicensed("materiais")
+		if (guard) return guard
 		return await listMateriais()
 	})
 
@@ -490,6 +573,8 @@ export function setupIPC(): void {
 			obs: string | undefined,
 			sentido: SentidoType,
 		) => {
+			const guard = ensureLicensed("materiais")
+			if (guard) return guard
 			console.log("Creating material:", { artigo, largura, obs, sentido })
 			const result = await createMaterial(artigo, largura, obs, sentido)
 			console.log("Create result:", result)
@@ -507,29 +592,41 @@ export function setupIPC(): void {
 			obs: string | undefined,
 			sentido: SentidoType,
 		) => {
+			const guard = ensureLicensed("materiais")
+			if (guard) return guard
 			return await updateMaterial(id, artigo, largura, obs, sentido)
 		},
 	)
 
 	ipcMain.handle("materiais:delete", async (_event, id: number) => {
+		const guard = ensureLicensed("materiais")
+		if (guard) return guard
 		return await deleteMaterial(id)
 	})
 
 	// ==================== SETORES ====================
 
 	ipcMain.handle("setores:list", async () => {
+		const guard = ensureLicensed("setores")
+		if (guard) return guard
 		return await listSetores()
 	})
 
 	ipcMain.handle("setores:create", async (_event, nome: string) => {
+		const guard = ensureLicensed("setores")
+		if (guard) return guard
 		return await createSetor(nome)
 	})
 
 	ipcMain.handle("setores:update", async (_event, id: number, nome: string) => {
+		const guard = ensureLicensed("setores")
+		if (guard) return guard
 		return await updateSetor(id, nome)
 	})
 
 	ipcMain.handle("setores:delete", async (_event, id: number) => {
+		const guard = ensureLicensed("setores")
+		if (guard) return guard
 		return await deleteSetor(id)
 	})
 
@@ -537,6 +634,8 @@ export function setupIPC(): void {
 
 	// File selection
 	ipcMain.handle("select-file", async () => {
+		const guard = ensureLicensed("arquivos")
+		if (guard) return guard
 		const result = await dialog.showOpenDialog({
 			properties: ["openFile"],
 			filters: [
@@ -550,6 +649,8 @@ export function setupIPC(): void {
 
 	// Directory selection
 	ipcMain.handle("select-directory", async () => {
+		const guard = ensureLicensed("arquivos")
+		if (guard) return guard
 		const result = await dialog.showOpenDialog({
 			properties: ["openDirectory", "createDirectory"],
 			title: "Selecione a pasta de destino",
@@ -560,20 +661,28 @@ export function setupIPC(): void {
 
 	// Parse handlers
 	ipcMain.handle("parse-ctf", async (_event, filePath: string) => {
+		const guard = ensureLicensed("conversor")
+		if (guard) return guard
 		return await parser.parseCTF(filePath)
 	})
 
 	ipcMain.handle("parse-ctc", async (_event, filePath: string) => {
+		const guard = ensureLicensed("conversor")
+		if (guard) return guard
 		return await parser.parseCTC(filePath)
 	})
 
 	// Database handlers
 	ipcMain.handle("save-ctf", async (_event, lines: DadosCTF[]) => {
+		const guard = ensureLicensed("cadastro")
+		if (guard) return guard
 		return await db.saveCTFLines(lines)
 	})
 
 	// Settings handlers
 	ipcMain.handle("settings:get", async () => {
+		const guard = ensureLicensed("settings")
+		if (guard) return guard
 		try {
 			return { success: true, settings: getSettings() }
 		} catch (err) {
@@ -582,6 +691,8 @@ export function setupIPC(): void {
 	})
 
 	ipcMain.handle("settings:set", async (_event, updates: Record<string, any>) => {
+		const guard = ensureLicensed("settings")
+		if (guard) return guard
 		try {
 			const oldSettings = getSettings()
 			const res = setSettings(updates)
@@ -621,6 +732,8 @@ export function setupIPC(): void {
 // Retorna o estado atual das settings e o caminho do DB da economia (útil para a UI)
 ipcMain.handle("settings:get-status", async () => {
 	try {
+		const guard = ensureLicensed("settings")
+		if (guard) return guard
 		const settings = getSettings()
 		let economiaDb = null
 		try {
@@ -639,23 +752,33 @@ ipcMain.handle("settings:get-status", async () => {
 	})
 
 	ipcMain.handle("save-ctc", async (_event, lines: DadosCTC[]) => {
+		const guard = ensureLicensed("cadastro")
+		if (guard) return guard
 		return await db.saveCTCLines(lines)
 	})
 
 	ipcMain.handle("query-lines", async () => {
+		const guard = ensureLicensed("cadastro")
+		if (guard) return guard
 		return await db.getAllLines()
 	})
 
 	ipcMain.handle("query-lines-by-of", async (_event, of: string) => {
+		const guard = ensureLicensed("cadastro")
+		if (guard) return guard
 		return await db.getLinesByOf(of)
 	})
 
 	ipcMain.handle("clear-lines", async () => {
+		const guard = ensureLicensed("cadastro")
+		if (guard) return guard
 		return await db.clearLines()
 	})
 
 	// Buscar OF nos arquivos CTF/CTC
 	ipcMain.handle("buscar-of", async (_event, ofBuscada: string) => {
+		const guard = ensureLicensed("cadastro")
+		if (guard) return guard
 		const fs = await import("fs")
 		const readline = await import("readline")
 		const resultado: BuscarOFResult[] = []
@@ -725,37 +848,51 @@ ipcMain.handle("settings:get-status", async () => {
 
 	// Apelidos handlers
 	ipcMain.handle("apelidos-get-all", async () => {
+		const guard = ensureLicensed("apelidos")
+		if (guard) return guard
 		return await gerenciadorApelidos.getAllApelidos()
 	})
 
 	ipcMain.handle("apelidos-get", async (_event, componente: string) => {
+		const guard = ensureLicensed("apelidos")
+		if (guard) return guard
 		return await gerenciadorApelidos.getApelido(componente)
 	})
 
 	ipcMain.handle(
 		"apelidos-save",
 		async (_event, componente: string, apelido: string) => {
+			const guard = ensureLicensed("apelidos")
+			if (guard) return guard
 			return await gerenciadorApelidos.saveApelido(componente, apelido)
 		},
 	)
 
 	ipcMain.handle("apelidos-remove", async (_event, componente: string) => {
+		const guard = ensureLicensed("apelidos")
+		if (guard) return guard
 		return await gerenciadorApelidos.removeApelido(componente)
 	})
 
 	// Abreviacoes handlers
 	ipcMain.handle("abreviacoes-get-all", async () => {
+		const guard = ensureLicensed("abreviacoes")
+		if (guard) return guard
 		return await abreviacaoManager.getAllAbreviacoes()
 	})
 
 	ipcMain.handle(
 		"abreviacoes-save",
 		async (_event, componente: string, abrev: string) => {
+			const guard = ensureLicensed("abreviacoes")
+			if (guard) return guard
 			return await abreviacaoManager.saveAbreviacao(componente, abrev)
 		},
 	)
 
 	ipcMain.handle("abreviacoes-remove", async (_event, componente: string) => {
+		const guard = ensureLicensed("abreviacoes")
+		if (guard) return guard
 		return await abreviacaoManager.removeAbreviacao(componente)
 	})
 
@@ -763,6 +900,8 @@ ipcMain.handle("settings:get-status", async () => {
 	ipcMain.handle(
 		"show-save-dialog",
 		async (_event, opts: SaveDialogOptions) => {
+			const guard = ensureLicensed("exportacao")
+			if (guard) return guard
 			const res = await dialog.showSaveDialog({
 				title: opts?.title || "Salvar arquivo",
 				defaultPath: opts?.defaultPath || undefined,
@@ -776,6 +915,8 @@ ipcMain.handle("settings:get-status", async () => {
 	ipcMain.handle(
 		"export-comelz",
 		async (_event, pedidoObj: PedidoComelz, caminho: string) => {
+			const guard = ensureLicensed("exportacao")
+			if (guard) return guard
 			return await exportadorComelz.exportar(pedidoObj, caminho)
 		},
 	)
@@ -783,6 +924,8 @@ ipcMain.handle("settings:get-status", async () => {
 	ipcMain.handle(
 		"export-emma",
 		async (_event, pedidoObj: PedidoEmma, caminho: string) => {
+			const guard = ensureLicensed("exportacao")
+			if (guard) return guard
 			return await exportadorEmma.exportar(pedidoObj, caminho)
 		},
 	)
@@ -796,6 +939,8 @@ ipcMain.handle("settings:get-status", async () => {
 			markerName: string,
 			options?: { espacamento?: number; sentidoMaterial?: string; largura?: number; fabric_type?: number },
 		) => {
+			const guard = ensureLicensed("exportacao")
+			if (guard) return guard
 			return await exportadorLectra.exportarMkx(modelos, caminho, markerName, options || {})
 		},
 	)
@@ -809,6 +954,8 @@ ipcMain.handle("settings:get-status", async () => {
 			parsedCTC: DadosCTC,
 			options: ConversorOptions,
 		) => {
+			const guard = ensureLicensed("conversor")
+			if (guard) return guard
 			let cadastro: CadastroInfo[] | CadastroInfo | null = null
 			try {
 				if (options && options.artigo) {
@@ -835,6 +982,8 @@ ipcMain.handle("settings:get-status", async () => {
 			parsedCTC: DadosCTC,
 			options: ConversorOptions,
 		) => {
+			const guard = ensureLicensed("conversor")
+			if (guard) return guard
 			let cadastro: CadastroInfo[] | CadastroInfo | null = null
 			try {
 				if (options && options.artigo) {
@@ -877,6 +1026,8 @@ ipcMain.handle("settings:get-status", async () => {
 			parsedCTC: DadosCTC,
 			options: ConversorOptions,
 		) => {
+			const guard = ensureLicensed("conversor")
+			if (guard) return guard
 			let cadastro: CadastroInfo[] | CadastroInfo | null = null
 			try {
 				if (options && options.artigo) {
@@ -897,6 +1048,8 @@ ipcMain.handle("settings:get-status", async () => {
 
 	// Cadastro handlers
 	ipcMain.handle("cadastro-open-file", async () => {
+		const guard = ensureLicensed("cadastro")
+		if (guard) return guard
 		const res = await dialog.showOpenDialog({
 			title: "Carregar Cadastro",
 			properties: ["openFile"],
@@ -907,10 +1060,14 @@ ipcMain.handle("settings:get-status", async () => {
 	})
 
 	ipcMain.handle("cadastro-save", async (_event, cadastroObj: CadastroObj) => {
+		const guard = ensureLicensed("cadastro")
+		if (guard) return guard
 		return await db.saveCadastro(cadastroObj)
 	})
 
 	ipcMain.handle("cadastro-get-by-artigo", async (_event, artigo: string) => {
+		const guard = ensureLicensed("cadastro")
+		if (guard) return guard
 		console.log("[IPC] cadastro-get-by-artigo called:", artigo)
 		const result = await getCadastroByArtigo(artigo)
 		console.log(
@@ -923,20 +1080,28 @@ ipcMain.handle("settings:get-status", async () => {
 	ipcMain.handle(
 		"cadastro-find",
 		async (_event, artigo: string, componente: string) => {
+			const guard = ensureLicensed("cadastro")
+			if (guard) return guard
 			return await db.findCadastro(artigo, componente)
 		},
 	)
 
 	ipcMain.handle("cadastro-list", async (_event, limit: number) => {
+		const guard = ensureLicensed("cadastro")
+		if (guard) return guard
 		return await db.listCadastros(limit || 100)
 	})
 
 	ipcMain.handle("cadastro-delete", async (_event, id: number) => {
+		const guard = ensureLicensed("cadastro")
+		if (guard) return guard
 		return await db.deleteCadastroById(id)
 	})
 
 	// Migrations: check if redutor_largura exists and add it when requested
 	ipcMain.handle("migrations:check-redutor-largura", async () => {
+		const guard = ensureLicensed("migrations")
+		if (guard) return guard
 		try {
 			return await hasColumnRedutorLargura()
 		} catch (err) {
@@ -946,6 +1111,8 @@ ipcMain.handle("settings:get-status", async () => {
 	})
 
 	ipcMain.handle("migrations:add-redutor-largura", async () => {
+		const guard = ensureLicensed("migrations")
+		if (guard) return guard
 		try {
 			return await addRedutorLarguraColumn()
 		} catch (err) {
@@ -955,6 +1122,8 @@ ipcMain.handle("settings:get-status", async () => {
 	})
 
 	ipcMain.handle("cadastro-import-folder", async () => {
+		const guard = ensureLicensed("cadastro")
+		if (guard) return guard
 		// Implementar importação em lote se necessário
 		return { imported: 0 }
 	})
@@ -962,6 +1131,8 @@ ipcMain.handle("settings:get-status", async () => {
 	// ==================== Economia IPC handlers ====================
 
 	ipcMain.handle("economia-import-file", async (_event, filePath?: string) => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
 		try {
 			const xlsx = await import("xlsx")
 			let pathToRead = filePath
@@ -984,27 +1155,39 @@ ipcMain.handle("settings:get-status", async () => {
 	})
 
 	ipcMain.handle("economia-list", async (_event, limit: number = 500) => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
 		return await db.listEconomia(limit)
 	})
 
 	ipcMain.handle("economia-clear", async () => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
 		return await db.clearEconomia()
 	})
 
 	ipcMain.handle("economia-summary", async () => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
 		return await db.getEconomiaSummary()
 	})
 
 	ipcMain.handle("economia-by-modelo", async (_event, limit: number = 10) => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
 		return await db.getEconomiaByModelo(limit)
 	})
 
 	ipcMain.handle("economia-by-material", async (_event, limit: number = 10) => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
 		return await db.getEconomiaByMaterial(limit)
 	})
 
 	// Upsert de encaixe: atualiza `encaixe`, `dif` e `porcent` ou insere nova linha quando não existir
 	ipcMain.handle("economia:upsert-encaixe", async (_event, row) => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
 		try {
 			console.log('[IPC] economia:upsert-encaixe payload:', JSON.stringify(row))
 			const res = await db.upsertEconomiaRow(row)
@@ -1018,6 +1201,8 @@ ipcMain.handle("settings:get-status", async () => {
 
 	// Inserir cabeçalho (economia_headers) e retornar id (FK)
 	ipcMain.handle("economia:insert-header", async (_event, header) => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
 		try {
 			const res = await db.insertEconomiaHeader(header)
 			return { success: true, result: res }
@@ -1029,6 +1214,8 @@ ipcMain.handle("settings:get-status", async () => {
 
 	// Atualizar linha por id (usado pelo Banco de Dados - edição inline)
 	ipcMain.handle("economia:update-row", async (_event, id: number, fields: Record<string, any>) => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
 		try {
 			const res = await db.updateEconomiaRowById(id, fields)
 			return { success: true, result: res }
@@ -1040,6 +1227,8 @@ ipcMain.handle("settings:get-status", async () => {
 
 	// Deletar múltiplas linhas do banco de dados
 	ipcMain.handle("economia:delete-rows", async (_event, ids: number[]) => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
 		try {
 			const res = await db.deleteEconomiaRows(ids)
 			return { success: true, result: res }
@@ -1052,6 +1241,8 @@ ipcMain.handle("settings:get-status", async () => {
 	// ==================== CGC Import IPC handlers ====================
 
 	ipcMain.handle("economia-import-cgc", async (_event, filePath?: string) => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
 		try {
 			let pathToRead = filePath
 			if (!pathToRead) {
@@ -1096,6 +1287,8 @@ ipcMain.handle("settings:get-status", async () => {
 
 	// Handler para retornar apenas os headers das OFs (sem materiais)
 	ipcMain.handle("economia-import-cgc-headers", async (_event, filePath?: string) => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
 		try {
 			let pathToRead = filePath
 			if (!pathToRead) {
@@ -1118,6 +1311,8 @@ ipcMain.handle("settings:get-status", async () => {
 
 	// Handler para buscar dados do CGC por termo (OF, artigo, etc)
 	ipcMain.handle("economia-search-cgc", async (_event, filePath: string, searchTerm?: string) => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
 		try {
 			if (!filePath) {
 				return { results: [], error: "Nenhum arquivo selecionado" }
@@ -1148,6 +1343,8 @@ ipcMain.handle("settings:get-status", async () => {
 
 	// Handler para apenas selecionar o arquivo CGC (sem carregar dados)
 	ipcMain.handle("economia-select-cgc-file", async () => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
 		try {
 			const res = await dialog.showOpenDialog({
 				properties: ["openFile"],
