@@ -31,6 +31,17 @@ let heartbeatInterval: ReturnType<typeof setInterval> | null = null
 
 export function getLicenseStatus(): LicenseStatus {
 	const fingerprint = getHardwareFingerprint()
+	
+	// Verificar manipulação de relógio antes de validar licença
+	if (!checkClockSkew()) {
+		cachedStatus = buildStatus(
+			false,
+			"CLOCK_TAMPER",
+			"Detectada manipulação de relógio do sistema"
+		)
+		return cachedStatus
+	}
+
 	try {
 		const plain = loadLicenseFromDisk()
 		let token = plain?.token

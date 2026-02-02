@@ -27,6 +27,7 @@ export type LicenseStatus = {
 		| "FEATURE_MISSING"
 		| "MALFORMED"
 		| "RATE_LIMIT"
+		| "CLOCK_TAMPER"
 		| "INTERNAL_ERROR"
 	message?: string
 	license?: LicensePayload
@@ -34,4 +35,8 @@ export type LicenseStatus = {
 	attemptsLeft?: number
 	fingerprint?: string
 	token?: string
+	/** Dias restantes calculados pelo servidor (protegido) */
+	daysRemaining?: number
+	/** Timestamp do servidor para validação */
+	serverTime?: number
 }

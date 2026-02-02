@@ -1,5 +1,5 @@
 import { ShieldCheck, RefreshCw, Link as LinkIcon } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useLicense } from "@renderer/contexts/LicenseContext"
 import { Link } from "react-router-dom"
 
@@ -12,7 +12,17 @@ function formatDate(value?: string) {
 	}
 }
 
-function daysLeft(expiresAt?: string) {
+/**
+ * Usa o valor calculado pelo servidor (mais seguro) 
+ * ou calcula localmente como fallback
+ */
+function daysLeft(daysRemaining?: number, expiresAt?: string) {
+	// Preferir valor do servidor (protegido)
+	if (typeof daysRemaining === "number") {
+		if (daysRemaining < 0) return "Expirada"
+		return `${daysRemaining} dia(s)`
+	}
+	// Fallback para cálculo local (menos seguro)
 	if (!expiresAt) return "Sem expiração"
 	const diff = new Date(expiresAt).getTime() - Date.now()
 	const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
@@ -24,13 +34,27 @@ export function LicenseStatusPage() {
 	const [busy, setBusy] = useState(false)
 
 	const info = useMemo(() => {
+		const daysRemainingNum = status?.daysRemaining
+		// Determinar cor do badge baseado nos dias restantes
+		let expirationBadgeClass = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+		if (typeof daysRemainingNum === "number") {
+			if (daysRemainingNum <= 0) {
+				expirationBadgeClass = "bg-red-500/20 text-red-400 border-red-500/30"
+			} else if (daysRemainingNum <= 7) {
+				expirationBadgeClass = "bg-red-500/20 text-red-400 border-red-500/30"
+			} else if (daysRemainingNum <= 30) {
+				expirationBadgeClass = "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+			}
+		}
 		return {
 			licenseId: status?.license?.licenseId || "—",
 			productId: status?.license?.productId || "—",
 			customerId: status?.license?.customerId || "—",
 			issuedAt: formatDate(status?.license?.issuedAt),
 			expiresAt: formatDate(status?.license?.expiresAt),
-			daysLeft: daysLeft(status?.license?.expiresAt),
+			daysLeft: daysLeft(status?.daysRemaining, status?.license?.expiresAt),
+			daysRemainingNum,
+			expirationBadgeClass,
 			features: status?.license?.features?.join(", ") || "—",
 			fingerprint: status?.fingerprint || "—",
 			maxActivations: status?.license?.maxActivations ?? "—",
@@ -47,6 +71,14 @@ export function LicenseStatusPage() {
 		await refresh()
 		setBusy(false)
 	}
+
+	// Atualização automática a cada 5 minutos para manter contador sincronizado
+	useEffect(() => {
+		const interval = setInterval(() => {
+			refresh()
+		}, 5 * 60 * 1000) // 5 minutos
+		return () => clearInterval(interval)
+	}, [refresh])
 
 	return (
 		<div className="space-y-6">
@@ -87,7 +119,9 @@ export function LicenseStatusPage() {
 					<p className="text-sm text-muted-foreground">{info.message}</p>
 				</div>
 				<div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-2">
-					<p className="text-xs uppercase text-muted-foreground">Expiração</p>
+					<p className={`text-xs uppercase px-2 py-0.5 rounded border inline-block ${info.expirationBadgeClass}`}>
+						Expiração
+					</p>
 					<p className="text-lg font-semibold">{info.daysLeft}</p>
 					<p className="text-sm text-muted-foreground">Expira em: {info.expiresAt}</p>
 				</div>

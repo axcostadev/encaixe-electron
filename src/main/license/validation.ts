@@ -56,6 +56,18 @@ function isExpired(payload: LicensePayload): boolean {
 	return new Date(payload.expiresAt).getTime() < Date.now()
 }
 
+/**
+ * Calcula dias restantes de forma segura no servidor
+ * Retorna número negativo se expirado, undefined se sem expiração
+ */
+function calculateDaysRemaining(expiresAt?: string): number | undefined {
+	if (!expiresAt) return undefined
+	const now = Date.now()
+	const expirationTime = new Date(expiresAt).getTime()
+	const diffMs = expirationTime - now
+	return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+}
+
 export function buildStatus(
 	valid: boolean,
 	code: LicenseStatus["code"],
@@ -63,6 +75,7 @@ export function buildStatus(
 	payload?: LicensePayload,
 	token?: string,
 ): LicenseStatus {
+	const daysRemaining = payload ? calculateDaysRemaining(payload.expiresAt) : undefined
 	return {
 		valid,
 		code,
@@ -70,6 +83,8 @@ export function buildStatus(
 		license: payload,
 		fingerprint: getHardwareFingerprint(),
 		token,
+		daysRemaining,
+		serverTime: Date.now(),
 	}
 }
 
