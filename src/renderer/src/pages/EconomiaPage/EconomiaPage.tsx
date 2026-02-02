@@ -484,7 +484,7 @@ export default function EconomiaPage() {
             'Dif': r.dif?.toString() || '',
             '%': r.porcent?.toString() || '',
             'Economia (R$)': '',
-            'Periodo (Ano/Mês)': r.data ? `${r.data.split('-')[0]}/${r.data.split('-')[1]}` : currentPeriod
+            'Periodo (Ano/Mês)': currentPeriod ?? `${r.data.split('-')[0]}/${r.data.split('-')[1]}` 
           }
         }))
         setSearchResults(formattedResults)
