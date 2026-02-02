@@ -38,7 +38,12 @@ function loadSettingsSync(): Record<string, any> {
     const raw = fs.readFileSync(CONFIG_FILE, { encoding: "utf8" })
     try {
       const parsed = JSON.parse(raw)
-      return { ...DEFAULTS, ...(parsed || {}) }
+      const merged = { ...DEFAULTS, ...(parsed || {}) }
+      // Salvar arquivo atualizado com novos campos (se houver)
+      if (Object.keys(DEFAULTS).some(k => !(k in (parsed || {})))) {
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify(merged, null, 2), { encoding: "utf8" })
+      }
+      return merged
     } catch (err) {
       console.error("Erro parseando config.json, regravando defaults:", err)
       fs.writeFileSync(CONFIG_FILE, JSON.stringify(DEFAULTS, null, 2), { encoding: "utf8" })
