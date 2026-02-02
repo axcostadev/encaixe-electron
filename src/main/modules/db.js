@@ -5,6 +5,9 @@ import { fileURLToPath } from "url"
 import { app } from "electron"
 import { getDatabaseFilePath } from "../settings.js"
 
+// Evita erros de "database is locked" aguardando até 5s antes de falhar
+sqlite3.configure?.("busyTimeout", 5000)
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
@@ -31,6 +34,8 @@ function ensureDirExistsFor(dbPath) {
 
 export function initDB() {
 	return new Promise((resolve, reject) => {
+		// Já inicializado
+		if (db) return resolve()
 		let DB_FILE = getDbFile()
 
 
@@ -40,6 +45,8 @@ export function initDB() {
 		console.log("[DB] using economia DB file at:", DB_FILE)
 		db = new sqlite3.Database(DB_FILE, (err) => {
 			if (err) return reject(err)
+			// Define busy_timeout dentro do próprio DB para reforçar
+			db.run("PRAGMA busy_timeout = 5000")
 			db.serialize(() => {
 				db.run(
 					`CREATE TABLE IF NOT EXISTS linhas (
