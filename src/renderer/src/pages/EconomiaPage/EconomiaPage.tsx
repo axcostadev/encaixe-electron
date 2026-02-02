@@ -644,53 +644,61 @@ export default function EconomiaPage() {
     return id
   }
 
+  // Função para carregar dados do dashboard
+  const loadDashboardData = async () => {
+    setLoading(true)
+    try {
+      const [list, sum, modelos, materiais] = await Promise.all([
+        (window as any).api.economia.list(1000),
+        (window as any).api.economia.summary(),
+        (window as any).api.economia.byModelo(12),
+        (window as any).api.economia.byMaterial(12),
+      ])
+
+      setRows(Array.isArray(list) ? list : [])
+      setSummary(sum || { totalDif: 0, ordemCount: 0, avgDif: 0 })
+      setByModelo(Array.isArray(modelos) ? modelos : [])
+      setByMaterial(Array.isArray(materiais) ? materiais : [])
+
+      // compute available periods and models for client-side filters
+      const rs = Array.isArray(list) ? list : []
+      const periodsSet = new Set<string>()
+      const modelsSet = new Set<string>()
+      rs.forEach((r:any) => {
+        if (r.data) {
+          try {
+            const dt = new Date(r.data)
+            const p = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`
+            if (isValidPeriod(p)) periodsSet.add(p)
+          } catch(e) {}
+        }
+        if (r.modelo) modelsSet.add(r.modelo)
+      })
+      const periods = Array.from(periodsSet).sort().reverse()
+      const models = Array.from(modelsSet).sort()
+      setAvailablePeriods(periods)
+      setAvailableModels(models)
+      // default select all
+      setSelectedPeriods(periods)
+      setSelectedModels(models)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Carrega dados iniciais
   useEffect(() => {
-    let mounted = true
-    ;(async () => {
-      setLoading(true)
-      try {
-        const [list, sum, modelos, materiais] = await Promise.all([
-          (window as any).api.economia.list(1000),
-          (window as any).api.economia.summary(),
-          (window as any).api.economia.byModelo(12),
-          (window as any).api.economia.byMaterial(12),
-        ])
-
-        if (!mounted) return
-        setRows(Array.isArray(list) ? list : [])
-        setSummary(sum || { totalDif: 0, ordemCount: 0, avgDif: 0 })
-        setByModelo(Array.isArray(modelos) ? modelos : [])
-        setByMaterial(Array.isArray(materiais) ? materiais : [])
-
-        // compute available periods and models for client-side filters
-        const rs = Array.isArray(list) ? list : []
-        const periodsSet = new Set<string>()
-        const modelsSet = new Set<string>()
-        rs.forEach((r:any) => {
-          if (r.data) {
-            try {
-              const dt = new Date(r.data)
-              const p = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`
-              if (isValidPeriod(p)) periodsSet.add(p)
-            } catch(e) {}
-          }
-          if (r.modelo) modelsSet.add(r.modelo)
-        })
-        const periods = Array.from(periodsSet).sort().reverse()
-        const models = Array.from(modelsSet).sort()
-        setAvailablePeriods(periods)
-        setAvailableModels(models)
-        // default select all
-        setSelectedPeriods(periods)
-        setSelectedModels(models)
-      } catch (e) {
-        console.error(e)
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    })()
-    return () => { mounted = false }
+    loadDashboardData()
   }, [])
+
+  // Recarrega dados quando volta para a aba dashboard
+  useEffect(() => {
+    if (tab === 'dashboard') {
+      loadDashboardData()
+    }
+  }, [tab])
 
   // Apply filters client-side and recompute aggregates
   const applyFilters = () => {
