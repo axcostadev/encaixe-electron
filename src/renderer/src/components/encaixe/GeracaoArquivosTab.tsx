@@ -37,7 +37,7 @@ import {
 
 import { ScrollArea } from "@renderer/components/ui/scroll-area"
 import { ListaAutomaticoItem } from "@renderer/pages/EncaixePage"
-import { ListPlus } from "lucide-react"
+import { ListPlus, ChevronDown, ChevronUp } from "lucide-react"
 
 type GradePar = {
 	artigo: string
@@ -156,6 +156,8 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 	const [artigoSearch, setArtigoSearch] = useState("")
 	const [gradePares, setGradePares] = useState<GradePar[]>([])
 	const [cadastrosInfo, setCadastrosInfo] = useState<CadastroInfo[]>([])
+	const [cadastroMinimizado, setCadastroMinimizado] = useState(true)
+	const [gradeMinimizada, setGradeMinimizada] = useState(true)
 	const [componenteSelecionado, setComponenteSelecionado] = useState<
 		string | null
 	>(null)
@@ -876,28 +878,39 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 
 					{gradePares.length > 0 && (
 						<div className="border rounded-lg">
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead>Artigo</TableHead>
-										<TableHead>Modelo</TableHead>
-										<TableHead>Código Cor</TableHead>
-										<TableHead>Grade</TableHead>
-										<TableHead>Pares</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{gradePares.map((item, idx) => (
-										<TableRow key={idx}>
-											<TableCell>{item.artigo}</TableCell>
-											<TableCell>{item.modelo}</TableCell>
-											<TableCell>{item.codigoCor}</TableCell>
-											<TableCell>{item.grade}</TableCell>
-											<TableCell>{item.pares}</TableCell>
+							<div 
+								className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50"
+								onClick={() => setGradeMinimizada(!gradeMinimizada)}
+							>
+								<span className="font-medium">Grade e Pares ({gradePares.length} itens)</span>
+								<Button variant="ghost" size="sm">
+									{gradeMinimizada ? <ChevronDown className="h-5 w-5" /> : <ChevronUp className="h-5 w-5" />}
+								</Button>
+							</div>
+							{!gradeMinimizada && (
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>Artigo</TableHead>
+											<TableHead>Modelo</TableHead>
+											<TableHead>Código Cor</TableHead>
+											<TableHead>Grade</TableHead>
+											<TableHead>Pares</TableHead>
 										</TableRow>
-									))}
-								</TableBody>
-							</Table>
+									</TableHeader>
+									<TableBody>
+										{gradePares.map((item, idx) => (
+											<TableRow key={idx}>
+												<TableCell>{item.artigo}</TableCell>
+												<TableCell>{item.modelo}</TableCell>
+												<TableCell>{item.codigoCor}</TableCell>
+												<TableCell>{item.grade}</TableCell>
+												<TableCell>{item.pares}</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							)}
 						</div>
 					)}
 				</CardContent>
@@ -906,10 +919,18 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 			{/* Seção de Informações do Cadastro (carregado automaticamente após buscar OF) */}
 			{cadastrosInfo.length > 0 && (
 				<Card>
-					<CardHeader>
-						<CardTitle>Cadastro Encontrado</CardTitle>
-						<CardDescription>Artigo: {artigoSearch}</CardDescription>
+					<CardHeader className="cursor-pointer" onClick={() => setCadastroMinimizado(!cadastroMinimizado)}>
+						<div className="flex items-center justify-between">
+							<div>
+								<CardTitle>Cadastro Encontrado</CardTitle>
+								<CardDescription>Artigo: {artigoSearch}</CardDescription>
+							</div>
+							<Button variant="ghost" size="sm">
+								{cadastroMinimizado ? <ChevronDown className="h-5 w-5" /> : <ChevronUp className="h-5 w-5" />}
+							</Button>
+						</div>
 					</CardHeader>
+					{!cadastroMinimizado && (
 					<CardContent className="space-y-4">
 						<div className="space-y-4">
 							<div className="border rounded-lg p-4 bg-muted/50">
@@ -987,28 +1008,32 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 									</div>
 								))}
 							</div>
+						</div>
+					</CardContent>
+					)}
 
-							<div className="space-y-2">
-								<h4 className="font-semibold">Selecionar Componente</h4>
-								<div className="flex flex-wrap gap-2">
-									{cadastrosInfo.map((cad, idx) => (
-										<Button
-											key={idx}
-											variant={
-												componenteSelecionado === cad.componente
-													? "default"
-													: "outline"
-											}
-											onClick={() => selecionarComponente(cad.componente)}
-											className="flex flex-col items-start"
-										>
-											<span>Componente: {cad.componente}</span>
-											{cad.setorNome && (
-												<span className="text-xs opacity-70">({cad.setorNome})</span>
-											)}
-										</Button>
-									))}
-								</div>
+					{/* Selecionar Componente - sempre visível */}
+					<CardContent className="pt-0">
+						<div className="space-y-2">
+							<h4 className="font-semibold">Selecionar Componente</h4>
+							<div className="flex flex-wrap gap-2">
+								{cadastrosInfo.map((cad, idx) => (
+									<Button
+										key={idx}
+										variant={
+											componenteSelecionado === cad.componente
+												? "default"
+												: "outline"
+										}
+										onClick={() => selecionarComponente(cad.componente)}
+										className="flex flex-col items-start"
+									>
+										<span>Componente: {cad.componente}</span>
+										{cad.setorNome && (
+											<span className="text-xs opacity-70">({cad.setorNome})</span>
+										)}
+									</Button>
+								))}
 							</div>
 						</div>
 					</CardContent>
