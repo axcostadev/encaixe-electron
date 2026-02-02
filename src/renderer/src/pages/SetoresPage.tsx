@@ -91,8 +91,8 @@ export function SetoresPage({
 
 				<Card className={cardClass}>
 					<CardContent>
-						<div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
-							<div className="md:col-span-3 col-span-1">
+						<div className="flex flex-col gap-4 mb-4">
+							<div className="flex-1">
 								<Label htmlFor="nome">Nome do Setor *</Label>
 								<Input
 									id="nome"

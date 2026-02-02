@@ -205,9 +205,10 @@ export function ComponenteForm({
 						className="space-y-6"
 					>
 						<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-							<div className="md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-6">
-								<div className="grid grid-cols-2 gap-4 md:col-span-2">
-									<div className="space-y-2">
+							<div className="md:col-span-3 grid grid-cols-1 gap-4">
+								{/* Linha 1: Nome e Apelido */}
+								<div className="grid grid-cols-3 gap-4">
+									<div className="space-y-2 col-span-2">
 										<Label htmlFor="nome">Nome do Componente *</Label>
 										<Input
 											id="nome"
@@ -223,14 +224,15 @@ export function ComponenteForm({
 											id="apelido"
 											value={formData.apelido}
 											onChange={(e) => handleChange("apelido", e.target.value.toUpperCase())}
-											placeholder="Ex: PLCVIST"
+											placeholder="Ex: PLC"
 											required
 											maxLength={20}
 										/>
 									</div>
 								</div>
 
-								<div className="grid grid-cols-2 gap-4 md:col-span-2">
+								{/* Linha 2: Material e Número Tecido */}
+								<div className="grid grid-cols-2 gap-4">
 									<div className="space-y-2">
 										<Label htmlFor="material">Material *</Label>
 										<SelectSearch
@@ -256,7 +258,8 @@ export function ComponenteForm({
 									</div>
 								</div>
 
-								<div className="grid grid-cols-1 gap-4 md:col-span-4">
+								{/* Linha 3: Setor */}
+								<div className="grid grid-cols-1 gap-4">
 									<div className="space-y-2">
 										<Label htmlFor="setor">Setor</Label>
 										<div className="flex items-center gap-2">
@@ -290,7 +293,8 @@ export function ComponenteForm({
 									</div>
 								</div>
 
-								<div className="grid grid-cols-2 gap-4 md:col-span-2">
+								{/* Linha 4: Conjugação Navalha e Placa Par */}
+								<div className="grid grid-cols-2 gap-4">
 									<div className="space-y-2">
 										<Label htmlFor="conjugacaoNavalha">
 											Conjugação Navalha
@@ -321,84 +325,90 @@ export function ComponenteForm({
 									</div>
 								</div>
 
-<div className="grid grid-cols-5 gap-4 md:col-span-4">
-					<div className="space-y-2">
-						<Label htmlFor="camadas">Camadas</Label>
-						<Input
-							id="camadas"
-							type="number"
-							min="1"
-							value={formData.camadas}
-							onChange={(e) => {
-								const v = e.target.value
-								if (v === "") {
-									handleChange("camadas", "")
-									return
-								}
-								const n = Math.max(1, parseInt(v) || 1)
-								handleChange("camadas", n.toString())
-							}}
-							placeholder="1"
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="espacamento">Espaçamento</Label>
-						<Input
-							id="espacamento"
-							type="number"
-							step="0.01"
-							min="0"
-							value={formData.espacamento}
-							onChange={(e) =>
-								handleChange("espacamento", e.target.value)
-							}
-							placeholder="0.00"
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="compMaximo">Comp. Máximo</Label>
-						<Input
-							id="compMaximo"
-							type="number"
-							step="0.01"
-							min="0"
-							value={formData.compMaximo}
-							onChange={(e) =>
-								handleChange("compMaximo", e.target.value)
-							}
-							placeholder="0.00"
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="percPerda">% Perda</Label>
-						<Input
-							id="percPerda"
-							type="number"
-							step="0.01"
-							min="0"
-							max="100"
-							value={formData.percPerda}
-							onChange={(e) =>
-								handleChange("percPerda", e.target.value)
-							}
-							placeholder="0.00"
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="redutorLargura">Redutor Largura</Label>
-						<Input
-							id="redutorLargura"
-							type="number"
-							step="1"
-							min="0"
-							value={formData.redutorLargura}
-							onChange={(e) => handleChange("redutorLargura", e.target.value)}
-							placeholder="0"
+								{/* Linha 5: Camadas e Espaçamento */}
+								<div className="grid grid-cols-2 gap-4">
+									<div className="space-y-2">
+										<Label htmlFor="camadas">Camadas</Label>
+										<Input
+											id="camadas"
+											type="number"
+											min="1"
+											value={formData.camadas}
+											onChange={(e) => {
+												const v = e.target.value
+												if (v === "") {
+													handleChange("camadas", "")
+													return
+												}
+												const n = Math.max(1, parseInt(v) || 1)
+												handleChange("camadas", n.toString())
+											}}
+											placeholder="1"
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="espacamento">Espaçamento</Label>
+										<Input
+											id="espacamento"
+											type="number"
+											step="0.01"
+											min="0"
+											value={formData.espacamento}
+											onChange={(e) =>
+												handleChange("espacamento", e.target.value)
+											}
+											placeholder="0.00"
 										/>
 									</div>
 								</div>
 
-								<div className="md:col-span-4">
+								{/* Linha 6: Comp. Máximo, % Perda, Redutor Largura */}
+								<div className="grid grid-cols-3 gap-4">
+									<div className="space-y-2">
+										<Label htmlFor="compMaximo">Comp. Máximo</Label>
+										<Input
+											id="compMaximo"
+											type="number"
+											step="0.01"
+											min="0"
+											value={formData.compMaximo}
+											onChange={(e) =>
+												handleChange("compMaximo", e.target.value)
+											}
+											placeholder="0.00"
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="percPerda">% Perda</Label>
+										<Input
+											id="percPerda"
+											type="number"
+											step="0.01"
+											min="0"
+											max="100"
+											value={formData.percPerda}
+											onChange={(e) =>
+												handleChange("percPerda", e.target.value)
+											}
+											placeholder="0.00"
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="redutorLargura">Redutor Largura</Label>
+										<Input
+											id="redutorLargura"
+											type="number"
+											step="1"
+											min="0"
+											value={formData.redutorLargura}
+											onChange={(e) => handleChange("redutorLargura", e.target.value)}
+											placeholder="0"
+										/>
+									</div>
+								</div>
+
+								{/* Linha 6: Cores Disponíveis */}
+								<div>
 									{coresModelo.length > 0 && (
 										<div className="space-y-3">
 											<div className="flex items-center justify-between">
@@ -541,7 +551,7 @@ export function ComponenteForm({
 
 			{openSetorDialog && (
 				<Dialog open={openSetorDialog} onOpenChange={setOpenSetorDialog}>
-					<DialogContent className="sm:max-w-lg max-h-[90vh]">
+					<DialogContent className="sm:max-w-2xl max-h-[90vh]">
 						<SetoresPage onBack={() => setOpenSetorDialog(false)} asDialog />
 					</DialogContent>
 				</Dialog>
