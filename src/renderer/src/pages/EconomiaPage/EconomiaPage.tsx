@@ -1306,6 +1306,20 @@ export default function EconomiaPage() {
                                   if (!unlocked) { e.preventDefault(); return }
                                 }
 
+                                // Navegação com setas: ArrowDown vai para próximo, ArrowUp vai para anterior
+                                if (e.key === 'ArrowDown') {
+                                  e.preventDefault()
+                                  const next = document.querySelector<HTMLInputElement>(`.encaixe-input[data-idx="${idx + 1}"]`)
+                                  if (next) next.focus()
+                                  return
+                                }
+                                if (e.key === 'ArrowUp') {
+                                  e.preventDefault()
+                                  const prev = document.querySelector<HTMLInputElement>(`.encaixe-input[data-idx="${idx - 1}"]`)
+                                  if (prev) prev.focus()
+                                  return
+                                }
+
                                 // Marcar como "tocado" apenas quando o usuário de fato digita (números, vírgula, ponto, backspace, delete, sinal)
                                 if (/^[0-9.,\-]$/.test(e.key) || e.key === 'Backspace' || e.key === 'Delete') {
                                   setEncaixeTouched(prev => ({ ...prev, [idx]: true }))
