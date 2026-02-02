@@ -977,8 +977,8 @@ export default function EconomiaPage() {
                   <ChartContainer config={{ total: { color: '#ef4444' } }} className="h-[600px] aspect-auto">
                       {(() => {
                         // top 5 negatives and top 5 positives
-                        const neg = (byModelo || []).slice(0,5) // already sorted by abs desc
-                        const pos = (byModeloPos || []).slice(0,5).sort((a:any,b:any)=>Math.abs(a.totalEcon)-Math.abs(b.totalEcon))
+                        const neg = (byModelo || []).slice(0,5)
+                        const pos = (byModeloPos || []).slice(0,5)
                         const buildValue = (item:any) => {
                           const dif = Number(item.totalDif)||0
                           const prev = Number(item.totalPrev)||0
@@ -986,13 +986,14 @@ export default function EconomiaPage() {
                           if (modelView === 'brl') return Math.abs(econ)
                           return prev === 0 ? 0 : Math.abs((dif / prev) * 100)
                         }
-                        const data = [
-                          ...neg.map((n:any) => ({ name: n.name, value: buildValue(n), sign: 'neg' })),
-                          ...pos.map((p:any) => ({ name: p.name, value: -buildValue(p), sign: 'pos' })),
-                        ]
-                        if (data.length === 0) return <div className="chart-placeholder">Sem dados para exibir</div>
+                        const negData = neg.map((n:any) => ({ name: n.name, value: buildValue(n), sign: 'neg' }))
+                          .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
+                        const posData = pos.map((p:any) => ({ name: p.name, value: -buildValue(p), sign: 'pos' }))
+                          .sort((a, b) => Math.abs(a.value) - Math.abs(b.value))
+                        const sortedData = [...negData, ...posData]
+                        if (sortedData.length === 0) return <div className="chart-placeholder">Sem dados para exibir</div>
                         return (
-                          <BarChart data={data} margin={{ left: 20, right: 20 }}>
+                          <BarChart data={sortedData} margin={{ left: 20, right: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" type="category" interval={0} tick={VerticalTick} height={200} />
                             <YAxis type="number" />
@@ -1003,7 +1004,7 @@ export default function EconomiaPage() {
                                 : `${Math.abs(Number(value)).toFixed(1)}%`
                             }} />
                             <Bar dataKey="value">
-                              {data.map((entry:any, idx:number) => (
+                              {sortedData.map((entry:any, idx:number) => (
                                 <Cell key={`c-${idx}`} fill={entry.sign==='neg' ? '#ef4444' : '#10b981'} />
                               ))}
                               <LabelList dataKey="value" position="insideTop" fill="#fff" formatter={(value:any)=> (modelView==='brl' ? Math.abs(value).toLocaleString(undefined,{ style:'currency', currency:'BRL'}) : `${Math.abs(value).toFixed(1)}%`)} />
@@ -1028,7 +1029,7 @@ export default function EconomiaPage() {
                   <ChartContainer config={{ total: { color: '#ef4444' } }} className="h-[520px] aspect-auto">
                       {(() => {
                         const neg = (byMaterial || []).slice(0,15)
-                        const pos = (byMaterialPos || []).slice(0,5).sort((a:any,b:any)=>Math.abs(a.totalEcon)-Math.abs(b.totalEcon))
+                        const pos = (byMaterialPos || []).slice(0,5)
                         const buildValue = (item:any) => {
                           const dif = Number(item.totalDif)||0
                           const prev = Number(item.totalPrev)||0
@@ -1036,13 +1037,14 @@ export default function EconomiaPage() {
                           if (materialView === 'brl') return Math.abs(econ)
                           return prev === 0 ? 0 : Math.abs((dif / prev) * 100)
                         }
-                        const data = [
-                          ...neg.map((n:any) => ({ name: n.name, value: buildValue(n), sign: 'neg' })),
-                          ...pos.map((p:any) => ({ name: p.name, value: -buildValue(p), sign: 'pos' })),
-                        ]
-                        if (data.length === 0) return <div className="chart-placeholder">Sem dados para exibir</div>
+                        const negData = neg.map((n:any) => ({ name: n.name, value: buildValue(n), sign: 'neg' }))
+                          .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
+                        const posData = pos.map((p:any) => ({ name: p.name, value: -buildValue(p), sign: 'pos' }))
+                          .sort((a, b) => Math.abs(a.value) - Math.abs(b.value))
+                        const sortedData = [...negData, ...posData]
+                        if (sortedData.length === 0) return <div className="chart-placeholder">Sem dados para exibir</div>
                         return (
-                          <BarChart data={data} margin={{ left: 20, right: 20 }}>
+                          <BarChart data={sortedData} margin={{ left: 20, right: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" type="category" interval={0} tick={VerticalTick} height={200} />
                             <YAxis type="number" />
@@ -1053,7 +1055,7 @@ export default function EconomiaPage() {
                                 : `${Math.abs(Number(value)).toFixed(1)}%`
                             }} />
                             <Bar dataKey="value">
-                              {data.map((entry:any, idx:number) => (
+                              {sortedData.map((entry:any, idx:number) => (
                                 <Cell key={`c-m-${idx}`} fill={entry.sign==='neg' ? '#ef4444' : '#10b981'} />
                               ))}
                               <LabelList dataKey="value" position="insideTop" fill="#fff" formatter={(value:any)=> (materialView==='brl' ? Math.abs(value).toLocaleString(undefined,{ style:'currency', currency:'BRL'}) : `${Math.abs(value).toFixed(1)}%`)} />
