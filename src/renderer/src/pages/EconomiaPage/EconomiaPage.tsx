@@ -133,31 +133,42 @@ export default function EconomiaPage() {
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [selectedFileName, setSelectedFileName] = useState<string>('')
   const [cgcFilePath, setCgcFilePath] = useState<string | null>(null)
+  const [ofccFilePath, setOfccFilePath] = useState<string | null>(null)
   const [searchResults, setSearchResults] = useState<{ line: number; text: string; parsed?: Record<string,string> }[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
+  const [searchedInFile, setSearchedInFile] = useState<string>('') // qual arquivo retornou os resultados
 
-  // Carregar caminho CGC das configurações na inicialização
+  // Carregar caminhos CGC e OFCC das configurações na inicialização
   useEffect(() => {
-    async function loadCgcPath() {
+    async function loadFilePaths() {
       try {
         const res = await (window as any).api.settings.get()
         if (res && res.success && res.settings && res.settings.cgcFilePath) {
           setCgcFilePath(res.settings.cgcFilePath)
           setSelectedFileName(res.settings.cgcFilePath.split(/[/\\]/).pop() || 'CGC.txt')
         } else {
-          // Fallback para caminho padrão
+          // Fallback para caminho padrão CGC
           const defaultPath = 'O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\CGC.txt'
           setCgcFilePath(defaultPath)
           setSelectedFileName('CGC.txt')
         }
+        // Segundo arquivo: OFCC.txt (fallback se não encontrar no CGC)
+        if (res && res.success && res.settings && res.settings.ofccFilePath) {
+          setOfccFilePath(res.settings.ofccFilePath)
+        } else {
+          // Fallback para caminho padrão OFCC
+          const defaultOfccPath = 'O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\OFCC.txt'
+          setOfccFilePath(defaultOfccPath)
+        }
       } catch (err) {
-        console.error('Erro carregando configuração CGC:', err)
-        // Fallback para caminho padrão
+        console.error('Erro carregando configuração dos arquivos:', err)
+        // Fallback para caminhos padrão
         setCgcFilePath('O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\CGC.txt')
+        setOfccFilePath('O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\OFCC.txt')
         setSelectedFileName('CGC.txt')
       }
     }
-    loadCgcPath()
+    loadFilePaths()
   }, [])
 
   // Header (FK) fields and saved header id
@@ -448,10 +459,10 @@ export default function EconomiaPage() {
     }
   }
 
-  // Função para buscar no arquivo CGC
+  // Função para buscar nos arquivos CGC e OFCC (fallback)
   const handleSearchCGC = async () => {
-    if (!cgcFilePath) {
-      alert('Caminho do arquivo CGC não configurado! Vá em Configurações para definir.')
+    if (!cgcFilePath && !ofccFilePath) {
+      alert('Caminho dos arquivos CGC/OFCC não configurado! Vá em Configurações para definir.')
       return
     }
     if (!searchTerm.trim()) {
@@ -459,10 +470,30 @@ export default function EconomiaPage() {
       return
     }
     setSearchLoading(true)
+    setSearchedInFile('')
     try {
-      const result = await (window as any).api.economia.searchCGC(cgcFilePath, searchTerm)
-      if (result.error) {
-        console.error('Erro na busca:', result.error)
+      // Primeiro, buscar no CGC.txt
+      let result: any = null
+      let usedFile = ''
+      
+      if (cgcFilePath) {
+        result = await (window as any).api.economia.searchCGC(cgcFilePath, searchTerm)
+        usedFile = cgcFilePath.split(/[/\\]/).pop() || 'CGC.txt'
+      }
+      
+      // Se não encontrou resultados no CGC ou houve erro, tentar no OFCC.txt
+      if ((!result || result.error || !result.results || result.results.length === 0) && ofccFilePath) {
+        console.log('Não encontrado no CGC, buscando no OFCC...')
+        result = await (window as any).api.economia.searchCGC(ofccFilePath, searchTerm)
+        usedFile = ofccFilePath.split(/[/\\]/).pop() || 'OFCC.txt'
+      }
+      
+      setSearchedInFile(usedFile)
+      
+      if (!result || result.error) {
+        console.error('Erro na busca:', result?.error || 'Nenhum resultado')
+        setSearchResults([])
+      } else if (!result.results || result.results.length === 0) {
         setSearchResults([])
       } else {
         // Converter para o formato esperado pela tabela
@@ -1175,7 +1206,7 @@ export default function EconomiaPage() {
                 {searchResults.length > 0 && (
                   <button 
                     className="busca-btn busca-btn-ghost" 
-                    onClick={()=>{ setSearchResults([]); setSearchTerm(''); setSelectedPeriods(availablePeriods) }}
+                    onClick={()=>{ setSearchResults([]); setSearchTerm(''); setSelectedPeriods(availablePeriods); setSearchedInFile('') }}
                   >
                     Limpar
                   </button>
@@ -1191,7 +1222,13 @@ export default function EconomiaPage() {
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14,2 14,8 20,8"/>
               </svg>
-              <span>{selectedFileName || 'CGC.txt (padrão)'}</span>
+              <span>
+                {searchedInFile ? (
+                  <>Encontrado em: <strong>{searchedInFile}</strong></>
+                ) : (
+                  <>Arquivos: {selectedFileName || 'CGC.txt'} → {ofccFilePath?.split(/[/\\]/).pop() || 'OFCC.txt'}</>
+                )}
+              </span>
             </div>
             <div className="busca-status-divider" />
             <div className="busca-status-item busca-status-results">
@@ -1209,7 +1246,7 @@ export default function EconomiaPage() {
                 <svg className="busca-spinner-large" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                 </svg>
-                <span>Processando arquivo CGC...</span>
+                <span>Processando arquivos CGC / OFCC...</span>
               </div>
             ) : searchResults.length === 0 ? (
               <div className="busca-empty">

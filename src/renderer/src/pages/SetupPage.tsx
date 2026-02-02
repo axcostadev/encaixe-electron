@@ -183,6 +183,7 @@ const [economiaDbPath, setEconomiaDbPath] = useState('')
 const [comelzBasePath, setComelzBasePath] = useState('')
 const [emmaBasePath, setEmmaBasePath] = useState('')
 const [cgcFilePath, setCgcFilePath] = useState('')
+const [ofccFilePath, setOfccFilePath] = useState('')
 const [ctfImportDir, setCtfImportDir] = useState('')
 const [ctcImportDir, setCtcImportDir] = useState('')
 const [ctcReportFile, setCtcReportFile] = useState('')
@@ -201,6 +202,7 @@ async function loadStatus() {
 			if (!comelzBasePath) setComelzBasePath(res.settings?.comelzModelBasePath || 'O:\\Lectra\\Calcado\\Modelos\\COMELZ')
 			if (!emmaBasePath) setEmmaBasePath(res.settings?.emmaModelBasePath || 'O:\\Lectra\\Calcado\\Modelos\\EMMA')
 			if (!cgcFilePath) setCgcFilePath(res.settings?.cgcFilePath || 'O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\CGC.txt')
+			if (!ofccFilePath) setOfccFilePath(res.settings?.ofccFilePath || 'O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\OFCC.txt')
 			if (!ctfImportDir) setCtfImportDir(res.settings?.ctfImportDir || 'O:\\Lectra\\Calcado\\Modelos')
 			if (!ctcImportDir) setCtcImportDir(res.settings?.ctcImportDir || 'O:\\Lectra\\Calcado\\Modelos')
 			if (!ctcReportFile) setCtcReportFile(res.settings?.ctcReportFile || 'O:\\CORTE\\Alyson\\relatorioGCITXT\\CTC.txt')
@@ -223,10 +225,11 @@ async function loadSettings() {
 			setComelzBasePath(res.settings.comelzModelBasePath || 'O:\\Lectra\\Calcado\\Modelos\\COMELZ')
 			setEmmaBasePath(res.settings.emmaModelBasePath || 'O:\\Lectra\\Calcado\\Modelos\\EMMA')
 			setCgcFilePath(res.settings.cgcFilePath || 'O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\CGC.txt')
+			setOfccFilePath(res.settings.ofccFilePath || 'O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\OFCC.txt')
 			setCtfImportDir(res.settings.ctfImportDir || 'O:\\Lectra\\Calcado\\Modelos')
 			setCtcImportDir(res.settings.ctcImportDir || 'O:\\Lectra\\Calcado\\Modelos')
 			setCtcReportFile(res.settings.ctcReportFile || 'O:\\CORTE\\Alyson\\relatorioGCITXT\\CTC.txt')
-			setCtfReportFile(res.settings.ctfReportFile || 'O:\\CORTE\\Alyson\\relatorioGCITXT\\CTF.txt')
+			setCtfReportFile(res.settings.ctfReportFile || 'O:\\CORTE\\Calcado\\Modelos\\CTF.txt')
 			setDefaultCustomerName(res.settings.defaultCustomerName || 'VULCABRAS')
 		} else if (res && !res.success) {
 			console.error('Erro carregando configurações:', res.message)
@@ -293,6 +296,7 @@ async function handleSaveSettings() {
 			comelzModelBasePath: comelzBasePath,
 			emmaModelBasePath: emmaBasePath,
 			cgcFilePath: cgcFilePath,
+			ofccFilePath: ofccFilePath,
 			ctfImportDir: ctfImportDir,
 			ctcImportDir: ctcImportDir,
 			ctcReportFile: ctcReportFile,
@@ -330,6 +334,7 @@ async function handleRestoreDefault() {
 			setComelzBasePath(res.settings.comelzModelBasePath || 'O:\\Lectra\\Calcado\\Modelos\\COMELZ')
 			setEmmaBasePath(res.settings.emmaModelBasePath || 'O:\\Lectra\\Calcado\\Modelos\\EMMA')
 			setCgcFilePath(res.settings.cgcFilePath || 'O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\CGC.txt')
+			setOfccFilePath(res.settings.ofccFilePath || 'O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\OFCC.txt')
 			setCtfImportDir(res.settings.ctfImportDir || 'O:\\Lectra\\Calcado\\Modelos')
 			setCtcImportDir(res.settings.ctcImportDir || 'O:\\Lectra\\Calcado\\Modelos')
 			setCtcReportFile(res.settings.ctcReportFile || 'O:\\CORTE\\Alyson\\relatorioGCITXT\\CTC.txt')
@@ -1140,11 +1145,17 @@ async function runMigration() {
 								</div>
 								<p className="text-muted-foreground text-sm mt-2">Usado para exportar/gerar modelos EMMA (.emp). Ajuste aqui sem alterar código.</p>
 
-								<Label className="text-sm mt-4">Arquivo CGC (Busca Dados)</Label>
+								<Label className="text-sm mt-4">Arquivo CGC (Busca Dados - Primário)</Label>
 								<div className="flex gap-2 mt-2">
 									<Input value={cgcFilePath} onChange={(e) => setCgcFilePath((e.target as HTMLInputElement).value)} placeholder="O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\CGC.txt" />
 								</div>
-								<p className="text-muted-foreground text-sm mt-2">Caminho completo para o arquivo CGC.txt usado na tela de Economia/Busca Dados.</p>
+								<p className="text-muted-foreground text-sm mt-2">Caminho completo para o arquivo CGC.txt usado na tela de Economia/Busca Dados (busca primeiro neste arquivo).</p>
+
+								<Label className="text-sm mt-4">Arquivo OFCC (Busca Dados - Secundário/Fallback)</Label>
+								<div className="flex gap-2 mt-2">
+									<Input value={ofccFilePath} onChange={(e) => setOfccFilePath((e.target as HTMLInputElement).value)} placeholder="O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\OFCC.txt" />
+								</div>
+								<p className="text-muted-foreground text-sm mt-2">Caminho completo para o arquivo OFCC.txt usado como fallback se não encontrar no CGC.txt.</p>
 
 								<Label className="text-sm mt-4">Diretório de Importação CTF</Label>
 								<div className="flex gap-2 mt-2">

@@ -13,8 +13,10 @@ const DEFAULTS = {
   comelzModelBasePath: path.join("O:", "Lectra", "Calcado", "Modelos", "COMELZ"),
   // Base onde ficam os modelos EMMA na rede/local
   emmaModelBasePath: path.join("O:", "Lectra", "Calcado", "Modelos", "EMMA"),
-  // Caminho padrão do arquivo CGC.txt para busca de dados
+  // Caminho padrão do arquivo CGC.txt para busca de dados (primário)
   cgcFilePath: path.join("O:", "Lectra", "Calcado", "Modelos", "SL-ECX", "CGC.txt"),
+  // Caminho padrão do arquivo OFCC.txt para busca de dados (fallback/secundário)
+  ofccFilePath: path.join("O:", "Lectra", "Calcado", "Modelos", "SL-ECX", "OFCC.txt"),
   // Diretório padrão para importação de arquivos CTF
   ctfImportDir: path.join("O:", "Lectra", "Calcado", "Modelos"),
   // Diretório padrão para importação de arquivos CTC
@@ -89,6 +91,12 @@ export function getCgcFilePath(): string {
   const s = loadSettingsSync()
   if (s.cgcFilePath && typeof s.cgcFilePath === "string") return s.cgcFilePath
   return DEFAULTS.cgcFilePath
+}
+
+export function getOfccFilePath(): string {
+  const s = loadSettingsSync()
+  if (s.ofccFilePath && typeof s.ofccFilePath === "string") return s.ofccFilePath
+  return DEFAULTS.ofccFilePath
 }
 
 export function getCtfImportDir(): string {
