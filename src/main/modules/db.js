@@ -9,20 +9,20 @@ const __dirname = path.dirname(__filename)
 
 // Use configurable DB path: prefer environment variable ECONOMIA_DB_FILE, otherwise fall back to settings or default
 function getDbFile() {
-	// Force economia DB to a fixed, project-wide path unless the user has enabled
-	// permission to change the economia DB path in the settings (allowEconomiaDbChange).
-	const FORCED_ECONOMIA_PATH = path.join('C:', 'Aincrad', 'CuttingRoom', 'app.db')
+	// Sempre usa o caminho definido nas configurações do usuário
 	try {
 		const settings = require('../settings')
-		if (typeof settings.getAllowEconomiaDbChange === 'function' && settings.getAllowEconomiaDbChange()) {
-			// user is allowed to change: prefer ENV override, then setting value
-			if (process.env.ECONOMIA_DB_FILE) return process.env.ECONOMIA_DB_FILE
+		// Primeiro verifica se há override via ENV
+		if (process.env.ECONOMIA_DB_FILE) return process.env.ECONOMIA_DB_FILE
+		// Usa o caminho configurado pelo usuário
+		if (typeof settings.getDatabaseFilePath === 'function') {
 			return settings.getDatabaseFilePath()
 		}
 	} catch (e) {
-		// ignore and fall back to forced path
+		console.error('[DB] Erro ao obter caminho do DB das configurações:', e)
 	}
-	return FORCED_ECONOMIA_PATH
+	// Fallback para caminho padrão apenas se não conseguir ler as configurações
+	return path.join('C:', 'Aincrad', 'CuttingRoom', 'app.db')
 }
 
 let db
@@ -751,21 +751,10 @@ export function closeDB() {
 
 export async function reinitDB(newPath) {
 	try {
-		// If caller provided a newPath, only apply it when user allowed changes via settings
+		// Se um novo caminho foi fornecido, define via ENV para que initDB use
 		if (newPath) {
-			try {
-				const settings = require('../settings')
-				if (typeof settings.getAllowEconomiaDbChange === 'function' && settings.getAllowEconomiaDbChange()) {
-					// persist new path and apply via env so initDB picks it up
-					settings.setSettings({ dbFile: newPath })
-					process.env.ECONOMIA_DB_FILE = newPath
-					console.log('[DB] reinitDB: applying new economia DB path:', newPath)
-				} else {
-					console.log('[DB] reinitDB: newPath ignored because allowEconomiaDbChange is disabled')
-				}
-			} catch (e) {
-				console.error('[DB] reinitDB settings check error:', e)
-			}
+			process.env.ECONOMIA_DB_FILE = newPath
+			console.log('[DB] reinitDB: aplicando novo caminho do DB:', newPath)
 		}
 		closeDB()
 		// wait for new init

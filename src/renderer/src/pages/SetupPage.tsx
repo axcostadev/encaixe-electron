@@ -1076,15 +1076,9 @@ async function runMigration() {
 								<div className="text-sm">Economia DB atual: <code title={economiaDbPath}>{economiaDbPath || '—'}</code></div>
 							</div>
 								<Label className="text-sm">Pasta onde será salvo o arquivo <code>app.db</code></Label>
-									<div className="flex items-center gap-4 mt-2">
-										<label style={{display: 'flex', alignItems: 'center', gap:8}}>
-											<input type="checkbox" checked={allowEconomiaDbChange} onChange={(e)=>setAllowEconomiaDbChange(e.target.checked)} />
-											<span style={{fontSize:13}}>Permitir alterar caminho de economia DB</span>
-										</label>
-									</div>
 									<div className="flex gap-2 mt-2">
-										<Input value={dbFilePath} onChange={(e) => setDbFilePath((e.target as HTMLInputElement).value)} disabled={!allowEconomiaDbChange} />
-										<Button variant="outline" onClick={handleSelectDbFolder} disabled={!allowEconomiaDbChange}>Selecionar pasta...</Button>
+										<Input value={dbFilePath} onChange={(e) => setDbFilePath((e.target as HTMLInputElement).value)} />
+										<Button variant="outline" onClick={handleSelectDbFolder}>Selecionar pasta...</Button>
 									</div>
 								<p className="text-muted-foreground text-sm mt-2">Selecione a pasta na rede ou local onde será armazenado o arquivo <code>app.db</code>. Ao salvar, o app fará backup do DB atual (se existir) e reinicializará a conexão.</p>
 							</div>
