@@ -394,6 +394,9 @@ async function handleRestoreDefault() {
 	useEffect(() => {
 		loadUsers()
 		loadRoles()
+		// Carregar configurações na inicialização
+		loadSettings()
+		loadStatus()
 	}, [loadUsers, loadRoles])
 
 	// Função para verificar o status da migração
