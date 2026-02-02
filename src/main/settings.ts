@@ -9,6 +9,22 @@ const DEFAULTS = {
   dbFile: path.join("C:", "Aincrad", "CuttingRoom", "app.db"),
   // Se true, permite que o usuário altere o caminho do DB de economia na UI.
   allowEconomiaDbChange: false,
+  // Base onde ficam os modelos COMELZ na rede/local
+  comelzModelBasePath: path.join("O:", "Lectra", "Calcado", "Modelos", "COMELZ"),
+  // Base onde ficam os modelos EMMA na rede/local
+  emmaModelBasePath: path.join("O:", "Lectra", "Calcado", "Modelos", "EMMA"),
+  // Caminho padrão do arquivo CGC.txt para busca de dados
+  cgcFilePath: path.join("O:", "Lectra", "Calcado", "Modelos", "SL-ECX", "CGC.txt"),
+  // Diretório padrão para importação de arquivos CTF
+  ctfImportDir: path.join("O:", "Lectra", "Calcado", "Modelos"),
+  // Diretório padrão para importação de arquivos CTC
+  ctcImportDir: path.join("O:", "Lectra", "Calcado", "Modelos"),
+  // Arquivo CTC.txt para busca de OF (relatório GCI)
+  ctcReportFile: path.join("O:", "CORTE", "Alyson", "relatorioGCITXT", "CTC.txt"),
+  // Arquivo CTF.txt para busca de OF (relatório GCI)
+  ctfReportFile: path.join("O:", "CORTE", "Alyson", "relatorioGCITXT", "CTF.txt"),
+  // Nome do cliente padrão usado nos arquivos gerados
+  defaultCustomerName: "VULCABRAS",
 }
 
 function loadSettingsSync(): Record<string, any> {
@@ -50,6 +66,54 @@ export function getSettings(): Record<string, any> {
 export function getAllowEconomiaDbChange(): boolean {
   const s = loadSettingsSync()
   return !!s.allowEconomiaDbChange
+}
+
+export function getComelzModelBasePath(): string {
+  const s = loadSettingsSync()
+  if (s.comelzModelBasePath && typeof s.comelzModelBasePath === "string") return s.comelzModelBasePath
+  return DEFAULTS.comelzModelBasePath
+}
+
+export function getEmmaModelBasePath(): string {
+  const s = loadSettingsSync()
+  if (s.emmaModelBasePath && typeof s.emmaModelBasePath === "string") return s.emmaModelBasePath
+  return DEFAULTS.emmaModelBasePath
+}
+
+export function getCgcFilePath(): string {
+  const s = loadSettingsSync()
+  if (s.cgcFilePath && typeof s.cgcFilePath === "string") return s.cgcFilePath
+  return DEFAULTS.cgcFilePath
+}
+
+export function getCtfImportDir(): string {
+  const s = loadSettingsSync()
+  if (s.ctfImportDir && typeof s.ctfImportDir === "string") return s.ctfImportDir
+  return DEFAULTS.ctfImportDir
+}
+
+export function getCtcImportDir(): string {
+  const s = loadSettingsSync()
+  if (s.ctcImportDir && typeof s.ctcImportDir === "string") return s.ctcImportDir
+  return DEFAULTS.ctcImportDir
+}
+
+export function getCtcReportFile(): string {
+  const s = loadSettingsSync()
+  if (s.ctcReportFile && typeof s.ctcReportFile === "string") return s.ctcReportFile
+  return DEFAULTS.ctcReportFile
+}
+
+export function getCtfReportFile(): string {
+  const s = loadSettingsSync()
+  if (s.ctfReportFile && typeof s.ctfReportFile === "string") return s.ctfReportFile
+  return DEFAULTS.ctfReportFile
+}
+
+export function getDefaultCustomerName(): string {
+  const s = loadSettingsSync()
+  if (s.defaultCustomerName && typeof s.defaultCustomerName === "string") return s.defaultCustomerName
+  return DEFAULTS.defaultCustomerName
 }
 
 export function setSettings(updates: Record<string, any>): Record<string, any> {

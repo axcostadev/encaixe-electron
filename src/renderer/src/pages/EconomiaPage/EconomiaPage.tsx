@@ -136,6 +136,30 @@ export default function EconomiaPage() {
   const [searchResults, setSearchResults] = useState<{ line: number; text: string; parsed?: Record<string,string> }[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
 
+  // Carregar caminho CGC das configurações na inicialização
+  useEffect(() => {
+    async function loadCgcPath() {
+      try {
+        const res = await (window as any).api.settings.get()
+        if (res && res.success && res.settings && res.settings.cgcFilePath) {
+          setCgcFilePath(res.settings.cgcFilePath)
+          setSelectedFileName(res.settings.cgcFilePath.split(/[/\\]/).pop() || 'CGC.txt')
+        } else {
+          // Fallback para caminho padrão
+          const defaultPath = 'O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\CGC.txt'
+          setCgcFilePath(defaultPath)
+          setSelectedFileName('CGC.txt')
+        }
+      } catch (err) {
+        console.error('Erro carregando configuração CGC:', err)
+        // Fallback para caminho padrão
+        setCgcFilePath('O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\CGC.txt')
+        setSelectedFileName('CGC.txt')
+      }
+    }
+    loadCgcPath()
+  }, [])
+
   // Header (FK) fields and saved header id
   const [headerFields, setHeaderFields] = useState<{ dataFase?: string; modelo?: string; artigo?: string; data?: string; periodo?: string }>(() => ({ data: getTodayDisplay(), periodo: getTodayPeriod(), artigo: '' }))
   const [headerId, setHeaderId] = useState<number | null>(null)
@@ -427,7 +451,7 @@ export default function EconomiaPage() {
   // Função para buscar no arquivo CGC
   const handleSearchCGC = async () => {
     if (!cgcFilePath) {
-      alert('Selecione um arquivo CGC primeiro!')
+      alert('Caminho do arquivo CGC não configurado! Vá em Configurações para definir.')
       return
     }
     if (!searchTerm.trim()) {
@@ -537,24 +561,6 @@ export default function EconomiaPage() {
       setSearchResults([])
     } finally {
       setSearchLoading(false)
-    }
-  }
-
-  // Função para selecionar arquivo (apenas define o caminho)
-  const handleSelectFile = async () => {
-    try {
-      const result = await (window as any).api.economia.selectCGCFile()
-      if (result.filePath) {
-        setCgcFilePath(result.filePath)
-        setSelectedFileName(result.filePath.split(/[/\\]/).pop() || 'CGC.txt')
-        setSearchResults([]) // Limpar resultados anteriores
-        setEncaixeValues({}) // Limpar valores de encaixe
-        // Preserve Data/Período defaults: set Data to today (DD-MM-YYYY) and Período to YYYY/MM
-        setHeaderFields({ data: getTodayDisplay(), periodo: getTodayPeriod() })
-        setHeaderId(null)
-      }
-    } catch (err) {
-      console.error('Erro ao selecionar arquivo:', err)
     }
   }
 
@@ -1165,16 +1171,6 @@ export default function EconomiaPage() {
                       Buscar
                     </>
                   )}
-                </button>
-                <button 
-                  className="busca-btn busca-btn-secondary" 
-                  onClick={handleSelectFile}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14,2 14,8 20,8"/>
-                  </svg>
-                  Selecionar Arquivo
                 </button>
                 {searchResults.length > 0 && (
                   <button 

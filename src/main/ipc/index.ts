@@ -55,7 +55,7 @@ import * as conversorComelz from "../modules/conversorComelz.js"
 import * as conversorEmma from "../modules/conversorEmma.js"
 import * as conversorLectra from "../modules/conversorLectra.js"
 import * as cgcParser from "../modules/cgcParser.js"
-import { getSettings, setSettings } from "../settings"
+import { getSettings, setSettings, getCtcReportFile, getCtfReportFile } from "../settings"
 import {
 	activateLicense,
 	getFingerprint,
@@ -783,9 +783,10 @@ ipcMain.handle("settings:get-status", async () => {
 		const readline = await import("readline")
 		const resultado: BuscarOFResult[] = []
 
+		// Caminhos configuráveis via settings
 		const caminhos = [
-			"O:\\CORTE\\Alyson\\relatorioGCITXT\\CTC.txt",
-			"O:\\CORTE\\Alyson\\relatorioGCITXT\\CTF.txt",
+			getCtcReportFile(),
+			getCtfReportFile(),
 		]
 
 		const padraoOF = /PAR\s*(\d{9})\/\d/i

@@ -180,6 +180,14 @@ const [dbFilePath, setDbFilePath] = useState('')
 const [originalDbFile, setOriginalDbFile] = useState('')
 const [savingSettings, setSavingSettings] = useState(false)
 const [economiaDbPath, setEconomiaDbPath] = useState('')
+const [comelzBasePath, setComelzBasePath] = useState('')
+const [emmaBasePath, setEmmaBasePath] = useState('')
+const [cgcFilePath, setCgcFilePath] = useState('')
+const [ctfImportDir, setCtfImportDir] = useState('')
+const [ctcImportDir, setCtcImportDir] = useState('')
+const [ctcReportFile, setCtcReportFile] = useState('')
+const [ctfReportFile, setCtfReportFile] = useState('')
+const [defaultCustomerName, setDefaultCustomerName] = useState('')
 const [allowEconomiaDbChange, setAllowEconomiaDbChange] = useState(false)
 
 async function loadStatus() {
@@ -189,7 +197,15 @@ async function loadStatus() {
 			setEconomiaDbPath(res.economiaDb || '')
 			setAllowEconomiaDbChange(!!res.settings?.allowEconomiaDbChange)
 			// also ensure input matches stored setting if not manually editing
-			if (!dbFilePath) setDbFilePath(res.settings?.dbFile || '')
+			if (!dbFilePath) setDbFilePath(res.settings?.dbFile || 'C:\\Aincrad\\CuttingRoom\\app.db')
+			if (!comelzBasePath) setComelzBasePath(res.settings?.comelzModelBasePath || 'O:\\Lectra\\Calcado\\Modelos\\COMELZ')
+			if (!emmaBasePath) setEmmaBasePath(res.settings?.emmaModelBasePath || 'O:\\Lectra\\Calcado\\Modelos\\EMMA')
+			if (!cgcFilePath) setCgcFilePath(res.settings?.cgcFilePath || 'O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\CGC.txt')
+			if (!ctfImportDir) setCtfImportDir(res.settings?.ctfImportDir || 'O:\\Lectra\\Calcado\\Modelos')
+			if (!ctcImportDir) setCtcImportDir(res.settings?.ctcImportDir || 'O:\\Lectra\\Calcado\\Modelos')
+			if (!ctcReportFile) setCtcReportFile(res.settings?.ctcReportFile || 'O:\\CORTE\\Alyson\\relatorioGCITXT\\CTC.txt')
+			if (!ctfReportFile) setCtfReportFile(res.settings?.ctfReportFile || 'O:\\CORTE\\Alyson\\relatorioGCITXT\\CTF.txt')
+			if (!defaultCustomerName) setDefaultCustomerName(res.settings?.defaultCustomerName || 'VULCABRAS')
 		} else {
 			console.error('Erro carregando status:', res?.message)
 		}
@@ -202,8 +218,16 @@ async function loadSettings() {
 	try {
 		const res = await (window as any).api.settings.get()
 		if (res && res.success && res.settings) {
-			setDbFilePath(res.settings.dbFile || '')
-			setOriginalDbFile(res.settings.dbFile || '')
+			setDbFilePath(res.settings.dbFile || 'C:\\Aincrad\\CuttingRoom\\app.db')
+			setOriginalDbFile(res.settings.dbFile || 'C:\\Aincrad\\CuttingRoom\\app.db')
+			setComelzBasePath(res.settings.comelzModelBasePath || 'O:\\Lectra\\Calcado\\Modelos\\COMELZ')
+			setEmmaBasePath(res.settings.emmaModelBasePath || 'O:\\Lectra\\Calcado\\Modelos\\EMMA')
+			setCgcFilePath(res.settings.cgcFilePath || 'O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\CGC.txt')
+			setCtfImportDir(res.settings.ctfImportDir || 'O:\\Lectra\\Calcado\\Modelos')
+			setCtcImportDir(res.settings.ctcImportDir || 'O:\\Lectra\\Calcado\\Modelos')
+			setCtcReportFile(res.settings.ctcReportFile || 'O:\\CORTE\\Alyson\\relatorioGCITXT\\CTC.txt')
+			setCtfReportFile(res.settings.ctfReportFile || 'O:\\CORTE\\Alyson\\relatorioGCITXT\\CTF.txt')
+			setDefaultCustomerName(res.settings.defaultCustomerName || 'VULCABRAS')
 		} else if (res && !res.success) {
 			console.error('Erro carregando configurações:', res.message)
 		}
@@ -263,7 +287,18 @@ async function handleSaveSettings() {
 
 	setSavingSettings(true)
 	try {
-		const res = await (window as any).api.settings.set({ dbFile: dbFilePath, allowEconomiaDbChange: !!allowEconomiaDbChange })
+		const res = await (window as any).api.settings.set({
+			dbFile: dbFilePath,
+			allowEconomiaDbChange: !!allowEconomiaDbChange,
+			comelzModelBasePath: comelzBasePath,
+			emmaModelBasePath: emmaBasePath,
+			cgcFilePath: cgcFilePath,
+			ctfImportDir: ctfImportDir,
+			ctcImportDir: ctcImportDir,
+			ctcReportFile: ctcReportFile,
+			ctfReportFile: ctfReportFile,
+			defaultCustomerName: defaultCustomerName,
+		})
 		if (res && res.success) {
 			toast.success('Configurações salvas com sucesso')
 			setOriginalDbFile(dbFilePath)
@@ -291,7 +326,15 @@ async function handleRestoreDefault() {
 		const res = await (window as any).api.settings.get()
 		if (res && res.success && res.settings) {
 			// padrão é o valor salvo no arquivo; se não existir, o main fornece o default
-			setDbFilePath(res.settings.dbFile || '')
+			setDbFilePath(res.settings.dbFile || 'C:\\Aincrad\\CuttingRoom\\app.db')
+			setComelzBasePath(res.settings.comelzModelBasePath || 'O:\\Lectra\\Calcado\\Modelos\\COMELZ')
+			setEmmaBasePath(res.settings.emmaModelBasePath || 'O:\\Lectra\\Calcado\\Modelos\\EMMA')
+			setCgcFilePath(res.settings.cgcFilePath || 'O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\CGC.txt')
+			setCtfImportDir(res.settings.ctfImportDir || 'O:\\Lectra\\Calcado\\Modelos')
+			setCtcImportDir(res.settings.ctcImportDir || 'O:\\Lectra\\Calcado\\Modelos')
+			setCtcReportFile(res.settings.ctcReportFile || 'O:\\CORTE\\Alyson\\relatorioGCITXT\\CTC.txt')
+			setCtfReportFile(res.settings.ctfReportFile || 'O:\\CORTE\\Alyson\\relatorioGCITXT\\CTF.txt')
+			setDefaultCustomerName(res.settings.defaultCustomerName || 'VULCABRAS')
 		}
 	} catch (err) {
 		console.error('Erro restaurando padrão:', err)
@@ -1081,6 +1124,54 @@ async function runMigration() {
 										<Button variant="outline" onClick={handleSelectDbFolder}>Selecionar pasta...</Button>
 									</div>
 								<p className="text-muted-foreground text-sm mt-2">Selecione a pasta na rede ou local onde será armazenado o arquivo <code>app.db</code>. Ao salvar, o app fará backup do DB atual (se existir) e reinicializará a conexão.</p>
+
+								<Label className="text-sm mt-4">Base dos modelos COMELZ</Label>
+								<div className="flex gap-2 mt-2">
+									<Input value={comelzBasePath} onChange={(e) => setComelzBasePath((e.target as HTMLInputElement).value)} placeholder="\\\\servidor\\pasta\\COMELZ ou O:\\Lectra\\Calcado\\Modelos\\COMELZ" />
+								</div>
+								<p className="text-muted-foreground text-sm mt-2">Usado para exportar/normalizar modelos COMELZ (arquivos .cmz). Altere aqui sem precisar modificar código.</p>
+
+								<Label className="text-sm mt-4">Base dos modelos EMMA</Label>
+								<div className="flex gap-2 mt-2">
+									<Input value={emmaBasePath} onChange={(e) => setEmmaBasePath((e.target as HTMLInputElement).value)} placeholder="\\\\servidor\\pasta\\EMMA ou O:\\Lectra\\Calcado\\Modelos\\EMMA" />
+								</div>
+								<p className="text-muted-foreground text-sm mt-2">Usado para exportar/gerar modelos EMMA (.emp). Ajuste aqui sem alterar código.</p>
+
+								<Label className="text-sm mt-4">Arquivo CGC (Busca Dados)</Label>
+								<div className="flex gap-2 mt-2">
+									<Input value={cgcFilePath} onChange={(e) => setCgcFilePath((e.target as HTMLInputElement).value)} placeholder="O:\\Lectra\\Calcado\\Modelos\\SL-ECX\\CGC.txt" />
+								</div>
+								<p className="text-muted-foreground text-sm mt-2">Caminho completo para o arquivo CGC.txt usado na tela de Economia/Busca Dados.</p>
+
+								<Label className="text-sm mt-4">Diretório de Importação CTF</Label>
+								<div className="flex gap-2 mt-2">
+									<Input value={ctfImportDir} onChange={(e) => setCtfImportDir((e.target as HTMLInputElement).value)} placeholder="O:\\Lectra\\Calcado\\Modelos" />
+								</div>
+								<p className="text-muted-foreground text-sm mt-2">Pasta base para importar arquivos .ctf na tela de Economia.</p>
+
+								<Label className="text-sm mt-4">Diretório de Importação CTC</Label>
+								<div className="flex gap-2 mt-2">
+									<Input value={ctcImportDir} onChange={(e) => setCtcImportDir((e.target as HTMLInputElement).value)} placeholder="O:\\Lectra\\Calcado\\Modelos" />
+								</div>
+								<p className="text-muted-foreground text-sm mt-2">Pasta base para importar arquivos .ctc na tela de Economia.</p>
+
+								<Label className="text-sm mt-4">Arquivo CTC.txt (Busca OF)</Label>
+								<div className="flex gap-2 mt-2">
+									<Input value={ctcReportFile} onChange={(e) => setCtcReportFile((e.target as HTMLInputElement).value)} placeholder="O:\\CORTE\\Alyson\\relatorioGCITXT\\CTC.txt" />
+								</div>
+								<p className="text-muted-foreground text-sm mt-2">Caminho do relatório CTC.txt usado na busca de OF.</p>
+
+								<Label className="text-sm mt-4">Arquivo CTF.txt (Busca OF)</Label>
+								<div className="flex gap-2 mt-2">
+									<Input value={ctfReportFile} onChange={(e) => setCtfReportFile((e.target as HTMLInputElement).value)} placeholder="O:\\CORTE\\Alyson\\relatorioGCITXT\\CTF.txt" />
+								</div>
+								<p className="text-muted-foreground text-sm mt-2">Caminho do relatório CTF.txt usado na busca de OF.</p>
+
+								<Label className="text-sm mt-4">Nome do Cliente Padrão</Label>
+								<div className="flex gap-2 mt-2">
+									<Input value={defaultCustomerName} onChange={(e) => setDefaultCustomerName((e.target as HTMLInputElement).value)} placeholder="VULCABRAS" />
+								</div>
+								<p className="text-muted-foreground text-sm mt-2">Nome do cliente usado nos arquivos gerados (Emma/Comelz).</p>
 							</div>
 							<div className="flex gap-2">
 								<Button onClick={handleSaveSettings} disabled={savingSettings}>{savingSettings ? 'Salvando...' : 'Salvar'}</Button>

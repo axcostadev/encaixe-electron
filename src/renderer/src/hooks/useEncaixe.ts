@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import type {
 	DadosCTF,
 	DadosCTC,
@@ -6,6 +6,10 @@ import type {
 	PedidoEmma,
 	ModelDataLectra,
 } from "@renderer/types"
+
+// Caminhos padrão (fallback)
+const DEFAULT_COMELZ_PATH = "O:\\Lectra\\Calcado\\Modelos\\COMELZ"
+const DEFAULT_EMMA_PATH = "O:\\Lectra\\Calcado\\Modelos\\EMMA"
 
 interface CadastroInfo {
 	artigo: string
@@ -41,6 +45,28 @@ export function useEncaixe() {
 	const [error, setError] = useState<string | null>(null)
 	const [parsedCTF, setParsedCTF] = useState<DadosCTF[]>([])
 	const [parsedCTC, setParsedCTC] = useState<DadosCTC[]>([])
+	
+	// Caminhos configurados (carregados das settings)
+	const [comelzBasePath, setComelzBasePath] = useState(DEFAULT_COMELZ_PATH)
+	const [emmaBasePath, setEmmaBasePath] = useState(DEFAULT_EMMA_PATH)
+	const [defaultCustomerName, setDefaultCustomerName] = useState("VULCABRAS")
+	
+	// Carregar configurações na inicialização
+	useEffect(() => {
+		async function loadPaths() {
+			try {
+				const res = await (window as any).api.settings.get()
+				if (res && res.success && res.settings) {
+					if (res.settings.comelzModelBasePath) setComelzBasePath(res.settings.comelzModelBasePath)
+					if (res.settings.emmaModelBasePath) setEmmaBasePath(res.settings.emmaModelBasePath)
+					if (res.settings.defaultCustomerName) setDefaultCustomerName(res.settings.defaultCustomerName)
+				}
+			} catch (err) {
+				console.error('Erro carregando paths das configurações:', err)
+			}
+		}
+		loadPaths()
+	}, [])
 
 	// Buscar OF e retornar grade/pares
 	const buscarOF = useCallback(async (of: string): Promise<GradePar[]> => {
@@ -132,9 +158,9 @@ export function useEncaixe() {
 					id: "ord1",
 					date: new Date().toISOString().split("T")[0].replace(/-/g, ""),
 					note: "Pedido teste",
-					customer: "ClienteX",
+					customer: defaultCustomerName,
 					split_materials: false,
-					model: cadastro?.modelo || "O:\\Lectra\\Calcado\\Modelos\\COMELZ\\esempio.cmz",
+					model: cadastro?.modelo || `${comelzBasePath}\\esempio.cmz`,
 					qty: qtyRules,
 				}
 
@@ -172,19 +198,19 @@ export function useEncaixe() {
 				)
 
 				// Construir caminho do modelo Emma
-				// Formato: O:\Lectra\Calcado\Modelos\EMMA\{artigo} - {modelo}\{componente}.emp
+				// Formato: {emmaBasePath}\{artigo} - {modelo}\{componente}.emp
 				const pastaArtigo =
 					cadastro?.artigo && cadastro?.modelo
 						? `${cadastro.artigo} - ${cadastro.modelo}`
 						: ""
 				const modelPath =
 					pastaArtigo && cadastro?.componente
-						? `O:\\Lectra\\Calcado\\Modelos\\EMMA\\${pastaArtigo}\\${cadastro.componente}.emp`
+						? `${emmaBasePath}\\${pastaArtigo}\\${cadastro.componente}.emp`
 						: ""
 
 				// Criar pedido Emma
 				const pedido: PedidoEmma = {
-					customer: "VULCABRAS",
+					customer: defaultCustomerName,
 					date: new Date().toISOString().split("T")[0].replace(/-/g, ""),
 					id: cadastro?.artigo || "433015115",
 					model: modelPath,

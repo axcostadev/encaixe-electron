@@ -1,4 +1,5 @@
 // Reproduz a lógica do ConversorComelz Java: retorna lista de QtyRule
+import { getComelzModelBasePath } from "../settings.js"
 // parsedCTF/parsedCTC: arrays de blocos { of, linhas: [...] }
 // cadastro: { artigo, cor, material }
 //
@@ -136,8 +137,10 @@ export function gerarArquivoComelz(options = {}) {
 
 	// Campo obrigatório - model (caminho do arquivo .CMZ)
 	// Nota: backslashes devem ser escapados no JSON
-	// Usa um padrão local se `options.model` não for informado
-	arquivo.model = String(options.model || "O:\\Lectra\\Calcado\\Modelos\\COMELZ\\")
+	// Usa o caminho configurado se `options.model` não for informado
+	const baseModel = getComelzModelBasePath()
+	const normalizedBase = baseModel.endsWith("\\") ? baseModel : `${baseModel}\\`
+	arquivo.model = String(options.model || normalizedBase)
 
 	// qty rules
 	arquivo.qty = Array.isArray(options.qty) ? options.qty : []

@@ -170,6 +170,28 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 	const [paresPorCorTamanho, setParesPorCorTamanho] = useState<ParesPorCor[]>(
 		[],
 	)
+	
+	// Caminhos configurados das settings
+	const [comelzBasePath, setComelzBasePath] = useState("O:\\Lectra\\Calcado\\Modelos\\COMELZ")
+	const [emmaBasePath, setEmmaBasePath] = useState("O:\\Lectra\\Calcado\\Modelos\\EMMA")
+	const [defaultCustomerName, setDefaultCustomerName] = useState("VULCABRAS")
+	
+	// Carregar configurações na inicialização
+	useEffect(() => {
+		async function loadPaths() {
+			try {
+				const res = await (window as any).api.settings.get()
+				if (res && res.success && res.settings) {
+					if (res.settings.comelzModelBasePath) setComelzBasePath(res.settings.comelzModelBasePath)
+					if (res.settings.emmaModelBasePath) setEmmaBasePath(res.settings.emmaModelBasePath)
+					if (res.settings.defaultCustomerName) setDefaultCustomerName(res.settings.defaultCustomerName)
+				}
+			} catch (err) {
+				console.error('Erro carregando paths das configurações:', err)
+			}
+		}
+		loadPaths()
+	}, [])
 
 	const {
 		loading,
@@ -448,10 +470,10 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 					}
 
 					const pastaArtigo = `${cadastroSelecionado.artigo} - ${cadastroSelecionado.modelo}`
-					const modelPath = `O:\\Lectra\\Calcado\\Modelos\\EMMA\\${pastaArtigo}\\${cadastroSelecionado.componente}.emp`
+					const modelPath = `${emmaBasePath}\\${pastaArtigo}\\${cadastroSelecionado.componente}.emp`
 
 					dados = {
-						customer: "VULCABRAS",
+						customer: defaultCustomerName,
 						date: new Date().toISOString().split("T")[0].replace(/-/g, ""),
 						id: ofSearch,
 						model: modelPath,
@@ -491,13 +513,13 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 					}
 					
 					const pastaArtigoComelz = `${cadastroSelecionado.artigo} - ${cadastroSelecionado.modelo}`
-					const modelPathComelz = `O:\\Lectra\\Calcado\\Modelos\\COMELZ\\${pastaArtigoComelz}\\${cadastroSelecionado.componente}.cmz`
+					const modelPathComelz = `${comelzBasePath}\\${pastaArtigoComelz}\\${cadastroSelecionado.componente}.cmz`
 					
 					dados = {
 						id: ofSearch,
 						date: new Date().toISOString().split("T")[0].replace(/-/g, ""),
 						note: `OF: ${ofSearch}`,
-						customer: "VULCABRAS",
+						customer: defaultCustomerName,
 						split_materials: false,
 						model: modelPathComelz,
 						qty: qtyRules,
@@ -666,10 +688,10 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 
 					// Construir caminho do modelo Emma
 					const pastaArtigo = `${cadastroSelecionado.artigo} - ${cadastroSelecionado.modelo}`
-					const modelPath = `O:\\Lectra\\Calcado\\Modelos\\EMMA\\${pastaArtigo}\\${cadastroSelecionado.componente}.emp`
+					const modelPath = `${emmaBasePath}\\${pastaArtigo}\\${cadastroSelecionado.componente}.emp`
 
 					dados = {
-						customer: "VULCABRAS",
+						customer: defaultCustomerName,
 						date: new Date().toISOString().split("T")[0].replace(/-/g, ""),
 						id: ofSearch,
 						model: modelPath,
@@ -711,13 +733,13 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 					}
 					
 					const pastaArtigoComelz = `${cadastroSelecionado.artigo} - ${cadastroSelecionado.modelo}`
-					const modelPathComelz = `\\\\modserver\\models\\COMELZ\\${pastaArtigoComelz}\\${cadastroSelecionado.componente}.cmz`
+					const modelPathComelz = `${comelzBasePath}\\${pastaArtigoComelz}\\${cadastroSelecionado.componente}.cmz`
 					
 					dados = {
 						id: ofSearch,
 						date: new Date().toISOString().split("T")[0].replace(/-/g, ""),
 						note: `OF: ${ofSearch}`,
-						customer: "VULCABRAS",
+						customer: defaultCustomerName,
 						split_materials: false,
 						model: modelPathComelz,
 						qty: qtyRules,

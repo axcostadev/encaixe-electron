@@ -4,8 +4,10 @@
 // cadastro: objeto { artigo, cor, material, customer, id, model, pastaArtigo, componente }
 // options: objeto opcional { customer, date, id, model, mirror, pastaArtigo, componente }
 
-// Caminho base fixo para modelos Emma
-const EMMA_BASE_PATH = "O:\\Lectra\\Calcado\\Modelos\\EMMA"
+import { getEmmaModelBasePath } from "../settings.js"
+
+// Caminho base configurável para modelos Emma
+const EMMA_BASE_PATH = getEmmaModelBasePath()
 
 /**
  * Formata a data atual no formato YYYYMMDD
