@@ -11,11 +11,9 @@ sqlite3.configure?.("busyTimeout", 5000)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Use configurable DB path: prefer environment variable ECONOMIA_DB_FILE, otherwise fall back to settings or default
+// Use configurable DB path from settings (persistent)
 function getDbFile() {
-	// Primeiro verifica se há override via ENV
-	if (process.env.ECONOMIA_DB_FILE) return process.env.ECONOMIA_DB_FILE
-	// Usa o caminho configurado pelo usuário
+	// Usa o caminho configurado pelo usuário nas settings
 	try {
 		return getDatabaseFilePath()
 	} catch (e) {
@@ -755,17 +753,17 @@ export function closeDB() {
 
 export async function reinitDB(newPath) {
 	try {
-		// Se um novo caminho foi fornecido, define via ENV para que initDB use
+		// O novo caminho já foi salvo nas settings pelo IPC antes de chamar esta função
+		// Apenas reinicializa o DB usando o caminho atual das settings
 		if (newPath) {
-			process.env.ECONOMIA_DB_FILE = newPath
-			console.log('[DB] reinitDB: aplicando novo caminho do DB:', newPath)
+			console.log('[DB] reinitDB: novo caminho configurado:', newPath)
 		}
 		closeDB()
-		// wait for new init
+		// wait for new init - getDbFile() vai pegar o caminho atualizado das settings
 		await initDB()
 		// ensure headers exist after init
 		await ensureEconomiaHeaders()
-		console.log('[DB] economia DB reinitialized')
+		console.log('[DB] economia DB reinitialized at:', getDbFile())
 		return { success: true }
 	} catch (err) {
 		console.error('[DB] error reinitializing economia DB:', err)
