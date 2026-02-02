@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react"
+import { useAuth } from "@renderer/contexts/AuthContext"
 import { PageHeader } from "@renderer/components/common/PageHeader"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@renderer/components/ui/table"
 
@@ -45,6 +46,7 @@ export interface CadastroInfo {
 
 
 export default function EconomiaPage() {
+  const { permissions } = useAuth()
   const [rows, setRows] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -1375,36 +1377,46 @@ export default function EconomiaPage() {
           <div style={{marginTop: 18}}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
               <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                <button className="busca-btn busca-btn-secondary" onClick={fetchBancoRows} disabled={bancoLoading}>Atualizar</button>
-                <button className="busca-btn busca-btn-ghost" onClick={async ()=>{ if (await askConfirm('Limpar todo o banco de economia?')) { await (window as any).api.economia.clear(); fetchBancoRows() } }}>Limpar banco</button>
+                {permissions?.canRefreshBancoDados && (
+                  <button className="busca-btn busca-btn-secondary" onClick={fetchBancoRows} disabled={bancoLoading}>Atualizar</button>
+                )}
+                {permissions?.canClearBancoDados && (
+                  <button className="busca-btn busca-btn-ghost" onClick={async ()=>{ if (await askConfirm('Limpar todo o banco de economia?')) { await (window as any).api.economia.clear(); fetchBancoRows() } }}>Limpar banco</button>
+                )}
               </div>
               <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                <button className="busca-btn" onClick={()=>{ setBancoSelected(bancoRows.map(r=>r.id)); }}>Selecionar todos</button>
-                <button className="busca-btn busca-btn-ghost" onClick={async ()=>{
-                  if (bancoSelected.length === 0) { alert('Nenhuma linha selecionada'); return }
-                  if (!(await askConfirm(`Apagar ${bancoSelected.length} linha(s) selecionada(s)?`))) return
-                  const res = await (window as any).api.economia.deleteRows(bancoSelected)
-                  if (res && res.success) {
-                    toast({ title: 'Linhas apagadas', description: `${res.result?.deleted || 0} registros removidos` })
-                    setBancoSelected([])
-                    fetchBancoRows()
-                  } else {
-                    toast({ title: 'Erro', description: String(res?.error || 'Não foi possível apagar') })
-                  }
-                }}>Apagar selecionadas</button>
-                <button className="busca-btn busca-btn-secondary" onClick={async ()=>{
-                  // salvar todas as edições locais
-                  const ids = Object.keys(bancoEdits).map(k=>Number(k))
-                  if (ids.length === 0) { toast({ title: 'Nada para salvar', description: 'Nenhuma alteração encontrada' }); return }
-                  try {
-                    await Promise.all(ids.map(id => (window as any).api.economia.updateRow(id, { encaixe: Number(bancoEdits[id]) })))
-                    toast({ title: 'Alterações salvas', description: `${ids.length} linha(s) atualizadas` })
-                    setBancoEdits({})
-                    fetchBancoRows()
-                  } catch (e) {
-                    toast({ title: 'Erro ao salvar', description: String(e) })
-                  }
-                }}>Salvar alterações</button>
+                {permissions?.canSelectAllBancoDados && (
+                  <button className="busca-btn" onClick={()=>{ setBancoSelected(bancoRows.map(r=>r.id)); }}>Selecionar todos</button>
+                )}
+                {permissions?.canDeleteBancoDados && (
+                  <button className="busca-btn busca-btn-ghost" onClick={async ()=>{
+                    if (bancoSelected.length === 0) { alert('Nenhuma linha selecionada'); return }
+                    if (!(await askConfirm(`Apagar ${bancoSelected.length} linha(s) selecionada(s)?`))) return
+                    const res = await (window as any).api.economia.deleteRows(bancoSelected)
+                    if (res && res.success) {
+                      toast({ title: 'Linhas apagadas', description: `${res.result?.deleted || 0} registros removidos` })
+                      setBancoSelected([])
+                      fetchBancoRows()
+                    } else {
+                      toast({ title: 'Erro', description: String(res?.error || 'Não foi possível apagar') })
+                    }
+                  }}>Apagar selecionadas</button>
+                )}
+                {permissions?.canSaveBancoDados && (
+                  <button className="busca-btn busca-btn-secondary" onClick={async ()=>{
+                    // salvar todas as edições locais
+                    const ids = Object.keys(bancoEdits).map(k=>Number(k))
+                    if (ids.length === 0) { toast({ title: 'Nada para salvar', description: 'Nenhuma alteração encontrada' }); return }
+                    try {
+                      await Promise.all(ids.map(id => (window as any).api.economia.updateRow(id, { encaixe: Number(bancoEdits[id]) })))
+                      toast({ title: 'Alterações salvas', description: `${ids.length} linha(s) atualizadas` })
+                      setBancoEdits({})
+                      fetchBancoRows()
+                    } catch (e) {
+                      toast({ title: 'Erro ao salvar', description: String(e) })
+                    }
+                  }}>Salvar alterações</button>
+                )}
               </div>
             </div>
 

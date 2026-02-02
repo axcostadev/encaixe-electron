@@ -38,6 +38,11 @@ export interface UserPermissions {
 	canViewManual: boolean
 	canEditManual: boolean
 	canViewEconomia: boolean
+	canRefreshBancoDados: boolean
+	canClearBancoDados: boolean
+	canSelectAllBancoDados: boolean
+	canDeleteBancoDados: boolean
+	canSaveBancoDados: boolean
 	canAccessSetup: boolean
 	canManageUsers: boolean
 	canManageRoles: boolean
@@ -77,6 +82,11 @@ export const DEFAULT_PERMISSIONS: UserPermissions = {
 	canViewManual: false,
 	canEditManual: false,
 	canViewEconomia: false,
+	canRefreshBancoDados: false,
+	canClearBancoDados: false,
+	canSelectAllBancoDados: false,
+	canDeleteBancoDados: false,
+	canSaveBancoDados: false,
 	canAccessSetup: false,
 	canManageUsers: false,
 	canManageRoles: false,
@@ -111,6 +121,11 @@ export const SYSTEM_ROLES: Omit<Role, "id" | "created_at">[] = [
 			canViewManual: true,
 			canEditManual: true,
 			canViewEconomia: true,
+			canRefreshBancoDados: true,
+			canClearBancoDados: true,
+			canSelectAllBancoDados: true,
+			canDeleteBancoDados: true,
+			canSaveBancoDados: true,
 			canAccessSetup: true,
 			canManageUsers: true,
 			canManageRoles: true,
@@ -143,6 +158,11 @@ export const SYSTEM_ROLES: Omit<Role, "id" | "created_at">[] = [
 			canViewManual: true,
 			canEditManual: true,
 			canViewEconomia: true,
+			canRefreshBancoDados: true,
+			canClearBancoDados: false,
+			canSelectAllBancoDados: true,
+			canDeleteBancoDados: false,
+			canSaveBancoDados: true,
 			canAccessSetup: false,
 			canManageUsers: false,
 			canManageRoles: false,
@@ -175,6 +195,11 @@ export const SYSTEM_ROLES: Omit<Role, "id" | "created_at">[] = [
 			canViewManual: true,
 			canEditManual: false,
 			canViewEconomia: false,
+			canRefreshBancoDados: false,
+			canClearBancoDados: false,
+			canSelectAllBancoDados: false,
+			canDeleteBancoDados: false,
+			canSaveBancoDados: false,
 			canAccessSetup: false,
 			canManageUsers: false,
 			canManageRoles: false,

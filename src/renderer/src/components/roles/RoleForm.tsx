@@ -45,6 +45,11 @@ export type UserPermissions = {
 	canEditManual: boolean
 	canViewFls: boolean
 	canViewEconomia: boolean
+	canRefreshBancoDados: boolean
+	canClearBancoDados: boolean
+	canSelectAllBancoDados: boolean
+	canDeleteBancoDados: boolean
+	canSaveBancoDados: boolean
 	canAccessSetup: boolean
 	canManageUsers: boolean
 	canManageRoles: boolean
@@ -91,6 +96,11 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
 	canEditManual: false,
 	canViewFls: false,
 	canViewEconomia: false,
+	canRefreshBancoDados: false,
+	canClearBancoDados: false,
+	canSelectAllBancoDados: false,
+	canDeleteBancoDados: false,
+	canSaveBancoDados: false,
 	canAccessSetup: false,
 	canManageUsers: false,
 	canManageRoles: false,
@@ -163,6 +173,16 @@ const PERMISSION_CATEGORIES = [
 		title: "Economia Dashboard",
 		permissions: [
 			{ key: "canViewEconomia", label: "Visualizar Economia Dashboard" },
+		],
+	},
+	{
+		title: "Banco de Dados",
+		permissions: [
+			{ key: "canRefreshBancoDados", label: "Atualizar" },
+			{ key: "canClearBancoDados", label: "Limpar banco" },
+			{ key: "canSelectAllBancoDados", label: "Selecionar todos" },
+			{ key: "canDeleteBancoDados", label: "Apagar selecionadas" },
+			{ key: "canSaveBancoDados", label: "Salvar alterações" },
 		],
 	},
 	{
