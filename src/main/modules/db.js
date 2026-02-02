@@ -3,21 +3,18 @@ import fs from "fs"
 import sqlite3 from "sqlite3"
 import { fileURLToPath } from "url"
 import { app } from "electron"
+import { getDatabaseFilePath } from "../settings.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 // Use configurable DB path: prefer environment variable ECONOMIA_DB_FILE, otherwise fall back to settings or default
 function getDbFile() {
-	// Sempre usa o caminho definido nas configurações do usuário
+	// Primeiro verifica se há override via ENV
+	if (process.env.ECONOMIA_DB_FILE) return process.env.ECONOMIA_DB_FILE
+	// Usa o caminho configurado pelo usuário
 	try {
-		const settings = require('../settings')
-		// Primeiro verifica se há override via ENV
-		if (process.env.ECONOMIA_DB_FILE) return process.env.ECONOMIA_DB_FILE
-		// Usa o caminho configurado pelo usuário
-		if (typeof settings.getDatabaseFilePath === 'function') {
-			return settings.getDatabaseFilePath()
-		}
+		return getDatabaseFilePath()
 	} catch (e) {
 		console.error('[DB] Erro ao obter caminho do DB das configurações:', e)
 	}
