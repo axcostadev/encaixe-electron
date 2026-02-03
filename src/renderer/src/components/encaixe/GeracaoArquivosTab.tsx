@@ -35,7 +35,6 @@ import {
 	QtyRuleComelz,
 } from "@renderer/types"
 
-import { ScrollArea } from "@renderer/components/ui/scroll-area"
 import { ListaAutomaticoItem } from "@renderer/pages/EncaixePage"
 import { ListPlus, ChevronDown, ChevronUp } from "lucide-react"
 
@@ -360,6 +359,8 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 				setMaquinaSelecionada("Lectra")
 			} else if (setorUpper.includes("COMELZ")) {
 				setMaquinaSelecionada("Comelz")
+			} else if (setorUpper.includes("PONTE")) {
+				setMaquinaSelecionada("Ponte")
 			}
 		}
 	}
@@ -529,8 +530,8 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 				} else {
 					dados = await converterParaComelz(cadastroSelecionado)
 				}
-			} else if (maquinaSelecionada === "Lectra") {
-				// Gerar dados Lectra com cálculo de folhas
+			} else if (maquinaSelecionada === "Lectra" || maquinaSelecionada === "Ponte") {
+				// Gerar dados Lectra/Ponte com cálculo de folhas
 				if (paresPorCorTamanho.length > 0 && cadastroSelecionado.tamanhosRanges) {
 					const placaPar = parseInt(cadastroSelecionado.placaPorPar) || 1
 					const conjugNavalha = parseInt(cadastroSelecionado.conjugNavalha) || 1
@@ -749,8 +750,8 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 				} else {
 					dados = await converterParaComelz(cadastroSelecionado)
 				}
-			} else if (maquinaSelecionada === "Lectra") {
-				// Gerar dados Lectra com cálculo de folhas usando os parâmetros do componente
+			} else if (maquinaSelecionada === "Lectra" || maquinaSelecionada === "Ponte") {
+				// Gerar dados Lectra/Ponte com cálculo de folhas usando os parâmetros do componente
 				if (paresPorCorTamanho.length > 0 && cadastroSelecionado.tamanhosRanges) {
 					const placaPar = parseInt(cadastroSelecionado.placaPorPar) || 1
 					const conjugNavalha = parseInt(cadastroSelecionado.conjugNavalha) || 1
@@ -797,14 +798,14 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 			}
 
 			// Usar o apelido selecionado no nome do arquivo
-			// Para Lectra: formato OF_APELIDO (ex: 435020476_PLACA_DO_FORRO_DA_ESPUMA)
+			// Para Lectra/Ponte: formato OF_APELIDO (ex: 435020476_PLACA_DO_FORRO_DA_ESPUMA)
 			const apelidoFormatado = apelidoSelecionado.replace(/\s+/g, '_').toUpperCase()
-			const nomeArquivo = maquinaSelecionada.toLowerCase() === "lectra" 
+			const nomeArquivo = (maquinaSelecionada.toLowerCase() === "lectra" || maquinaSelecionada.toLowerCase() === "ponte")
 				? `${ofSearch}_${apelidoFormatado}`
 				: `${ofSearch}-${apelidoSelecionado}`
 
-			// Preparar options para Lectra
-			const lectraOptions = maquinaSelecionada.toLowerCase() === "lectra" && cadastroSelecionado
+			// Preparar options para Lectra/Ponte
+			const lectraOptions = (maquinaSelecionada.toLowerCase() === "lectra" || maquinaSelecionada.toLowerCase() === "ponte") && cadastroSelecionado
 				? {
 					espacamento: parseFloat(cadastroSelecionado.espacamento || "1.5"),
 					sentidoMaterial: cadastroSelecionado.sentidoMaterial || "S",
@@ -814,8 +815,10 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 				: undefined
 
 			// Exportar arquivo com nome personalizado (OF-APELIDO)
+			// Ponte usa o mesmo formato que Lectra
+			const tipoExportacao = maquinaSelecionada.toLowerCase() === "ponte" ? "lectra" : maquinaSelecionada.toLowerCase() as "comelz" | "emma" | "lectra"
 			const savePath = await exportarArquivo(
-				maquinaSelecionada.toLowerCase() as "comelz" | "emma" | "lectra",
+				tipoExportacao,
 				dados,
 				nomeArquivo,
 				lectraOptions,
@@ -840,12 +843,6 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 			setMessage("Erro ao gerar arquivo: " + String(err))
 		}
 	}
-
-	// Obter lista de apelidos únicos para o dropdown
-	const apelidosLista = Object.entries(apelidosMap).map(([comp, apelido]) => ({
-		componente: comp,
-		apelido,
-	}))
 
 	return (
 		<div className="space-y-6">
@@ -1171,6 +1168,7 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 									<SelectItem value="Emma">Emma</SelectItem>
 									<SelectItem value="Comelz">Comelz</SelectItem>
 									<SelectItem value="Lectra">Lectra</SelectItem>
+									<SelectItem value="Ponte">Ponte</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
@@ -1197,7 +1195,7 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 						<p className="text-sm text-muted-foreground mt-2">
 							Nome do arquivo:{" "}
 							<strong>
-								{maquinaSelecionada.toLowerCase() === "lectra"
+								{(maquinaSelecionada.toLowerCase() === "lectra" || maquinaSelecionada.toLowerCase() === "ponte")
 									? `${ofSearch}_${apelidoSelecionado.replace(/\s+/g, '_').toUpperCase()}.mkx`
 									: `${ofSearch}-${apelidoSelecionado}.json`}
 							</strong>
