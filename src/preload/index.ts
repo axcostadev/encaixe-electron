@@ -326,6 +326,7 @@ const api = {
 		summary: () => ipcRenderer.invoke("economia-summary"),
 		byModelo: (limit: number = 10) => ipcRenderer.invoke("economia-by-modelo", limit),
 		byMaterial: (limit: number = 10) => ipcRenderer.invoke("economia-by-material", limit),
+		byOrdem: (ordem: string) => ipcRenderer.invoke("economia-by-ordem", ordem),
 		upsertEncaixe: (row: any) => ipcRenderer.invoke("economia:upsert-encaixe", row),
 			insertHeader: (header: any) => ipcRenderer.invoke("economia:insert-header", header),
 		updateRow: (id: number, fields: Record<string, any>) => ipcRenderer.invoke("economia:update-row", id, fields),

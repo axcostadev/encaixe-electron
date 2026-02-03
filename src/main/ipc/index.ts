@@ -1185,6 +1185,13 @@ ipcMain.handle("settings:get-status", async () => {
 		return await db.getEconomiaByMaterial(limit)
 	})
 
+	// Busca registros de economia por número de ordem (OF)
+	ipcMain.handle("economia-by-ordem", async (_event, ordem: string) => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
+		return await db.getEconomiaByOrdem(ordem)
+	})
+
 	// Upsert de encaixe: atualiza `encaixe`, `dif` e `porcent` ou insere nova linha quando não existir
 	ipcMain.handle("economia:upsert-encaixe", async (_event, row) => {
 		const guard = ensureLicensed("economia")

@@ -474,7 +474,25 @@ export default function EconomiaPage() {
     setSearchLoading(true)
     setSearchedInFile('')
     try {
-      // Primeiro, buscar no CGC.txt
+      // PRIMEIRO: Consultar banco de dados para verificar se essa OF já foi processada
+      let existingDbRows: any[] = []
+      try {
+        existingDbRows = await (window as any).api.economia.byOrdem(searchTerm.trim()) || []
+      } catch (dbErr) {
+        console.log('Erro ao consultar banco para OF existente:', dbErr)
+        existingDbRows = []
+      }
+      
+      // Criar mapa de material -> dados salvos no banco (para preencher Encaixe)
+      const dbRowsByMaterial: Record<string, any> = {}
+      existingDbRows.forEach((dbRow: any) => {
+        // Usar material como chave para encontrar a linha correspondente
+        if (dbRow.material) {
+          dbRowsByMaterial[dbRow.material] = dbRow
+        }
+      })
+      
+      // Agora buscar no CGC.txt
       let result: any = null
       let usedFile = ''
       
@@ -500,26 +518,35 @@ export default function EconomiaPage() {
       } else {
         // Converter para o formato esperado pela tabela
         const currentPeriod = `${new Date().getFullYear()}/${String(new Date().getMonth()+1).padStart(2,'0')}`
-        const formattedResults = result.results.map((r: any, idx: number) => ({
-          line: idx + 1,
-          text: '',
-          parsed: {
-            'Data': r.data || '',
-            'Artigo': r.artigo || '',
-            'DATA FASE': r.data || '',
-            'Ordem': r.ordem || '',
-            'Modelo': r.modelo || '',
-            'Material': r.material || '',
-            'Cor/Espessura': r.cor_espessura || '',
-            'PREÇO': r.preco?.toString() || '',
-            'Previsto': r.previsto?.toString() || '',
-            'Encaixe': r.encaixe?.toString() || '',
-            'Dif': r.dif?.toString() || '',
-            '%': r.porcent?.toString() || '',
-            'Economia (R$)': '',
-            'Periodo (Ano/Mês)': currentPeriod ?? `${r.data.split('-')[0]}/${r.data.split('-')[1]}` 
+        const formattedResults = result.results.map((r: any, idx: number) => {
+          // Verificar se existe dados salvos no banco para este material
+          const savedData = dbRowsByMaterial[r.material]
+          
+          return {
+            line: idx + 1,
+            text: '',
+            parsed: {
+              'Data': r.data || '',
+              'Artigo': r.artigo || '',
+              'DATA FASE': r.data || '',
+              'Ordem': r.ordem || '',
+              'Modelo': r.modelo || '',
+              'Material': r.material || '',
+              'Cor/Espessura': r.cor_espessura || '',
+              'PREÇO': r.preco?.toString() || '',
+              'Previsto': r.previsto?.toString() || '',
+              // Se existe no banco, usar o valor salvo de Encaixe; senão usar o do arquivo
+              'Encaixe': savedData?.encaixe?.toString() || r.encaixe?.toString() || '',
+              'Dif': savedData?.dif?.toString() || r.dif?.toString() || '',
+              '%': savedData?.porcent?.toString() || r.porcent?.toString() || '',
+              'Economia (R$)': '',
+              'Periodo (Ano/Mês)': currentPeriod ?? `${r.data.split('-')[0]}/${r.data.split('-')[1]}`,
+              // Flag para indicar se veio do banco
+              '_fromDb': !!savedData,
+              '_dbId': savedData?.id
+            }
           }
-        }))
+        })
         setSearchResults(formattedResults)
 
         // make sure the results container is scrolled to top and the first row is padded so it's visible below the sticky header

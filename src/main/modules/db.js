@@ -606,6 +606,28 @@ export function getEconomiaByMaterial(limit = 10) {
 	})
 }
 
+/**
+ * Busca registros de economia por número de ordem (OF)
+ * Retorna linhas salvas no banco para uma ordem específica
+ */
+export function getEconomiaByOrdem(ordem) {
+	return new Promise((resolve, reject) => {
+		if (!ordem) return resolve([])
+		db.all(
+			`SELECT e.*, h.data_fase as header_data_fase, h.modelo as header_modelo, h.artigo as header_artigo, h.data as header_data, h.periodo as header_periodo 
+			 FROM economia e 
+			 LEFT JOIN economia_headers h ON e.header_id = h.id 
+			 WHERE e.ordem = ? 
+			 ORDER BY e.id DESC`,
+			[String(ordem)],
+			(err, rows) => {
+				if (err) return reject(err)
+				resolve(rows || [])
+			},
+		)
+	})
+}
+
 // Previously this module ran header setup at load time which caused errors when `db` was not initialized.
 // Now `ensureEconomiaHeaders()` is provided as an exported function and should be called after `initDB()` completes.
 
