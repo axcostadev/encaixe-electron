@@ -1036,7 +1036,7 @@ export default function EconomiaPage() {
                   </div>
                 </div>
                 {byMaterial && (byMaterial.length > 0) && chartsReady ? (
-                  <ChartContainer config={{ total: { color: '#ef4444' } }} className="h-[520px] aspect-auto">
+                  <ChartContainer config={{ total: { color: '#ef4444' } }} className="h-[600px] aspect-auto">
                       {(() => {
                         const neg = (byMaterial || []).slice(0,15)
                         const pos = (byMaterialPos || []).slice(0,5)
