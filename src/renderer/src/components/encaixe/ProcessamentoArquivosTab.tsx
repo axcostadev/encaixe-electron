@@ -96,6 +96,11 @@ export function ProcessamentoArquivosTab({ lista, onRemover, onLimpar }: Process
 
 		setProcessando(false)
 		setMessage(`Processamento concluído! ${sucessos} arquivo(s) gerado(s) em "${pastaDestino}"${erros > 0 ? `, ${erros} erro(s)` : ''}`)
+		
+		// Limpar lista após gerar todos os arquivos com sucesso
+		if (sucessos > 0) {
+			onLimpar()
+		}
 	}
 
 	return (
