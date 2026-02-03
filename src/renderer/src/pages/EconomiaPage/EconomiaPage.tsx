@@ -483,13 +483,13 @@ export default function EconomiaPage() {
         existingDbRows = []
       }
       
-      // Criar mapa de material -> dados salvos no banco (para preencher Encaixe)
-      const dbRowsByMaterial: Record<string, any> = {}
+      // Criar mapa de (material + cor_espessura) -> dados salvos no banco (para preencher Encaixe)
+      // Usando chave composta para evitar conflitos quando mesmo material tem cores diferentes
+      const dbRowsByKey: Record<string, any> = {}
       existingDbRows.forEach((dbRow: any) => {
-        // Usar material como chave para encontrar a linha correspondente
-        if (dbRow.material) {
-          dbRowsByMaterial[dbRow.material] = dbRow
-        }
+        // Usar material + cor_espessura como chave composta para identificação única
+        const key = `${dbRow.material || ''}|${dbRow.cor_espessura || ''}`
+        dbRowsByKey[key] = dbRow
       })
       
       // Agora buscar no CGC.txt
@@ -519,8 +519,9 @@ export default function EconomiaPage() {
         // Converter para o formato esperado pela tabela
         const currentPeriod = `${new Date().getFullYear()}/${String(new Date().getMonth()+1).padStart(2,'0')}`
         const formattedResults = result.results.map((r: any, idx: number) => {
-          // Verificar se existe dados salvos no banco para este material
-          const savedData = dbRowsByMaterial[r.material]
+          // Verificar se existe dados salvos no banco usando chave composta (material + cor_espessura)
+          const key = `${r.material || ''}|${r.cor_espessura || ''}`
+          const savedData = dbRowsByKey[key]
           
           return {
             line: idx + 1,
