@@ -1174,34 +1174,6 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 								</SelectContent>
 							</Select>
 						</div>
-						<div className="flex-1 min-w-[200px]">
-							<Label htmlFor="apelido-select">
-								Apelido para nome do arquivo
-							</Label>
-							<Select
-								value={apelidoSelecionado}
-								onValueChange={setApelidoSelecionado}
-							>
-								<SelectTrigger id="apelido-select">
-									<SelectValue placeholder="Selecione um apelido" />
-								</SelectTrigger>
-								<SelectContent>
-									<ScrollArea className="h-[200px]">
-										{apelidosLista.length === 0 ? (
-											<SelectItem value="_none" disabled>
-												Nenhum apelido cadastrado
-											</SelectItem>
-										) : (
-											apelidosLista.map(({ componente, apelido }) => (
-												<SelectItem key={componente} value={apelido}>
-													{componente} - {apelido}
-												</SelectItem>
-											))
-										)}
-									</ScrollArea>
-								</SelectContent>
-							</Select>
-						</div>
 						<Button
 							onClick={gerarArquivo}
 							disabled={
