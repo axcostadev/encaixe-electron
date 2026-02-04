@@ -332,6 +332,72 @@ export default function EconomiaPage() {
     )
   }
 
+  // Tip label renderer for bar values (Modelos)
+  const TipModelValueLabel = (props:any) => {
+    const { x, y, width, height, value } = props
+    if (value === undefined || value === null) return null
+    const text = modelView === 'brl'
+      ? Math.abs(value).toLocaleString(undefined,{ style: 'currency', currency: 'BRL' })
+      : `${Math.abs(Number(value)).toFixed(1)}%`
+    const isPos = value > 0
+    const px = x + (width ? width / 2 : 0)
+    const absH = Math.abs(height || 0)
+    const fontSize = 11
+    // dynamic positive offset: small bars get labels pushed further down proportionally; large bars keep small offset
+    const posOffset = absH < 80 ? Math.max(3, Math.round(absH * 0.2)) : 2
+    const py = isPos ? (y + posOffset) : (y + 3)
+    // textAnchor: for rotated -90deg text, 'start' makes text grow downward from anchor
+    const anchor = 'start'
+    return (
+      <text
+        x={px}
+        y={py}
+        fill="#fff"
+        stroke="rgba(0,0,0,0.8)"
+        strokeWidth={2}
+        paintOrder="stroke"
+        textAnchor={anchor}
+        dominantBaseline="middle"
+        transform={`rotate(-90 ${px} ${py})`}
+        style={{ fontSize, fontWeight: 700 as any, pointerEvents: 'none' }}
+      >
+        {text}
+      </text>
+    )
+  }
+
+  // Tip label renderer for bar values (Materiais)
+  const TipMaterialValueLabel = (props:any) => {
+    const { x, y, width, height, value } = props
+    if (value === undefined || value === null) return null
+    const text = materialView === 'brl'
+      ? Math.abs(value).toLocaleString(undefined,{ style: 'currency', currency: 'BRL' })
+      : `${Math.abs(Number(value)).toFixed(1)}%`
+    const isPos = value > 0
+    const px = x + (width ? width / 2 : 0)
+    const fontSize = 11
+    // dynamic positive offset: small bars get labels pushed further down proportionally; large bars keep small offset
+    const posOffset = (Math.abs(height || 0) < 80) ? Math.max(3, Math.round(Math.abs(height || 0) * 0.2)) : 2
+    const py = isPos ? (y + posOffset) : (y + 3)
+    const anchor = 'start'
+    return (
+      <text
+        x={px}
+        y={py}
+        fill="#fff"
+        stroke="rgba(0,0,0,0.8)"
+        strokeWidth={2}
+        paintOrder="stroke"
+        textAnchor={anchor}
+        dominantBaseline="middle"
+        transform={`rotate(-90 ${px} ${py})`}
+        style={{ fontSize, fontWeight: 700 as any, pointerEvents: 'none' }}
+      >
+        {text}
+      </text>
+    )
+  }
+
   // Salva o encaixe no banco (upsert) e foca o próximo input quando Enter for pressionado
   const saveEncaixeAndFocusNext = async (idx: number, row: any) => {
     // Não salvar se usuário não digitou nada ou não alterou o valor
@@ -849,14 +915,14 @@ export default function EconomiaPage() {
     if (tab === 'banco') fetchBancoRows()
   }, [tab])
 
-  // derived model counters (use negative-performance models for the dashboard cards)
-  const modelCountNeg = byModelo ? byModelo.length : 0
-  // total monetary impact across negative models (soma absoluta de totalEcon)
-  const modelTotalNeg = (byModelo || []).reduce((s:any,i:any)=>s + Math.abs(Number(i.totalEcon)||0),0)
+  // derived model counters (use POSITIVE dif = excesso/red for the dashboard cards)
+  const modelCountNeg = byModeloPos ? byModeloPos.length : 0
+  // total monetary impact across positive models (soma absoluta de totalEcon)
+  const modelTotalNeg = (byModeloPos || []).reduce((s:any,i:any)=>s + Math.abs(Number(i.totalEcon)||0),0)
 
-  // derived material counters (use negative-performance materials for the dashboard cards)
-  const materialCountNeg = byMaterial ? byMaterial.length : 0
-  const materialTotalNeg = (byMaterial || []).reduce((s:any,i:any)=>s + Math.abs(Number(i.totalEcon)||0),0)
+  // derived material counters (use POSITIVE dif = excesso/red for the dashboard cards)
+  const materialCountNeg = byMaterialPos ? byMaterialPos.length : 0
+  const materialTotalNeg = (byMaterialPos || []).reduce((s:any,i:any)=>s + Math.abs(Number(i.totalEcon)||0),0)
 
   return (
     <div className={`space-y-6 ${highContrast ? 'high-contrast' : ''}`}>
@@ -1012,7 +1078,7 @@ export default function EconomiaPage() {
                   </div>
                 </div>
                 {byModelo && (byModelo.length > 0 || (byModeloPos && byModeloPos.length>0)) && chartsReady ? (
-                  <ChartContainer config={{ total: { color: '#ef4444' } }} className="h-[600px] aspect-auto">
+                  <ChartContainer config={{ total: { color: '#10b981' } }} className="h-[600px] aspect-auto">
                       {(() => {
                         // top 5 negatives and top 5 positives
                         const neg = (byModelo || []).slice(0,5)
@@ -1024,11 +1090,18 @@ export default function EconomiaPage() {
                           if (modelView === 'brl') return Math.abs(econ)
                           return prev === 0 ? 0 : Math.abs((dif / prev) * 100)
                         }
-                        const negData = neg.map((n:any) => ({ name: n.name, value: buildValue(n), sign: 'neg' }))
+                        // Render BAD items (excesso, totalDif > 0) as positive values so they point UP (red) - positioned LEFT
+                        const posData = pos
+                          .map((p:any) => ({ name: p.name, value: buildValue(p), sign: 'pos' }))
+                          // maior -> menor em módulo (excesso) à esquerda
                           .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
-                        const posData = pos.map((p:any) => ({ name: p.name, value: -buildValue(p), sign: 'pos' }))
+                        // Render GOOD items (economia, totalDif < 0) as negative values so they point DOWN (green) - positioned RIGHT
+                        const negData = neg
+                          .map((n:any) => ({ name: n.name, value: -buildValue(n), sign: 'neg' }))
+                          // menor -> maior em módulo (economia) à direita
                           .sort((a, b) => Math.abs(a.value) - Math.abs(b.value))
-                        const sortedData = [...negData, ...posData]
+                        // Order: RED (pos/excesso) first on LEFT, then GREEN (neg/economia) on RIGHT
+                        const sortedData = [...posData, ...negData]
                         if (sortedData.length === 0) return <div className="chart-placeholder">Sem dados para exibir</div>
                         return (
                           <BarChart data={sortedData} margin={{ left: 20, right: 20 }}>
@@ -1043,9 +1116,9 @@ export default function EconomiaPage() {
                             }} />
                             <Bar dataKey="value">
                               {sortedData.map((entry:any, idx:number) => (
-                                <Cell key={`c-${idx}`} fill={entry.sign==='neg' ? '#ef4444' : '#10b981'} />
+                                <Cell key={`c-${idx}`} fill={entry.sign==='neg' ? '#10b981' : '#ef4444'} />
                               ))}
-                              <LabelList dataKey="value" position="insideTop" fill="#fff" formatter={(value:any)=> (modelView==='brl' ? Math.abs(value).toLocaleString(undefined,{ style:'currency', currency:'BRL'}) : `${Math.abs(value).toFixed(1)}%`)} />
+                              <LabelList dataKey="value" content={TipModelValueLabel} />
                             </Bar>
                           </BarChart>
                         )
@@ -1064,10 +1137,11 @@ export default function EconomiaPage() {
                   </div>
                 </div>
                 {byMaterial && (byMaterial.length > 0) && chartsReady ? (
-                  <ChartContainer config={{ total: { color: '#ef4444' } }} className="h-[600px] aspect-auto">
+                  <ChartContainer config={{ total: { color: '#10b981' } }} className="h-[600px] aspect-auto">
                       {(() => {
-                        const neg = (byMaterial || []).slice(0,15)
-                        const pos = (byMaterialPos || []).slice(0,5)
+                        // For materials: use positives (excesso) as reds and negatives (economia) as greens
+                        const pos = (byMaterialPos || []).slice(0,5) // excesso (totalDif > 0)
+                        const neg = (byMaterial || []).slice(0,15)   // economia (totalDif < 0)
                         const buildValue = (item:any) => {
                           const dif = Number(item.totalDif)||0
                           const prev = Number(item.totalPrev)||0
@@ -1075,11 +1149,18 @@ export default function EconomiaPage() {
                           if (materialView === 'brl') return Math.abs(econ)
                           return prev === 0 ? 0 : Math.abs((dif / prev) * 100)
                         }
-                        const negData = neg.map((n:any) => ({ name: n.name, value: buildValue(n), sign: 'neg' }))
+                        // BAD items (excesso, totalDif > 0) -> red, keep as positive values
+                        const posData = pos
+                          .map((p:any) => ({ name: p.name, value: buildValue(p), sign: 'pos' }))
+                          // maior -> menor em módulo (excesso) à esquerda
                           .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
-                        const posData = pos.map((p:any) => ({ name: p.name, value: -buildValue(p), sign: 'pos' }))
+                        // GOOD items (economia, totalDif < 0) -> green, keep as negative values
+                        const negData = neg
+                          .map((n:any) => ({ name: n.name, value: -buildValue(n), sign: 'neg' }))
+                          // menor -> maior em módulo (economia) à direita
                           .sort((a, b) => Math.abs(a.value) - Math.abs(b.value))
-                        const sortedData = [...negData, ...posData]
+                        // Order: RED first, then GREEN
+                        const sortedData = [...posData, ...negData]
                         if (sortedData.length === 0) return <div className="chart-placeholder">Sem dados para exibir</div>
                         return (
                           <BarChart data={sortedData} margin={{ left: 20, right: 20 }}>
@@ -1094,9 +1175,9 @@ export default function EconomiaPage() {
                             }} />
                             <Bar dataKey="value">
                               {sortedData.map((entry:any, idx:number) => (
-                                <Cell key={`c-m-${idx}`} fill={entry.sign==='neg' ? '#ef4444' : '#10b981'} />
+                                <Cell key={`c-m-${idx}`} fill={entry.sign==='neg' ? '#10b981' : '#ef4444'} />
                               ))}
-                              <LabelList dataKey="value" position="insideTop" fill="#fff" formatter={(value:any)=> (materialView==='brl' ? Math.abs(value).toLocaleString(undefined,{ style:'currency', currency:'BRL'}) : `${Math.abs(value).toFixed(1)}%`)} />
+                              <LabelList dataKey="value" content={TipMaterialValueLabel} />
                             </Bar>
                           </BarChart>
                         )
