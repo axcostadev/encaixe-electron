@@ -428,7 +428,7 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 							for (const item of paresAgrupados) {
 								if (item.pares > 0) {
 									qtyItems.push({
-										part_name: cadastroSelecionado.componente || cadastroSelecionado.artigo,
+										part_name: cadastroSelecionado.numeroTecido || "",
 										part_size: String(Number(item.tamanho).toFixed(2)),
 										mirror: false,
 										parts: item.pares,
@@ -452,7 +452,7 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 								const pares = corData.pares[tam] || 0
 								if (pares > 0) {
 									qtyItems.push({
-										part_name: cadastroSelecionado.componente || cadastroSelecionado.artigo,
+										part_name: cadastroSelecionado.numeroTecido || "",
 										part_size: String(Number(tam).toFixed(2)),
 										mirror: false,
 										parts: pares,
@@ -472,8 +472,7 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 						}
 					}
 
-					const pastaArtigo = `${cadastroSelecionado.artigo} - ${cadastroSelecionado.modelo}`
-					const modelPath = `${emmaBasePath}\\${pastaArtigo}\\${cadastroSelecionado.componente}.emp`
+					const modelPath = `${emmaBasePath}\\${cadastroSelecionado.artigo}.emp`
 
 					dados = {
 						customer: defaultCustomerName,
@@ -645,7 +644,7 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 							for (const item of paresAgrupados) {
 								if (item.pares > 0) {
 									qtyItems.push({
-										part_name: cadastroSelecionado.componente || cadastroSelecionado.artigo,
+										part_name: cadastroSelecionado.numeroTecido || "",
 										part_size: String(Number(item.tamanho).toFixed(2)),
 										mirror: false,
 										parts: item.pares,
@@ -669,7 +668,7 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 								const pares = corData.pares[tam] || 0
 								if (pares > 0) {
 									qtyItems.push({
-										part_name: cadastroSelecionado.componente || cadastroSelecionado.artigo,
+										part_name: cadastroSelecionado.numeroTecido || "",
 										part_size: String(Number(tam).toFixed(2)),
 										mirror: false,
 										parts: pares,
@@ -690,8 +689,7 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 					}
 
 					// Construir caminho do modelo Emma
-					const pastaArtigo = `${cadastroSelecionado.artigo} - ${cadastroSelecionado.modelo}`
-					const modelPath = `${emmaBasePath}\\${pastaArtigo}\\${cadastroSelecionado.componente}.emp`
+					const modelPath = `${emmaBasePath}\\${cadastroSelecionado.artigo}.emp`
 
 					dados = {
 						customer: defaultCustomerName,
