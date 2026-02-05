@@ -64,6 +64,26 @@ export default function EconomiaPage() {
   const [byModeloPos, setByModeloPos] = useState<any[]>([])
   const [modelView, setModelView] = useState<'brl'|'pct'>('brl')
   const [materialView, setMaterialView] = useState<'brl'|'pct'>('brl')
+
+  // Optional manual overrides for Y axis max (0 or null = auto). Values stored in localStorage.
+  const [modelYMaxOverride, setModelYMaxOverride] = useState<number | null>(() => {
+    try { const v = localStorage.getItem('economia:modelYMax'); return v && v !== '0' ? Number(v) : null } catch (e) { return null }
+  })
+  const [materialYMaxOverride, setMaterialYMaxOverride] = useState<number | null>(() => {
+    try { const v = localStorage.getItem('economia:materialYMax'); return v && v !== '0' ? Number(v) : null } catch (e) { return null }
+  })
+  const setModelYMaxFromInput = (v:string) => {
+    if (v === '' || v === '0') { setModelYMaxOverride(null); try { localStorage.removeItem('economia:modelYMax') } catch (e) {} ; return }
+    const n = Math.max(0, Math.min(10000, parseInt(v || '0', 10) || 0))
+    setModelYMaxOverride(n)
+    try { localStorage.setItem('economia:modelYMax', String(n)) } catch (e) {}
+  }
+  const setMaterialYMaxFromInput = (v:string) => {
+    if (v === '' || v === '0') { setMaterialYMaxOverride(null); try { localStorage.removeItem('economia:materialYMax') } catch (e) {} ; return }
+    const n = Math.max(0, Math.min(10000, parseInt(v || '0', 10) || 0))
+    setMaterialYMaxOverride(n)
+    try { localStorage.setItem('economia:materialYMax', String(n)) } catch (e) {}
+  }
   const [byMaterial, setByMaterial] = useState<any[]>([])
   // positive materials (summing dif > 0) — materiais passando do Previsto
   const [byMaterialPos, setByMaterialPos] = useState<any[]>([])
@@ -1212,6 +1232,11 @@ export default function EconomiaPage() {
                   <div className="flex items-center space-x-2">
                     <button className={`px-2 py-1 text-sm rounded ${modelView==='brl' ? 'bg-blue-600 text-white' : 'bg-transparent border'}`} onClick={()=>setModelView('brl')} title="R$: soma absoluta do excesso por modelo (impacto financeiro)">R$</button>
                     <button className={`px-2 py-1 text-sm rounded ${modelView==='pct' ? 'bg-blue-600 text-white' : 'bg-transparent border'}`} onClick={()=>setModelView('pct')} title="%: excesso relativo ao previsto = (sum(dif)/sum(previsto))*100">%</button>
+
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input type="number" min={0} max={10000} step={50} value={modelYMaxOverride ?? ''} onChange={(e)=>setModelYMaxFromInput(e.target.value)} placeholder="Auto" style={{ width: 90, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--color-border)' }} title="Máximo Y (0 = auto, 1-10000)" />
+                      <button className="busca-btn busca-btn-ghost" onClick={()=>{ setModelYMaxOverride(null); try { localStorage.removeItem('economia:modelYMax') } catch(e){} }} title="Auto">Auto</button>
+                    </div>
                   </div>
                 </div>
                 {byModelo && (byModelo.length > 0 || (byModeloPos && byModeloPos.length>0)) && chartsReady ? (
@@ -1250,13 +1275,19 @@ export default function EconomiaPage() {
                         if (sortedData.length === 0) return <div className="chart-placeholder">Sem dados para exibir</div>
                         // compute symmetric Y axis domain based on max absolute value and add a small margin
                         const maxAbs = sortedData.length ? Math.max(...sortedData.map((s:any)=>Math.abs(s.value))) : 0
-                        const computedMax = Math.ceil(maxAbs * 1.15)
-                        const yMax = Math.min(computedMax, 5000)
+                        const multiplier = maxAbs < 1000 ? 1.5 : 1.15
+                        const roundUpNice = (v:number) => (v < 1000 ? Math.ceil(v / 50) * 50 : Math.ceil(v / 100) * 100)
+                        let computedMax = Math.ceil(maxAbs * multiplier)
+                        computedMax = roundUpNice(computedMax)
+                        // apply manual override when set (value between 1 and 10000). null = auto
+                        const override = (typeof modelYMaxOverride === 'number' && modelYMaxOverride > 0) ? Math.min(10000, Math.max(1, modelYMaxOverride)) : null
+                        const activeMax = override ?? computedMax
+                        const yMax = Math.max(activeMax, Math.ceil(maxAbs))
                         return (
-                          <BarChart data={sortedData} margin={{ left: 20, right: 20 }}>
+                          <BarChart data={sortedData} margin={{ left: 20, right: 20, top: 16, bottom: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" type="category" interval={0} tick={VerticalTick} height={200} />
-                            <YAxis type="number" domain={[ -yMax, yMax ]} />
+                            <YAxis type="number" domain={[ -yMax, yMax ]} tickFormatter={(v:any) => modelView === 'brl' ? Math.abs(Number(v)).toLocaleString(undefined,{ style: 'currency', currency: 'BRL' }) : `${Math.abs(Number(v)).toFixed(1)}%`} />
                             <Tooltip formatter={(value: number | undefined) => {
                               if (value === undefined || value === null) return ''
                               return modelView === 'brl' 
@@ -1283,6 +1314,11 @@ export default function EconomiaPage() {
                   <div className="flex items-center space-x-2">
                     <button className={`px-2 py-1 text-sm rounded ${materialView==='brl' ? 'bg-red-600 text-white' : 'bg-transparent border'}`} onClick={()=>setMaterialView('brl')} title="R$: soma absoluta do excesso por material (impacto financeiro)">R$</button>
                     <button className={`px-2 py-1 text-sm rounded ${materialView==='pct' ? 'bg-red-600 text-white' : 'bg-transparent border'}`} onClick={()=>setMaterialView('pct')} title="%: excesso relativo ao previsto = (sum(dif)/sum(previsto))*100">%</button>
+
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input type="number" min={0} max={10000} step={50} value={materialYMaxOverride ?? ''} onChange={(e)=>setMaterialYMaxFromInput(e.target.value)} placeholder="Auto" style={{ width: 90, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--color-border)' }} title="Máximo Y (0 = auto, 1-10000)" />
+                      <button className="busca-btn busca-btn-ghost" onClick={()=>{ setMaterialYMaxOverride(null); try { localStorage.removeItem('economia:materialYMax') } catch(e){} }} title="Auto">Auto</button>
+                    </div>
                   </div>
                 </div>
                 {byMaterial && (byMaterial.length > 0) && chartsReady ? (
@@ -1321,13 +1357,18 @@ export default function EconomiaPage() {
                         if (sortedData.length === 0) return <div className="chart-placeholder">Sem dados para exibir</div>
                         // compute symmetric Y axis domain based on max absolute value and add a small margin
                         const maxAbs = sortedData.length ? Math.max(...sortedData.map((s:any)=>Math.abs(s.value))) : 0
-                        const computedMax = Math.ceil(maxAbs * 1.15)
-                        const yMax = Math.min(computedMax, 5000)
+                        const multiplier = maxAbs < 1000 ? 1.5 : 1.15
+                        const roundUpNice = (v:number) => (v < 1000 ? Math.ceil(v / 50) * 50 : Math.ceil(v / 100) * 100)
+                        let computedMax = Math.ceil(maxAbs * multiplier)
+                        computedMax = roundUpNice(computedMax)
+                        const override = (typeof materialYMaxOverride === 'number' && materialYMaxOverride > 0) ? Math.min(10000, Math.max(1, materialYMaxOverride)) : null
+                        const activeMax = override ?? computedMax
+                        const yMax = Math.max(activeMax, Math.ceil(maxAbs))
                         return (
-                          <BarChart data={sortedData} margin={{ left: 20, right: 20 }}>
+                          <BarChart data={sortedData} margin={{ left: 20, right: 20, top: 16, bottom: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" type="category" interval={0} tick={VerticalTick} height={200} />
-                            <YAxis type="number" domain={[ -yMax, yMax ]} />
+                            <YAxis type="number" domain={[ -yMax, yMax ]} tickFormatter={(v:any) => materialView === 'brl' ? Math.abs(Number(v)).toLocaleString(undefined,{ style: 'currency', currency: 'BRL' }) : `${Math.abs(Number(v)).toFixed(1)}%`} />
                             <Tooltip formatter={(value: number | undefined) => {
                               if (value === undefined || value === null) return ''
                               return materialView === 'brl'
