@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo } from "react"
 import { useAuth } from "@renderer/contexts/AuthContext"
 import { PageHeader } from "@renderer/components/common/PageHeader"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@renderer/components/ui/table"
@@ -182,6 +182,143 @@ export default function EconomiaPage() {
   const [bancoLoading, setBancoLoading] = useState(false)
   const [bancoSelected, setBancoSelected] = useState<number[]>([])
   const [bancoEdits, setBancoEdits] = useState<Record<number, string>>({})
+
+  // Client-side Excel-like filters/sort for Banco de Dados
+  const [bancoFilters, setBancoFilters] = useState<Record<string, Set<string>>>({})
+  const [bancoFilterOpen, setBancoFilterOpen] = useState<string | null>(null)
+  const [bancoFilterSearch, setBancoFilterSearch] = useState<Record<string, string>>({})
+  const [bancoFilterWorking, setBancoFilterWorking] = useState<Record<string, Set<string>>>({})
+  const [bancoSort, setBancoSort] = useState<{ col?: string; dir?: 'asc' | 'desc' }>({})
+
+  const FILTER_COLUMNS: { key: string; label: string; getter: (r:any) => string }[] = [
+    { key: 'artigo', label: 'Artigo', getter: (r:any) => r.artigo || '-' },
+    { key: 'dataFase', label: 'Data Fase', getter: (r:any) => (r.header_data_fase || (r.data ? formatISOToDisplay(r.data) : '')) || '-' },
+    { key: 'ordem', label: 'Ordem', getter: (r:any) => r.ordem || '-' },
+    { key: 'modelo', label: 'Modelo', getter: (r:any) => (r.header_modelo || r.modelo) || '-' },
+    { key: 'material', label: 'Material', getter: (r:any) => r.material || '-' },
+    { key: 'cor', label: 'Cor/Espessura', getter: (r:any) => r.cor_espessura || '-' },
+    { key: 'periodo', label: 'Período', getter: (r:any) => r.periodo || r.header_periodo || '-' },
+  ]
+
+  const getUniqueValuesFor = (key: string) => {
+    const col = FILTER_COLUMNS.find(c => c.key === key)
+    if (!col) return []
+    const s = new Set<string>()
+    bancoRows.forEach(r => { s.add(String(col.getter(r))) })
+    return Array.from(s).sort((a,b)=>a.localeCompare(b, 'pt-BR', { numeric: true }))
+  }
+
+  const openFilterFor = (key: string) => {
+    const values = getUniqueValuesFor(key)
+    const current = bancoFilters[key]
+    // if no filter, preselect all values (Excel behavior)
+    const initial = current && current.size > 0 ? new Set(Array.from(current)) : new Set(values)
+    setBancoFilterWorking(prev => ({ ...prev, [key]: initial }))
+    setBancoFilterSearch(prev => ({ ...prev, [key]: '' }))
+    setBancoFilterOpen(key)
+  }
+
+  const applyFilterFor = (key: string) => {
+    const working = bancoFilterWorking[key]
+    if (!working) return
+    // if all values are selected, treat as no filter
+    const allValues = getUniqueValuesFor(key)
+    if (working.size === 0 || working.size === allValues.length) {
+      setBancoFilters(prev => { const copy = { ...prev }; delete copy[key]; return copy })
+    } else {
+      setBancoFilters(prev => ({ ...prev, [key]: new Set(Array.from(working)) }))
+    }
+    setBancoFilterOpen(null)
+  }
+
+  const clearFilterFor = (key: string) => {
+    setBancoFilterWorking(prev => ({ ...prev, [key]: new Set() }))
+  }
+
+  const toggleFilterValue = (key: string, value: string) => {
+    setBancoFilterWorking(prev => {
+      const copy = { ...prev }
+      const s = new Set(copy[key] ? Array.from(copy[key]) : [])
+      if (s.has(value)) s.delete(value)
+      else s.add(value)
+      copy[key] = s
+      return copy
+    })
+  }
+
+  const toggleBancoSort = (colKey: string) => {
+    setBancoSort(prev => {
+      if (prev.col !== colKey) return { col: colKey, dir: 'asc' }
+      if (prev.dir === 'asc') return { col: colKey, dir: 'desc' }
+      return {}
+    })
+  }
+
+  const FilterableTh = ({ colKey, className, children }: any) => {
+    const unique = getUniqueValuesFor(colKey)
+    const search = bancoFilterSearch[colKey] || ''
+    const working = bancoFilterWorking[colKey] || new Set(unique)
+    const isActive = bancoFilters[colKey] && bancoFilters[colKey].size > 0
+    const sortActive = bancoSort.col === colKey ? bancoSort.dir : undefined
+    return (
+      <th className={className} style={{ position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }} onClick={() => toggleBancoSort(colKey)}>
+            {children}
+            {sortActive ? (sortActive === 'asc' ? ' ▲' : ' ▼') : ''}
+          </span>
+          <button title="Filtro" className={`filter-btn ${isActive ? 'active' : ''}`} onClick={(e:any) => { e.stopPropagation(); openFilterFor(colKey) }} style={{ background: isActive ? '#ef4444' : 'transparent', color: isActive ? '#fff' : 'inherit', border: '1px solid rgba(255,255,255,0.05)', padding: '4px 6px', borderRadius: 6 }}>
+            ⌕
+          </button>
+        </div>
+        {bancoFilterOpen === colKey && (
+          <div style={{ position: 'absolute', top: 36, left: 0, zIndex: 80, width: 320, background: '#fff', color: '#000', borderRadius: 6, padding: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }} onClick={(e) => e.stopPropagation()}>
+            <input autoFocus placeholder="Pesquisar..." value={search} onChange={(e)=>setBancoFilterSearch(prev=>({...prev,[colKey]: e.target.value}))} onKeyDown={(e)=>{ e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); applyFilterFor(colKey) } }} onKeyUp={(e)=>e.stopPropagation()} style={{ width: '100%', padding: 6, borderRadius: 4, border: '1px solid #ddd' }} />
+            <div style={{ maxHeight: 220, overflow: 'auto', marginTop: 8 }}>
+              {unique.filter(v=> search.trim() === '' || v.toLowerCase().includes(search.toLowerCase())).map(v => (
+                <label key={v} style={{ display: 'block', padding: '2px 0' }}>
+                  <input type="checkbox" checked={working.has(v)} onChange={()=>toggleFilterValue(colKey, v)} /> <span style={{ marginLeft: 6 }}>{v}</span>
+                </label>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+              <div>
+                <button className="busca-btn busca-btn-ghost" onClick={()=>{ setBancoFilterWorking(prev=>({...prev, [colKey]: new Set(getUniqueValuesFor(colKey))})); }} style={{ marginRight: 6 }}>Selecionar tudo</button>
+                <button className="busca-btn busca-btn-ghost" onClick={()=>clearFilterFor(colKey)}>Limpar</button>
+              </div>
+              <div>
+                <button className="busca-btn busca-btn-ghost" onClick={()=>setBancoFilterOpen(null)} style={{ marginRight: 6 }}>Cancelar</button>
+                <button className="busca-btn busca-btn-secondary" onClick={()=>applyFilterFor(colKey)}>OK</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </th>
+    )
+  }
+
+  const filteredBancoRows = useMemo(() => {
+    let rows = Array.isArray(bancoRows) ? bancoRows.slice() : []
+    // apply filters
+    Object.entries(bancoFilters).forEach(([k, setV]) => {
+      const col = FILTER_COLUMNS.find(c => c.key === k)
+      if (!col) return
+      rows = rows.filter(r => setV.has(String(col.getter(r))))
+    })
+    // apply sort
+    if (bancoSort.col) {
+      const colCfg = FILTER_COLUMNS.find(c => c.key === bancoSort.col)
+      if (colCfg) {
+        rows.sort((a, b) => {
+          const va = String(colCfg.getter(a) || '')
+          const vb = String(colCfg.getter(b) || '')
+          const cmp = va.localeCompare(vb, 'pt-BR', { numeric: true })
+          return bancoSort.dir === 'asc' ? cmp : -cmp
+        })
+      }
+    }
+    return rows
+  }, [bancoRows, bancoFilters, bancoSort])
 
   // Confirm dialog (replaces blocking window.confirm)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -1519,7 +1656,7 @@ export default function EconomiaPage() {
               </div>
               <div style={{display:'flex',gap:8,alignItems:'center'}}>
                 {permissions?.canSelectAllBancoDados && (
-                  <button className="busca-btn" onClick={()=>{ setBancoSelected(bancoRows.map(r=>r.id)); }}>Selecionar todos</button>
+                  <button className="busca-btn" onClick={()=>{ setBancoSelected(filteredBancoRows.map(r=>r.id)); }}>Selecionar todos</button>
                 )}
                 {permissions?.canDeleteBancoDados && (
                   <button className="busca-btn busca-btn-ghost" onClick={async ()=>{
@@ -1562,25 +1699,25 @@ export default function EconomiaPage() {
                 <table className="busca-table-pro">
                   <thead>
                     <tr>
-                      <th style={{width:40}}><input type="checkbox" checked={bancoSelected.length === bancoRows.length && bancoRows.length>0} onChange={(e)=>{ if (e.target.checked) setBancoSelected(bancoRows.map(r=>r.id)) ; else setBancoSelected([]) }} /></th>
+                      <th style={{width:40}}><input type="checkbox" checked={bancoSelected.length === filteredBancoRows.length && filteredBancoRows.length>0} onChange={(e)=>{ if (e.target.checked) setBancoSelected(filteredBancoRows.map(r=>r.id)) ; else setBancoSelected([]) }} /></th>
                       <th className="col-num">#</th>
                       <th className="col-data">Data</th>
-                      <th className="col-artigo">Artigo</th>
-                      <th className="col-datafase">Data Fase</th>
-                      <th className="col-ordem">Ordem</th>
-                      <th className="col-modelo">Modelo</th>
-                      <th className="col-material">Material</th>
-                      <th className="col-cor">Cor/Espessura</th>
+                      <FilterableTh colKey="artigo" className="col-artigo">Artigo</FilterableTh>
+                      <FilterableTh colKey="dataFase" className="col-datafase">Data Fase</FilterableTh>
+                      <FilterableTh colKey="ordem" className="col-ordem">Ordem</FilterableTh>
+                      <FilterableTh colKey="modelo" className="col-modelo">Modelo</FilterableTh>
+                      <FilterableTh colKey="material" className="col-material">Material</FilterableTh>
+                      <FilterableTh colKey="cor" className="col-cor">Cor/Espessura</FilterableTh>
                       <th className="col-preco">Preço</th>
                       <th className="col-previsto">Previsto</th>
                       <th className="col-encaixe">Encaixe</th>
                       <th className="col-dif">Dif</th>
                       <th className="col-percent">%</th>
-                      <th className="col-periodo">Período</th>
+                      <FilterableTh colKey="periodo" className="col-periodo">Período</FilterableTh>
                     </tr>
                   </thead>
                   <tbody>
-                    {bancoRows.map((r, i) => (
+                    {filteredBancoRows.map((r, i) => (
                       <tr key={r.id || `${i}`}>
                         <td><input type="checkbox" checked={bancoSelected.includes(r.id)} onChange={(e)=>{ if (e.target.checked) setBancoSelected(s=>Array.from(new Set([...s, r.id]))) ; else setBancoSelected(s=>s.filter(x=>x!==r.id)) }} /></td>
                         <td className="col-num">{i + 1}</td>
