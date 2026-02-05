@@ -1080,9 +1080,9 @@ export default function EconomiaPage() {
                 {byModelo && (byModelo.length > 0 || (byModeloPos && byModeloPos.length>0)) && chartsReady ? (
                   <ChartContainer config={{ total: { color: '#10b981' } }} className="h-[600px] aspect-auto">
                       {(() => {
-                        // top 5 negatives and top 5 positives
-                        const neg = (byModelo || []).slice(0,5)
-                        const pos = (byModeloPos || []).slice(0,5)
+                        // Prioritize RED items and limit total bars to maxItems (10)
+                        const pos = (byModeloPos || []) // excesso (totalDif > 0) — prioritized
+                        const neg = (byModelo || []) // economia (totalDif < 0)
                         const buildValue = (item:any) => {
                           const dif = Number(item.totalDif)||0
                           const prev = Number(item.totalPrev)||0
@@ -1090,27 +1090,39 @@ export default function EconomiaPage() {
                           if (modelView === 'brl') return Math.abs(econ)
                           return prev === 0 ? 0 : Math.abs((dif / prev) * 100)
                         }
-                        // Render BAD items (excesso, totalDif > 0) as positive values so they point UP (red) - positioned LEFT
+                        // RED items -> positive values
                         const posData = pos
                           .map((p:any) => ({ name: p.name, value: buildValue(p), sign: 'pos' }))
                           // maior -> menor em módulo (excesso) à esquerda
                           .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
-                        // Render GOOD items (economia, totalDif < 0) as negative values so they point DOWN (green) - positioned RIGHT
+                        // GREEN items -> negative values
                         const negData = neg
                           .map((n:any) => ({ name: n.name, value: -buildValue(n), sign: 'neg' }))
                           // menor -> maior em módulo (economia) à direita
                           .sort((a, b) => Math.abs(a.value) - Math.abs(b.value))
-                        // Order: RED (pos/excesso) first on LEFT, then GREEN (neg/economia) on RIGHT
-                        const sortedData = [...posData, ...negData]
+                        // Compose final dataset: limit total to maxItems (10) prioritizing REDs; if fewer REDs, fill with top GREENs until maxItems
+                        const maxItems = 10
+                        let sortedData:any[] = []
+                        if (posData.length >= maxItems) {
+                          sortedData = posData.slice(0, maxItems)
+                        } else {
+                          const remaining = maxItems - posData.length
+                          const greensToTake = negData.slice(0, remaining)
+                          sortedData = [...posData, ...greensToTake]
+                        }
                         if (sortedData.length === 0) return <div className="chart-placeholder">Sem dados para exibir</div>
+                        // compute symmetric Y axis domain based on max absolute value and add a small margin
+                        const maxAbs = sortedData.length ? Math.max(...sortedData.map((s:any)=>Math.abs(s.value))) : 0
+                        const computedMax = Math.ceil(maxAbs * 1.15)
+                        const yMax = Math.min(computedMax, 5000)
                         return (
                           <BarChart data={sortedData} margin={{ left: 20, right: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" type="category" interval={0} tick={VerticalTick} height={200} />
-                            <YAxis type="number" />
+                            <YAxis type="number" domain={[ -yMax, yMax ]} />
                             <Tooltip formatter={(value: number | undefined) => {
                               if (value === undefined || value === null) return ''
-                              return modelView === 'brl'
+                              return modelView === 'brl' 
                                 ? Math.abs(value).toLocaleString(undefined,{ style: 'currency', currency: 'BRL' })
                                 : `${Math.abs(Number(value)).toFixed(1)}%`
                             }} />
@@ -1139,9 +1151,9 @@ export default function EconomiaPage() {
                 {byMaterial && (byMaterial.length > 0) && chartsReady ? (
                   <ChartContainer config={{ total: { color: '#10b981' } }} className="h-[600px] aspect-auto">
                       {(() => {
-                        // For materials: use positives (excesso) as reds and negatives (economia) as greens
-                        const pos = (byMaterialPos || []).slice(0,5) // excesso (totalDif > 0)
-                        const neg = (byMaterial || []).slice(0,15)   // economia (totalDif < 0)
+                        // For materials: prioritize RED items (excesso) — show up to 15 red items; if fewer, append ALL greens (no limit)
+                        const pos = (byMaterialPos || []) // excesso (totalDif > 0) — prioritized
+                        const neg = (byMaterial || [])   // economia (totalDif < 0) — no fixed limit
                         const buildValue = (item:any) => {
                           const dif = Number(item.totalDif)||0
                           const prev = Number(item.totalPrev)||0
@@ -1159,14 +1171,26 @@ export default function EconomiaPage() {
                           .map((n:any) => ({ name: n.name, value: -buildValue(n), sign: 'neg' }))
                           // menor -> maior em módulo (economia) à direita
                           .sort((a, b) => Math.abs(a.value) - Math.abs(b.value))
-                        // Order: RED first, then GREEN
-                        const sortedData = [...posData, ...negData]
+                        // Compose final dataset: limit total to maxItems (15) prioritizing REDs; if fewer REDs, fill with top GREENs until maxItems
+                        const maxItems = 15
+                        let sortedData:any[] = []
+                        if (posData.length >= maxItems) {
+                          sortedData = posData.slice(0, maxItems)
+                        } else {
+                          const remaining = maxItems - posData.length
+                          const greensToTake = negData.slice(0, remaining)
+                          sortedData = [...posData, ...greensToTake]
+                        }
                         if (sortedData.length === 0) return <div className="chart-placeholder">Sem dados para exibir</div>
+                        // compute symmetric Y axis domain based on max absolute value and add a small margin
+                        const maxAbs = sortedData.length ? Math.max(...sortedData.map((s:any)=>Math.abs(s.value))) : 0
+                        const computedMax = Math.ceil(maxAbs * 1.15)
+                        const yMax = Math.min(computedMax, 5000)
                         return (
                           <BarChart data={sortedData} margin={{ left: 20, right: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" type="category" interval={0} tick={VerticalTick} height={200} />
-                            <YAxis type="number" />
+                            <YAxis type="number" domain={[ -yMax, yMax ]} />
                             <Tooltip formatter={(value: number | undefined) => {
                               if (value === undefined || value === null) return ''
                               return materialView === 'brl'
