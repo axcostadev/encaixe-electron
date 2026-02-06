@@ -202,6 +202,8 @@ export default function EconomiaPage() {
   const [bancoLoading, setBancoLoading] = useState(false)
   const [bancoSelected, setBancoSelected] = useState<number[]>([])
   const [bancoEdits, setBancoEdits] = useState<Record<number, string>>({})
+  const [exporting, setExporting] = useState(false)
+  const [exportingXlsx, setExportingXlsx] = useState(false)
 
   // Client-side Excel-like filters/sort for Banco de Dados
   const [bancoFilters, setBancoFilters] = useState<Record<string, Set<string>>>({})
@@ -908,8 +910,10 @@ export default function EconomiaPage() {
         (window as any).api.economia.byMaterial(12),
       ])
 
+      console.log('[DEBUG] economia summary (backend):', sum)
+      console.log('[DEBUG] economia list length:', Array.isArray(list) ? list.length : 0)
       setRows(Array.isArray(list) ? list : [])
-      setSummary(sum || { totalDif: 0, ordemCount: 0, avgDif: 0 })
+      setSummary(sum || { totalDif: 0, ordemCount: 0, avgDif: 0, totalEconomiaAll: sum?.totalEconomiaAll ?? 0, totalEconomiaPos: sum?.totalEconomiaPos ?? 0, totalEconomiaNeg: sum?.totalEconomiaNeg ?? 0 })
       setByModelo(Array.isArray(modelos) ? modelos : [])
       setByMaterial(Array.isArray(materiais) ? materiais : [])
 
@@ -988,13 +992,17 @@ export default function EconomiaPage() {
       return okPeriod && okModel
     })
 
-    // summary: totalDif, ordemCount (distinct), avgDif per order, totalEconomia (soma-produto preco * dif)
+    // summary: totalDif, ordemCount (distinct), avgDif per order
     const totalDif = filtered.reduce((s:any,r:any)=>s + (Number(r.dif)||0), 0)
-    const totalEconomia = filtered.reduce((s:any,r:any)=> s + ((Number(r.dif)||0) * (Number(r.preco)||0)), 0)
+    // totals over filtered rows (not overwriting backend totals returned by economia.summary())
+    const filteredTotalEconomiaAll = filtered.reduce((s:any,r:any)=> s + ((Number(r.dif)||0) * (Number(r.preco)||0)), 0)
+    const filteredTotalEconomiaPos = filtered.reduce((s:any,r:any)=> { const e = (Number(r.dif)||0) * (Number(r.preco)||0); return s + (e > 0 ? e : 0) }, 0)
+    const filteredTotalEconomiaNeg = filtered.reduce((s:any,r:any)=> { const e = (Number(r.dif)||0) * (Number(r.preco)||0); return s + (e < 0 ? e : 0) }, 0)
     const ordSet = new Set(filtered.map((r:any)=>r.ordem))
     const ordemCount = ordSet.size
     const avgDif = ordemCount > 0 ? totalDif / ordemCount : 0
-    setSummary({ totalDif, ordemCount, avgDif, totalEconomia })
+    console.log('[DEBUG] applyFilters (filtered totals):', { filteredTotalEconomiaAll, filteredTotalEconomiaPos, filteredTotalEconomiaNeg })
+    setSummary(prev => ({ ...(prev || {}), totalDif, ordemCount, avgDif, filteredTotalEconomiaAll, filteredTotalEconomiaPos, filteredTotalEconomiaNeg }))
 
     // byModelo and byMaterial from filtered
     // accumulate dif, previsto and economia (dif * preco)
@@ -1049,6 +1057,46 @@ export default function EconomiaPage() {
       setBancoRows([])
     } finally {
       setBancoLoading(false)
+    }
+  }
+
+  // Export current banco rows as CSV (opens save dialog)
+  const exportBancoCsv = async () => {
+    if (exporting) return
+    setExporting(true)
+    try {
+      const res = await (window as any).api.economia.exportCSV()
+      if (res && res.success) {
+        toast({ title: 'Exportado', description: `Arquivo salvo: ${res.path}` })
+      } else if (res && res.canceled) {
+        // usuário cancelou
+      } else {
+        toast({ title: 'Erro', description: String(res?.error || 'Não foi possível exportar') })
+      }
+    } catch (e) {
+      toast({ title: 'Erro', description: String(e) })
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  // Export current banco rows as XLSX (opens save dialog)
+  const exportBancoXlsx = async () => {
+    if (exportingXlsx) return
+    setExportingXlsx(true)
+    try {
+      const res = await (window as any).api.economia.exportXLSX()
+      if (res && res.success) {
+        toast({ title: 'Exportado', description: `Arquivo salvo: ${res.path}` })
+      } else if (res && res.canceled) {
+        // usuário cancelou
+      } else {
+        toast({ title: 'Erro', description: String(res?.error || 'Não foi possível exportar') })
+      }
+    } catch (e) {
+      toast({ title: 'Erro', description: String(e) })
+    } finally {
+      setExportingXlsx(false)
     }
   }
 
@@ -1158,8 +1206,7 @@ export default function EconomiaPage() {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
             <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-[#488fce] rounded-2xl flex flex-row justify-center items-center gap-10 px-10 py-6 text-white" style={{ minWidth: 360, maxWidth: 720, whiteSpace: 'nowrap' }}>
               <div className="card-icon"><span className="text-5xl md:text-6xl whitespace-nowrap">R$</span></div>
-              {/* <div className="label hidden">Total Economia (R$)</div> */}
-              <div className="value text-3xl md:text-4xl lg:text-4xl font-extrabold whitespace-nowrap">{summary ? Math.abs(summary.totalEconomia || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'}</div>
+              <div className="value text-3xl md:text-4xl lg:text-4xl font-extrabold whitespace-nowrap" title="Soma de (dif × preco) sobre as linhas filtradas">{summary ? (Number(summary.totalEconomiaAll ?? summary.totalEconomia ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : '0,00'}</div>
             </div>
             <div className="card-stats-economia">
               <div className="card-icon"><img src={shoeIcon} alt="modelos" className="rolls-icon"/></div>
@@ -1727,6 +1774,12 @@ export default function EconomiaPage() {
                       toast({ title: 'Erro ao salvar', description: String(e) })
                     }
                   }}>Salvar alterações</button>
+                )}
+                {(permissions?.canSaveBancoDados || (permissions as any)?.canExportBancoDados) && (
+                  <>
+                    <button className="busca-btn" onClick={exportBancoCsv} disabled={exporting}>{exporting ? 'Exportando...' : 'Exportar CSV'}</button>
+                    <button className="busca-btn" onClick={exportBancoXlsx} disabled={exportingXlsx} style={{marginLeft:8}}>{exportingXlsx ? 'Exportando...' : 'Exportar Excel'}</button>
+                  </>
                 )}
               </div>
             </div>

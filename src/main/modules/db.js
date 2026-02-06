@@ -571,10 +571,17 @@ export function clearEconomia() {
 export function getEconomiaSummary() {
 	return new Promise((resolve, reject) => {
 		db.get(
-			"SELECT SUM(dif) as totalDif, COUNT(DISTINCT ordem) as ordemCount, AVG(dif) as avgDif FROM economia",
+			`SELECT
+				SUM(dif) as totalDif,
+				COUNT(DISTINCT ordem) as ordemCount,
+				AVG(dif) as avgDif,
+				SUM(COALESCE(dif,0) * COALESCE(preco,0)) as totalEconomiaAll,
+				SUM(CASE WHEN (COALESCE(dif,0) * COALESCE(preco,0)) > 0 THEN (COALESCE(dif,0) * COALESCE(preco,0)) ELSE 0 END) as totalEconomiaPos,
+				SUM(CASE WHEN (COALESCE(dif,0) * COALESCE(preco,0)) < 0 THEN (COALESCE(dif,0) * COALESCE(preco,0)) ELSE 0 END) as totalEconomiaNeg
+			FROM economia`,
 			(err, row) => {
 				if (err) return reject(err)
-				resolve(row || { totalDif: 0, ordemCount: 0, avgDif: 0 })
+				resolve(row || { totalDif: 0, ordemCount: 0, avgDif: 0, totalEconomiaAll: 0, totalEconomiaPos: 0, totalEconomiaNeg: 0 })
 			},
 		)
 	})

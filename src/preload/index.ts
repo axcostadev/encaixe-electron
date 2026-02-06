@@ -331,6 +331,8 @@ const api = {
 			insertHeader: (header: any) => ipcRenderer.invoke("economia:insert-header", header),
 		updateRow: (id: number, fields: Record<string, any>) => ipcRenderer.invoke("economia:update-row", id, fields),
 		deleteRows: (ids: number[]) => ipcRenderer.invoke("economia:delete-rows", ids),
+		exportCSV: (filePath?: string, limit: number = 1000000) => ipcRenderer.invoke("economia-export-csv", filePath, limit),
+		exportXLSX: (filePath?: string, limit: number = 1000000) => ipcRenderer.invoke("economia-export-xlsx", filePath, limit),
 	},
 }
 

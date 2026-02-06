@@ -1,5 +1,6 @@
 import { dialog, ipcMain } from "electron"
 import os from "os"
+import fs from "fs"
 import {
 	authenticateUser,
 	resetAdminPassword,
@@ -1216,6 +1217,85 @@ ipcMain.handle("settings:get-status", async () => {
 			return { success: true, result: res }
 		} catch (err) {
 			console.error('[IPC] economia:insert-header error:', err)
+			return { success: false, error: (err as any)?.message || String(err) }
+		}
+	})
+
+	// Export economia rows to CSV (opens Save dialog when filePath not provided)
+	ipcMain.handle("economia-export-csv", async (_event, filePath?: string, limit: number = 1000000) => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
+		try {
+			const rows = await db.listEconomia(limit)
+			const cols = [
+				'id','data','artigo','ordem','modelo','material','cor_espessura','preco','previsto','encaixe','header_data_fase','header_modelo','header_artigo','header_periodo'
+			]
+			const escapeCsv = (v: any) => {
+				if (v === null || v === undefined) return ''
+				let s = String(v)
+				if (s.indexOf('"') !== -1) s = s.replace(/"/g, '""')
+				if (s.indexOf(',') !== -1 || s.indexOf('\n') !== -1 || s.indexOf('"') !== -1) return `"${s}"`
+				return s
+			}
+
+			const lines: string[] = [cols.join(',')]
+			for (const r of rows) {
+				const line = cols.map(c => {
+					const val = r[c] !== undefined ? r[c] : ''
+					return escapeCsv(val)
+				}).join(',')
+				lines.push(line)
+			}
+			const csv = lines.join('\r\n')
+
+			let savePath = filePath
+			if (!savePath) {
+				const date = new Date().toISOString().slice(0,10).replace(/-/g,'')
+				const res = await dialog.showSaveDialog({ defaultPath: `economia-${date}.csv`, filters: [{ name: 'CSV', extensions:['csv'] }]})
+				if (res.canceled) return { success: false, canceled: true }
+				savePath = res.filePath
+			}
+
+			await fs.promises.writeFile(savePath as string, csv, 'utf8')
+			return { success: true, path: savePath, rows: rows.length }
+		} catch (err) {
+			console.error('[IPC] economia-export-csv error:', err)
+			return { success: false, error: (err as any)?.message || String(err) }
+		}
+	})
+
+	// Export economia rows to XLSX (opens Save dialog when filePath not provided)
+	ipcMain.handle("economia-export-xlsx", async (_event, filePath?: string, limit: number = 1000000) => {
+		const guard = ensureLicensed("economia")
+		if (guard) return guard
+		try {
+			const rows = await db.listEconomia(limit)
+			const cols = [
+				'id','data','artigo','ordem','modelo','material','cor_espessura','preco','previsto','encaixe','header_data_fase','header_modelo','header_artigo','header_periodo'
+			]
+			const xlsx = await import('xlsx')
+			const data: any[] = []
+			// header row
+			data.push(cols)
+			for (const r of rows) {
+				data.push(cols.map(c => (r[c] === undefined ? '' : r[c])))
+			}
+			const ws = xlsx.utils.aoa_to_sheet(data)
+			const wb = xlsx.utils.book_new()
+			xlsx.utils.book_append_sheet(wb, ws, 'economia')
+
+			let savePath = filePath
+			if (!savePath) {
+				const date = new Date().toISOString().slice(0,10).replace(/-/g,'')
+				const res = await dialog.showSaveDialog({ defaultPath: `economia-${date}.xlsx`, filters: [{ name: 'Excel', extensions:['xlsx'] }]})
+				if (res.canceled) return { success: false, canceled: true }
+				savePath = res.filePath
+			}
+
+			xlsx.writeFile(wb, savePath as string)
+			return { success: true, path: savePath, rows: rows.length }
+		} catch (err) {
+			console.error('[IPC] economia-export-xlsx error:', err)
 			return { success: false, error: (err as any)?.message || String(err) }
 		}
 	})
