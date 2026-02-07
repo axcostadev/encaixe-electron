@@ -205,6 +205,9 @@ export default function EconomiaPage() {
   const [exporting, setExporting] = useState(false)
   const [exportingXlsx, setExportingXlsx] = useState(false)
 
+  // Toggle para ocultar botões do painel "Banco de Dados"
+  const hideBancoButtons = true
+
   // Client-side Excel-like filters/sort for Banco de Dados
   const [bancoFilters, setBancoFilters] = useState<Record<string, Set<string>>>({})
   const [bancoFilterOpen, setBancoFilterOpen] = useState<string | null>(null)
@@ -1735,18 +1738,18 @@ export default function EconomiaPage() {
           <div style={{marginTop: 18}}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
               <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                {permissions?.canRefreshBancoDados && (
+                {permissions?.canRefreshBancoDados && !hideBancoButtons && (
                   <button className="busca-btn busca-btn-secondary" onClick={fetchBancoRows} disabled={bancoLoading}>Atualizar</button>
                 )}
-                {permissions?.canClearBancoDados && (
+                {permissions?.canClearBancoDados && !hideBancoButtons && (
                   <button className="busca-btn busca-btn-ghost" onClick={async ()=>{ if (await askConfirm('Limpar todo o banco de economia?')) { await (window as any).api.economia.clear(); fetchBancoRows() } }}>Limpar banco</button>
                 )}
               </div>
               <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                {permissions?.canSelectAllBancoDados && (
+                {permissions?.canSelectAllBancoDados && !hideBancoButtons && (
                   <button className="busca-btn" onClick={()=>{ setBancoSelected(filteredBancoRows.map(r=>r.id)); }}>Selecionar todos</button>
                 )}
-                {permissions?.canDeleteBancoDados && (
+                {permissions?.canDeleteBancoDados && !hideBancoButtons && (
                   <button className="busca-btn busca-btn-ghost" onClick={async ()=>{
                     if (bancoSelected.length === 0) { alert('Nenhuma linha selecionada'); return }
                     if (!(await askConfirm(`Apagar ${bancoSelected.length} linha(s) selecionada(s)?`))) return
@@ -1760,7 +1763,7 @@ export default function EconomiaPage() {
                     }
                   }}>Apagar selecionadas</button>
                 )}
-                {permissions?.canSaveBancoDados && (
+                {permissions?.canSaveBancoDados && !hideBancoButtons && (
                   <button className="busca-btn busca-btn-secondary" onClick={async ()=>{
                     // salvar todas as edições locais
                     const ids = Object.keys(bancoEdits).map(k=>Number(k))
