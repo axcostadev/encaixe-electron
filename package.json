@@ -1,6 +1,6 @@
 {
 	"name": "cutting-room",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"description": "A aplicação para adminstrar os cadastro de modelos e componentes.",
 	"main": "./out/main/index.js",
 	"author": "Aincrad",
