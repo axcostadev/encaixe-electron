@@ -843,6 +843,39 @@ export default function EconomiaPage() {
             periodo: derivedPeriodo || getTodayPeriod()
           })
           setHeaderId(null)
+          // Tentar focar o primeiro input de `Encaixe` assim que os resultados forem renderizados.
+          // Usamos dupla requestAnimationFrame para esperar o render/commit do React e um pequeno
+          // fallback com setTimeout caso o layout precise de mais tempo.
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              try {
+                const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('.encaixe-input')) as HTMLInputElement[]
+                const firstEnabled = inputs.find(i => !i.disabled)
+                if (firstEnabled) {
+                  firstEnabled.focus()
+                  if (typeof firstEnabled.select === 'function') firstEnabled.select()
+                  firstEnabled.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  return
+                }
+              } catch (e) {
+                console.warn('Erro ao focar input de encaixe (rAF):', e)
+              }
+              // fallback: tentar após 50ms
+              setTimeout(() => {
+                try {
+                  const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('.encaixe-input')) as HTMLInputElement[]
+                  const firstEnabled = inputs.find(i => !i.disabled)
+                  if (firstEnabled) {
+                    firstEnabled.focus()
+                    if (typeof firstEnabled.select === 'function') firstEnabled.select()
+                    firstEnabled.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  }
+                } catch (e) {
+                  console.warn('Erro ao focar input de encaixe (fallback):', e)
+                }
+              }, 50)
+            })
+          })
         }
       }
     } catch (err) {
