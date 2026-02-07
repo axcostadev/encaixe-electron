@@ -133,6 +133,47 @@ interface LicenseStatus {
 	token?: string
 }
 
+// Settings interface and API exposed by preload
+interface Settings {
+	dbFile?: string
+	allowEconomiaDbChange?: boolean
+	comelzModelBasePath?: string
+	emmaModelBasePath?: string
+	cgcFilePath?: string
+	ofccFilePath?: string
+	ctfImportDir?: string
+	ctcImportDir?: string
+	ctcReportFile?: string
+	ctfReportFile?: string
+	defaultCustomerName?: string
+}
+
+interface SettingsGetSuccess {
+	success: true
+	settings: Settings
+}
+
+interface SettingsError {
+	success: false
+	message: string
+}
+
+type SettingsGetResult = SettingsGetSuccess | SettingsError
+
+interface SettingsSetResult {
+	success: boolean
+	settings?: Settings
+	message?: string
+	economiaReinit?: any
+}
+
+interface SettingsAPI {
+	get: () => Promise<SettingsGetResult>
+	set: (updates: Partial<Settings>) => Promise<SettingsSetResult>
+	test: (dbPath: string) => Promise<any>
+	getStatus: () => Promise<{ success: boolean; settings: Settings; economiaDb?: string } | SettingsError>
+}
+
 interface UserListResponse {
 	success: boolean
 	users?: User[]
@@ -471,8 +512,7 @@ declare global {
 			}
 			cadastroImportAPI: {
 				importAll: () => Promise<{ imported: number; error?: string }>
-			}
-		migrations: {
+			}		settings: SettingsAPI		migrations: {
 			checkRedutorLargura: () => Promise<boolean>
 			addRedutorLargura: () => Promise<{ success: boolean; message: string }>
 		}

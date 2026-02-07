@@ -181,7 +181,7 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 	useEffect(() => {
 		async function loadPaths() {
 			try {
-				const res = await (window as any).api.settings.get()
+				const res = await window.api.settings.get()
 				if (res && res.success && res.settings) {
 					if (res.settings.comelzModelBasePath) setComelzBasePath(res.settings.comelzModelBasePath)
 					if (res.settings.emmaModelBasePath) setEmmaBasePath(res.settings.emmaModelBasePath)
