@@ -44,8 +44,10 @@ function createQtyItem(
 	parts,
 	materialName,
 	mirror = false,
+	materialX = 3.50, // Comprimentro do encaixe
 	materialY = 10,
 	materialPliesUp = 12,
+	angle
 ) {
 	const partSizeFormatted = (() => {
 		const n = Number(partSize)
@@ -58,10 +60,10 @@ function createQtyItem(
 		part_size: partSizeFormatted,
 		mirror: mirror,
 		parts: parts,
-		angle: 90,
+		angle: angle,
 		toler: 10,
 		material_name: materialName,
-		material_x: 1.41,
+		material_x: materialX,
 		material_y: materialY,
 		material_unit: "m",
 		part_space: 1.5,

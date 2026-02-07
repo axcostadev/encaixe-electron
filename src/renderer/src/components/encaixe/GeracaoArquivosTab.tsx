@@ -720,10 +720,14 @@ export function GeracaoArquivosTab({
 										part_size: String(Number(item.tamanho).toFixed(2)),
 										mirror: false,
 										parts: item.pares,
-										angle: 90,
+										angle:
+											sentidoMaterialEmma[
+												cadastroSelecionado.sentidoMaterial || "S"
+											],
 										toler: 10,
 										material_name: cadastroSelecionado.material || "",
-										material_x: 1.41,
+										material_x:
+											parseFloat(cadastroSelecionado.comprimentoMax) || 3.5,
 										material_y: parseFloat(cadastroSelecionado.largura) || 10,
 										material_unit: "m",
 										part_space:
@@ -746,10 +750,14 @@ export function GeracaoArquivosTab({
 										part_size: String(Number(tam).toFixed(2)),
 										mirror: false,
 										parts: pares,
-										angle: 90,
+										angle:
+											sentidoMaterialEmma[
+												cadastroSelecionado.sentidoMaterial || "S"
+											],
 										toler: 10,
 										material_name: cadastroSelecionado.material || "",
-										material_x: 1.41,
+										material_x:
+											parseFloat(cadastroSelecionado.comprimentoMax) || 3.5,
 										material_y: parseFloat(cadastroSelecionado.largura) || 10,
 										material_unit: "m",
 										part_space:
