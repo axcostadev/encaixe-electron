@@ -512,10 +512,12 @@ declare global {
 			}
 			cadastroImportAPI: {
 				importAll: () => Promise<{ imported: number; error?: string }>
-			}		settings: SettingsAPI		migrations: {
-			checkRedutorLargura: () => Promise<boolean>
-			addRedutorLargura: () => Promise<{ success: boolean; message: string }>
-		}
+			}
+			settings: SettingsAPI		
+			migrations: {
+				checkRedutorLargura: () => Promise<boolean>
+				addRedutorLargura: () => Promise<{ success: boolean; message: string }>
+			}
 		}
 	}
 }
