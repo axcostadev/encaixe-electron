@@ -37,6 +37,7 @@ import {
 
 import { ListaAutomaticoItem } from "@renderer/pages/EncaixePage"
 import { ListPlus, ChevronDown, ChevronUp } from "lucide-react"
+import { sentidoMaterialEmma } from "./Sentidos"
 
 type GradePar = {
 	artigo: string
@@ -432,10 +433,10 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 										part_size: String(Number(item.tamanho).toFixed(2)),
 										mirror: false,
 										parts: item.pares,
-										angle: 90,
+										angle: sentidoMaterialEmma[cadastroSelecionado.sentidoMaterial || "S"],
 										toler: 10,
 										material_name: cadastroSelecionado.material || "",
-										material_x: 1.41,
+										material_x: parseFloat(cadastroSelecionado.comprimentoMax) || 3.50,
 										material_y: parseFloat(cadastroSelecionado.largura) || 10,
 										material_unit: "m",
 										part_space: parseFloat(cadastroSelecionado.espacamento) || 1.5,
@@ -456,10 +457,10 @@ export function GeracaoArquivosTab({ onAdicionarLista }: { onAdicionarLista: (it
 										part_size: String(Number(tam).toFixed(2)),
 										mirror: false,
 										parts: pares,
-										angle: 90,
+										angle: sentidoMaterialEmma[cadastroSelecionado.sentidoMaterial || "S"],
 										toler: 10,
 										material_name: cadastroSelecionado.material || "",
-										material_x: 1.41,
+										material_x: parseFloat(cadastroSelecionado.comprimentoMax) || 3.50,
 										material_y: parseFloat(cadastroSelecionado.largura) || 10,
 										material_unit: "m",
 										part_space: parseFloat(cadastroSelecionado.espacamento) || 1.5,
