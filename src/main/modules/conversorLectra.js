@@ -48,7 +48,7 @@ function sentidoParaFabricConstraint(sentido) {
     case 'N':
       return 'N-SENTIDO'
     case 'U':
-      return 'U-UNICO'
+      return 'U-SENTIDO'
     default:
       return 'S-SENTIDO'
   }
