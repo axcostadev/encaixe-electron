@@ -119,7 +119,7 @@ function calcularFolhas(
 
 	// Cálculo: ((pares x placaPar) / conjugacaoNavalha) / camadas
 	// TODO: Corrigir o divisor 2 pois o gerador de arquivo esta com erro (saindo dobrado)
-	const resultadoBruto = (pares * placaPar) / conjugacaoNavalha / camadas / 2
+	const resultadoBruto = (pares * placaPar) / conjugacaoNavalha / camadas
 	return Math.ceil(resultadoBruto)
 }
 
