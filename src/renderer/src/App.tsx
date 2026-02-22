@@ -67,7 +67,7 @@ function AuthenticatedApp() {
 					<Route path="/economia" element={<EconomiaPage />} />
 					<Route path="/encaixe" element={<EncaixePage />} />
 					<Route path="/view-cutting-machine" element={<ViewCuttingMachinePage />} />
-					<Route path="/machine-work-state" element={<MachineWorkStatePage />} />
+					<Route path="/machine-work-state/*" element={<MachineWorkStatePage />} />
 					<Route path="/modelos" element={<ModelosPage />} />
 				<Route path="/cores" element={<CoresPage />} />
 				<Route path="/materiais" element={<MateriaisPage />} />

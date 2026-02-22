@@ -1,20 +1,29 @@
 {
 	"extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
+	"references": [
+		{
+			"path": "src/renderer/machine-work-state/frontend/tsconfig.json"
+		}
+	],
 	"include": [
 		"src/renderer/src/env.d.ts",
 		"src/renderer/src/**/*",
 		"src/renderer/src/**/*.tsx",
 		"src/preload/*.d.ts",
-		// Incluir o subprojeto view-cutting-machine (import dinâmico)
-		"src/renderer/view-cutting-machine/src/renderer/src/**/*",
-		"src/renderer/view-cutting-machine/src/renderer/src/**/*.tsx"
+		"src/renderer/machine-work-state/frontend/src/**/*"
 	],
 	"compilerOptions": {
 		"composite": true,
 		"jsx": "react-jsx",
 		"baseUrl": ".",
+		"allowImportingTsExtensions": true,
 		"paths": {
-			"@renderer/*": ["src/renderer/src/*"]
-		}
+			"@renderer/*": ["src/renderer/src/*"],
+			"machine-work-state": [
+				"src/renderer/machine-work-state/frontend/src",
+				"dist/machine-work-state/machine-work-state.es.js"
+			]
+		},
+		"skipLibCheck": true
 	}
 }

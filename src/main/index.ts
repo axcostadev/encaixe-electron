@@ -2,10 +2,12 @@ import { electronApp, is, optimizer } from "@electron-toolkit/utils"
 import { app, BrowserWindow, ipcMain, shell, nativeImage } from "electron"
 import { join } from "path"
 import icon from "../../resources/icon.png?asset"
+// existsSync is used in multiple places; import it once
 import { existsSync } from "fs"
-import { setupIPC } from "./ipc"
+import * as mainIpc from "./ipc"
 import { setupMenu } from "./menu"
 import { closeDatabase } from "./database"
+import { join as joinPath } from "path"
 
 function createWindow(): void {
 	// Create the browser window.
@@ -112,8 +114,38 @@ app.whenReady().then(() => {
 		console.log("Failed to set app name")
 	}
 
-	// Setup IPC handlers
-	setupIPC()
+	// Setup IPC handlers (safe call to avoid interop/circular issues)
+	try {
+		if (mainIpc && typeof (mainIpc as any).setupIPC === "function") {
+			(mainIpc as any).setupIPC()
+		} else {
+			console.warn('setupIPC not available or not a function; skipping IPC setup')
+		}
+	} catch (err) {
+		console.error('Erro ao inicializar IPC:', err)
+	}
+
+	// Integrar opcionalmente o Machine Work State server
+	(function tryStartMachineWorkState() {
+		const candidates = [
+			joinPath(__dirname, "../renderer/machine-work-state/server.js"),
+			joinPath(process.cwd(), "src/renderer/machine-work-state/server.js"),
+			joinPath(process.cwd(), "src/renderer/machine-work-state/server.backup.js"),
+		]
+		for (const p of candidates) {
+			if (existsSync(p)) {
+				try {
+					// eslint-disable-next-line @typescript-eslint/no-var-requires
+					require(p)
+					console.log(`Machine Work State server carregado de: ${p}`)
+					return
+				} catch (err) {
+					console.error('Erro ao carregar Machine Work State server:', err)
+				}
+			}
+		}
+		console.log('Machine Work State server não encontrado em paths conhecidos; ignorando.')
+	})()
 
 	// Setup Menu
 	setupMenu()
