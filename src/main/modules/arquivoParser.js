@@ -14,7 +14,9 @@ function parseNumberFromPares(paresStr) {
 export async function parseCTF(caminho) {
   const mapa = new Map();
 
-  const patternArtigoModelo = /([A-Z]{3}\d{7,9})\s+([A-Z0-9-]+)/;
+  // aceitar padrões antigos (ex: COR43927547) e novos (ex: CRPMZ8578) e
+  // fallback para extrair de colunas fixas quando necessário
+  const patternArtigoModelo = /([A-Z]{3}\d{7,9}|[A-Z]{4,5}\d{3,5}|[A-Z0-9]{7,12})\s+([A-Z0-9-]+)/;
   const patternOF = /PAR\s*(\d{9})(?:\/[^\s]+)?(?:\s[A-Z])?/;
   const patternPares = /N\s*([\d\.]+,[\d]{3})/;
 
@@ -24,10 +26,40 @@ export async function parseCTF(caminho) {
   for (let linha of lines) {
     if (!linha || linha.trim().length === 0 || linha.length < 50) continue;
 
+    // tentar achar artigo+modelo via regex. Se falhar, tentar colunas fixas
+    let artigo = null;
+    let modelo = '';
     const mArtigoModelo = patternArtigoModelo.exec(linha);
-    if (!mArtigoModelo) continue;
-    const artigo = mArtigoModelo[1];
-    const modelo = mArtigoModelo[2];
+    if (mArtigoModelo) {
+      artigo = mArtigoModelo[1];
+      modelo = mArtigoModelo[2];
+    } else {
+      // fallback: tentar extrair artigo a partir das colunas fixas (1-based):
+      // primeiro 43-51, depois 43-52 e por fim 43-54
+      if (linha) {
+        let candidate = '';
+        let restStart = 54;
+        if (linha.length >= 51) {
+          candidate = linha.substring(42, Math.min(51, linha.length)).trim();
+          restStart = 51;
+        }
+        if (!candidate && linha.length >= 52) {
+          candidate = linha.substring(42, Math.min(52, linha.length)).trim();
+          restStart = 52;
+        }
+        if (!candidate && linha.length >= 54) {
+          candidate = linha.substring(42, Math.min(54, linha.length)).trim();
+          restStart = 54;
+        }
+        if (candidate && /^[A-Z0-9]{4,12}$/.test(candidate)) {
+          artigo = candidate.toUpperCase();
+          const rest = linha.substring(restStart).trim();
+          const mModelo = /([A-Z0-9-]+)/.exec(rest);
+          if (mModelo) modelo = mModelo[1];
+        }
+      }
+    }
+    if (!artigo) continue;
 
     const mOF = patternOF.exec(linha);
     if (!mOF) continue;
@@ -73,7 +105,9 @@ export async function parseCTF(caminho) {
 export async function parseCTC(caminho) {
   const mapa = new Map();
 
-  const patternArtigoModelo = /([A-Z]{3}\d{7,9})\s+([A-Z0-9-]+)/;
+  // aceitar padrões antigos (ex: COR43927547) e novos (ex: CRPMZ8578) e
+  // fallback para extrair de colunas fixas quando necessário
+  const patternArtigoModelo = /([A-Z]{3}\d{7,9}|[A-Z]{4,5}\d{3,5}|[A-Z0-9]{7,12})\s+([A-Z0-9-]+)/;
   const patternOF = /PAR\s*(\d{9}(?:\/[^\s]+)?(?:\s[A-Z])?)/;
   const patternPares = /N\s*([\d\.]+,[\d]{3})/;
   const patternEspecificacaoPrioridade = /Corte\s(.+?)(?:\s+PAR\s+\d{9}.*?)?(\s+PRIORIDADE\s*\S+)?$/;
@@ -94,10 +128,38 @@ export async function parseCTC(caminho) {
 
     if (!linha || linha.trim().length === 0 || linha.length < 50) continue;
 
+    // tentar achar artigo+modelo via regex. Se falhar, tentar colunas fixas
+    let artigo = null;
+    let modelo = '';
     const mArtigoModelo = patternArtigoModelo.exec(linha);
-    if (!mArtigoModelo) continue;
-    const artigo = mArtigoModelo[1];
-    const modelo = mArtigoModelo[2];
+    if (mArtigoModelo) {
+      artigo = mArtigoModelo[1];
+      modelo = mArtigoModelo[2];
+    } else {
+      if (linha) {
+        let candidate = '';
+        let restStart = 54;
+        if (linha.length >= 51) {
+          candidate = linha.substring(42, Math.min(51, linha.length)).trim();
+          restStart = 51;
+        }
+        if (!candidate && linha.length >= 52) {
+          candidate = linha.substring(42, Math.min(52, linha.length)).trim();
+          restStart = 52;
+        }
+        if (!candidate && linha.length >= 54) {
+          candidate = linha.substring(42, Math.min(54, linha.length)).trim();
+          restStart = 54;
+        }
+        if (candidate && /^[A-Z0-9]{4,12}$/.test(candidate)) {
+          artigo = candidate.toUpperCase();
+          const rest = linha.substring(restStart).trim();
+          const mModelo = /([A-Z0-9-]+)/.exec(rest);
+          if (mModelo) modelo = mModelo[1];
+        }
+      }
+    }
+    if (!artigo) continue;
 
     const mOF = patternOF.exec(linha);
     if (!mOF) continue;

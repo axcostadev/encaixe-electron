@@ -15,11 +15,30 @@ export default defineConfig({
 		plugins: [externalizeDepsPlugin()],
 	},
 	renderer: {
+		// root for renderer development server (where index.html lives)
+		root: resolve('src/renderer'),
 		resolve: {
 			alias: {
 				"@renderer": resolve("src/renderer/src"),
+				// during development point to the router entry so imports resolve correctly
+				"machine-work-state": process.env.NODE_ENV === 'development'
+					? resolve("src/renderer/machine-work-state/frontend/src/Router.tsx")
+					: resolve("dist/machine-work-state/machine-work-state.es.js"),
 			},
 		},
+		server: {
+			fs: {
+				// allow access to our renderer sources from the development server
+				// use absolute paths so vite can properly compare against the request id
+				allow: [
+					resolve(__dirname, "src/renderer/src"),
+					resolve(__dirname, "src/renderer/machine-work-state/frontend/src"),
+					// also add the renderer root itself in case resources are requested
+					resolve(__dirname, "src/renderer"),
+				],
+			},
+		},
+
 		plugins: [react(), tailwindcss()],
 	},
 })

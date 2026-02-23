@@ -14,6 +14,8 @@ import { MateriaisPage } from "@renderer/pages/MateriaisPage"
 import { ModelosPage } from "@renderer/pages/ModelosPage"
 import EncaixePage from "@renderer/pages/EncaixePage"
 import ManualPage from "@renderer/pages/ManualPage"
+import ViewCuttingMachinePage from "@renderer/pages/ViewCuttingMachine"
+import MachineWorkStatePage from "@renderer/pages/MachineWorkState"
 import EconomiaPage from "@renderer/pages/EconomiaPage/EconomiaPage"
 import SetupPage from "@renderer/pages/SetupPage"
 import NotFound from "@renderer/pages/NotFound"
@@ -63,8 +65,10 @@ function AuthenticatedApp() {
 			<Routes>
 				<Route path="/" element={<Dashboard />} />
 					<Route path="/economia" element={<EconomiaPage />} />
-				<Route path="/encaixe" element={<EncaixePage />} />
-				<Route path="/modelos" element={<ModelosPage />} />
+					<Route path="/encaixe" element={<EncaixePage />} />
+					<Route path="/view-cutting-machine" element={<ViewCuttingMachinePage />} />
+					<Route path="/machine-work-state/*" element={<MachineWorkStatePage />} />
+					<Route path="/modelos" element={<ModelosPage />} />
 				<Route path="/cores" element={<CoresPage />} />
 				<Route path="/materiais" element={<MateriaisPage />} />
 				<Route path="/componentes" element={<ComponentesPage />} />
