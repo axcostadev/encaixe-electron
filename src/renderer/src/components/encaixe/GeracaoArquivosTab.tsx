@@ -290,13 +290,18 @@ export function GeracaoArquivosTab({
 		if (result.length === 0) {
 			setMessage("OF não encontrada nos arquivos CTF/CTC")
 		} else {
-			// Auto-preencher o campo artigo com "COR" + artigo da primeira linha
-			const primeiroArtigo = result[0]?.artigo
-			if (primeiroArtigo) {
-				const artigoComCOR = primeiroArtigo.startsWith("COR")
-					? primeiroArtigo
-					: "COR" + primeiroArtigo
-				setArtigoSearch(artigoComCOR)
+// Auto-preencher o campo artigo com valor da primeira linha.
+				// Se o texto começar com letra (p.ex. CRP, CRPMZ, COR etc.) usamos
+				// exatamente como veio. apenas valores iniciando em dígito recebem
+				// o prefixo COR, preservando casos novos como CRP8346B ou
+				// CRPMZ8578I.
+				const primeiroArtigo = result[0]?.artigo
+				if (primeiroArtigo) {
+					let artigoBusca = primeiroArtigo.toUpperCase()
+					if (!/^[A-Z]/.test(artigoBusca)) {
+						artigoBusca = "COR" + artigoBusca
+					}
+					setArtigoSearch(artigoBusca)
 
 				// Extrair as cores únicas da OF (código cor sem os números no início)
 				// Ex: "9169 PTRL4" -> pega "PTRL4"
@@ -316,7 +321,7 @@ export function GeracaoArquivosTab({
 				// Buscar cadastros automaticamente após preencher o artigo
 				setCadastrosInfo([])
 				setComponenteSelecionado(null)
-				const cadastros = await buscarArtigoHook(artigoComCOR)
+				const cadastros = await buscarArtigoHook(artigoBusca)
 				if (cadastros.length === 0) {
 					setMessage("Nenhum cadastro encontrado para o artigo informado")
 				} else {

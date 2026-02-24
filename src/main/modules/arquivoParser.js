@@ -14,9 +14,11 @@ function parseNumberFromPares(paresStr) {
 export async function parseCTF(caminho) {
   const mapa = new Map();
 
-  // aceitar padrões antigos (ex: COR43927547) e novos (ex: CRPMZ8578) e
-  // fallback para extrair de colunas fixas quando necessário
-  const patternArtigoModelo = /([A-Z]{3}\d{7,9}|[A-Z]{4,5}\d{3,5}|[A-Z0-9]{7,12})\s+([A-Z0-9-]+)/;
+  // aceitar padrões antigos (ex: COR43927547) e novos (CRP8346B,
+  // CRP8356, CRPMZ8590, CRPMZ8578I). permite prefixos de 3–5 letras
+  // seguidos de 3–9 dígitos, com opcional letra no final, além de um
+  // fallback genérico para qualquer outra sequência alfanumérica.
+  const patternArtigoModelo = /([A-Z]{3,5}\d{3,9}[A-Z]?|[A-Z0-9]{7,12})\s+([A-Z0-9-]+)/;
   const patternOF = /PAR\s*(\d{9})(?:\/[^\s]+)?(?:\s[A-Z])?/;
   const patternPares = /N\s*([\d\.]+,[\d]{3})/;
 
@@ -105,9 +107,11 @@ export async function parseCTF(caminho) {
 export async function parseCTC(caminho) {
   const mapa = new Map();
 
-  // aceitar padrões antigos (ex: COR43927547) e novos (ex: CRPMZ8578) e
-  // fallback para extrair de colunas fixas quando necessário
-  const patternArtigoModelo = /([A-Z]{3}\d{7,9}|[A-Z]{4,5}\d{3,5}|[A-Z0-9]{7,12})\s+([A-Z0-9-]+)/;
+  // aceitar padrões antigos (ex: COR43927547) e novos (CRP8346B,
+  // CRP8356, CRPMZ8590, CRPMZ8578I). permite prefixos de 3–5 letras
+  // seguidos de 3–9 dígitos, com opcional letra no final, além de um
+  // fallback genérico para qualquer outra sequência alfanumérica.
+  const patternArtigoModelo = /([A-Z]{3,5}\d{3,9}[A-Z]?|[A-Z0-9]{7,12})\s+([A-Z0-9-]+)/;
   const patternOF = /PAR\s*(\d{9}(?:\/[^\s]+)?(?:\s[A-Z])?)/;
   const patternPares = /N\s*([\d\.]+,[\d]{3})/;
   const patternEspecificacaoPrioridade = /Corte\s(.+?)(?:\s+PAR\s+\d{9}.*?)?(\s+PRIORIDADE\s*\S+)?$/;
