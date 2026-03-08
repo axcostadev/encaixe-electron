@@ -1,6 +1,7 @@
 import { electronApp, is, optimizer } from "@electron-toolkit/utils"
 import { app, BrowserWindow, ipcMain, shell, nativeImage } from "electron"
 import { join } from "path"
+import { pathToFileURL } from "url"
 import icon from "../../resources/icon.png?asset"
 // existsSync is used in multiple places; import it once
 import { existsSync } from "fs"
@@ -8,6 +9,27 @@ import * as mainIpc from "./ipc"
 import { setupMenu } from "./menu"
 import { closeDatabase } from "./database"
 import { join as joinPath } from "path"
+
+async function tryStartViewCuttingMachineIpc() {
+	const candidates = [
+		joinPath(process.cwd(), "src/renderer/view-cutting-machine/src/main/service/server.js"),
+		joinPath(__dirname, "../renderer/view-cutting-machine/src/main/service/server.js"),
+		joinPath(process.resourcesPath || "", "app.asar.unpacked/src/renderer/view-cutting-machine/src/main/service/server.js"),
+	]
+
+	for (const p of candidates) {
+		if (!p || !existsSync(p)) continue
+		try {
+			await import(pathToFileURL(p).href)
+			console.log(`View Cutting Machine IPC carregado de: ${p}`)
+			return
+		} catch (err) {
+			console.error(`Erro ao carregar View Cutting Machine IPC em ${p}:`, err)
+		}
+	}
+
+	console.log("View Cutting Machine IPC não encontrado em paths conhecidos; ignorando.")
+}
 
 function createWindow(): void {
 	// Create the browser window.
@@ -104,7 +126,7 @@ function createWindow(): void {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
 	// Set app user model id for windows and app name
 	electronApp.setAppUserModelId("com.aincrad.cuttingroom")
 	try {
@@ -125,8 +147,11 @@ app.whenReady().then(() => {
 		console.error('Erro ao inicializar IPC:', err)
 	}
 
+	// Integra handlers IPC do View Cutting Machine (projeto embutido)
+	await tryStartViewCuttingMachineIpc();
+
 	// Integrar opcionalmente o Machine Work State server
-	(function tryStartMachineWorkState() {
+	;(function tryStartMachineWorkState() {
 		const candidates = [
 			joinPath(__dirname, "../renderer/machine-work-state/server.js"),
 			joinPath(process.cwd(), "src/renderer/machine-work-state/server.js"),

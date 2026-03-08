@@ -92,10 +92,10 @@ export default function EconomiaPage() {
   const [selectedPeriods, setSelectedPeriods] = useState<string[]>([])
   const [selectedModels, setSelectedModels] = useState<string[]>([])
 
-  // Normaliza período para YYYY/MM (aceita mês com 1 ou 2 dígitos)
+  // Normaliza período para YYYY/MM (aceita separador '/' ou '-')
   const normalizePeriod = (p?: string) => {
     if (!p || typeof p !== 'string') return ''
-    const m = /^([0-9]{4})\/(\d{1,2})$/.exec(p.trim())
+    const m = /^([0-9]{4})[\/-](\d{1,2})$/.exec(p.trim())
     if (!m) return ''
     const year = Number(m[1])
     const month = Number(m[2])
@@ -103,11 +103,6 @@ export default function EconomiaPage() {
     if (year < 2000 || year > nextYear || month < 1 || month > 12) return ''
     return `${year}/${String(month).padStart(2, '0')}`
   }
-
-  // Valida formato de período considerando normalização
-  const isValidPeriod = (p?: string) => normalizePeriod(p) !== ''
-
-
 
   // Prefer PNG versions of images when available; fallback to bundled SVGs
   const images = { shoe: shoePng || shoeImg, rolls: rollsPng || rollsImg, logo: vulcabrasPng || vulcabrasImg }
@@ -972,29 +967,20 @@ export default function EconomiaPage() {
       const modelsSet = new Set<string>()
       rs.forEach((r:any) => {
         let periodFound = false
-        // Primeiro, tenta usar header_periodo se disponível
-        const headerPeriod = normalizePeriod(r.header_periodo)
-        if (headerPeriod) {
-          periodsSet.add(headerPeriod)
+        // Primeiro tenta campos explícitos de período
+        const periodCandidates = [r.header_periodo, r.periodo]
+          .map((v:any) => normalizePeriod(v === undefined || v === null ? '' : String(v)))
+          .filter(Boolean)
+        if (periodCandidates.length > 0) {
+          periodsSet.add(periodCandidates[0])
           periodFound = true
         }
-        // Se não encontrou período no header, tenta derivar da data
-        if (!periodFound && r.data) {
-          try {
-            const dt = new Date(r.data)
-            if (!isNaN(dt.getTime())) {
-              const p = normalizePeriod(`${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`)
-              if (p) {
-                periodsSet.add(p)
-                periodFound = true
-              }
-            }
-          } catch(e) {}
-        }
-        // Também tenta derivar período do header_data se disponível
-        if (!periodFound && r.header_data) {
-          const hp = normalizePeriod(getPeriodFromDateString(r.header_data))
-          if (hp) periodsSet.add(hp)
+        // Depois tenta derivar de campos de data em formatos diversos (ISO ou DD-MM-YYYY)
+        if (!periodFound) {
+          const fromDateCandidates = [r.data, r.header_data, r.header_data_fase]
+            .map((v:any) => normalizePeriod(getPeriodFromDateString(v === undefined || v === null ? '' : String(v))))
+            .filter(Boolean)
+          if (fromDateCandidates.length > 0) periodsSet.add(fromDateCandidates[0])
         }
         if (r.modelo) modelsSet.add(r.modelo)
         // Também considera header_modelo como nome do modelo
@@ -1031,35 +1017,24 @@ export default function EconomiaPage() {
   const applyFilters = () => {
     // helper to derive period YYYY/MM from banco row (supports header_periodo fallback)
     const getRowPeriod = (r:any) => {
-      // Primeiro, tenta usar header_periodo se disponível
-      const hp = normalizePeriod(r.header_periodo || r.header_periodo === 0 ? String(r.header_periodo) : '')
-      if (hp) return hp
-      // Tenta derivar da data
-      if (r.data) {
-        try {
-          const dt = new Date(r.data)
-          if (!isNaN(dt.getTime())) {
-            return normalizePeriod(`${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`)
-          }
-        } catch (e) {}
-      }
-      // Tenta derivar do header_data
-      if (r.header_data) {
-        const hp2 = normalizePeriod(getPeriodFromDateString(r.header_data))
-        if (hp2) return hp2
-      }
+      const explicit = [r.header_periodo, r.periodo]
+        .map((v:any) => normalizePeriod(v === undefined || v === null ? '' : String(v)))
+        .find(Boolean)
+      if (explicit) return explicit
+      const derived = [r.data, r.header_data, r.header_data_fase]
+        .map((v:any) => normalizePeriod(getPeriodFromDateString(v === undefined || v === null ? '' : String(v))))
+        .find(Boolean)
+      if (derived) return derived
       // Retorna string vazia para registros sem período definido
-      // Eles só aparecerão se nenhum período estiver selecionado (filtro está limpo)
       return ''
     }
 
     const filtered = rows.filter((r:any) => {
       let okPeriod = true
       let okModel = true
-      // If there are period filters but none selected, treat as 'no period selected' => show all rows
+      // Nenhum período selecionado: não mostra linhas quando há opções de período
       if (!selectedPeriods || selectedPeriods.length === 0) {
-        // Nenhum período selecionado = mostra todos (sem filtro de período)
-        okPeriod = true
+        okPeriod = availablePeriods.length === 0
       } else if (selectedPeriods.length === availablePeriods.length) {
         // Todos os períodos selecionados = mostra todos (incluindo sem data)
         okPeriod = true
