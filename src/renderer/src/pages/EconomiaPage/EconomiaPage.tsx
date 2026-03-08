@@ -92,15 +92,20 @@ export default function EconomiaPage() {
   const [selectedPeriods, setSelectedPeriods] = useState<string[]>([])
   const [selectedModels, setSelectedModels] = useState<string[]>([])
 
-  // Valida formato YYYY/MM e limites razoáveis (mês 01-12, ano entre 2000 e nextYear)
-  const isValidPeriod = (p?: string) => {
-    if (!p || typeof p !== 'string') return false
-    const m = /^([0-9]{4})\/(0[1-9]|1[0-2])$/.exec(p.trim())
-    if (!m) return false
+  // Normaliza período para YYYY/MM (aceita mês com 1 ou 2 dígitos)
+  const normalizePeriod = (p?: string) => {
+    if (!p || typeof p !== 'string') return ''
+    const m = /^([0-9]{4})\/(\d{1,2})$/.exec(p.trim())
+    if (!m) return ''
     const year = Number(m[1])
+    const month = Number(m[2])
     const nextYear = new Date().getFullYear() + 1
-    return year >= 2000 && year <= nextYear
+    if (year < 2000 || year > nextYear || month < 1 || month > 12) return ''
+    return `${year}/${String(month).padStart(2, '0')}`
   }
+
+  // Valida formato de período considerando normalização
+  const isValidPeriod = (p?: string) => normalizePeriod(p) !== ''
 
 
 
@@ -751,6 +756,8 @@ export default function EconomiaPage() {
           const key = `${r.material || ''}|${r.cor_espessura || ''}`
           const savedData = dbRowsByKey[key]
           
+          const derivedPeriod = normalizePeriod(getPeriodFromDateString(r.data)) || currentPeriod
+
           return {
             line: idx + 1,
             text: '',
@@ -769,7 +776,7 @@ export default function EconomiaPage() {
               'Dif': savedData?.dif?.toString() || r.dif?.toString() || '',
               '%': savedData?.porcent?.toString() || r.porcent?.toString() || '',
               'Economia (R$)': '',
-              'Periodo (Ano/Mês)': currentPeriod ?? `${r.data.split('-')[0]}/${r.data.split('-')[1]}`,
+              'Periodo (Ano/Mês)': derivedPeriod,
               // Flag para indicar se veio do banco
               '_fromDb': !!savedData,
               '_dbId': savedData?.id
@@ -817,10 +824,16 @@ export default function EconomiaPage() {
         })
 
         // Atualizar filtros de período com os períodos presentes nos resultados (ex.: 2026/01)
-        const srPeriods = Array.from(new Set(formattedResults.map(fr => fr.parsed?.['Periodo (Ano/Mês)']).filter(Boolean) as string[])).filter((p)=>isValidPeriod(p)) as string[]
+        const srPeriods = Array.from(new Set(
+          formattedResults
+            .map(fr => normalizePeriod(fr.parsed?.['Periodo (Ano/Mês)']))
+            .filter(Boolean) as string[]
+        )) as string[]
         if (srPeriods.length > 0) {
           // mesclar com os períodos já disponíveis e selecionar apenas os períodos dos resultados
-          setAvailablePeriods(prev => Array.from(new Set([...prev, ...srPeriods])).filter((p)=>isValidPeriod(p)).sort().reverse() as string[])
+          setAvailablePeriods(prev => Array.from(new Set(
+            [...prev.map(normalizePeriod).filter(Boolean), ...srPeriods]
+          )).sort().reverse() as string[])
           setSelectedPeriods(srPeriods)
         }
 
@@ -833,7 +846,7 @@ export default function EconomiaPage() {
         // NOTE: overwrite previous header values so each search reflects the file's metadata
         if (formattedResults.length > 0) {
           const first = formattedResults[0].parsed || {}
-          const derivedPeriodo = first['Periodo (Ano/Mês)'] || getPeriodFromDateString(first['Data'] || first['DATA FASE'] || '')
+          const derivedPeriodo = normalizePeriod(first['Periodo (Ano/Mês)']) || normalizePeriod(getPeriodFromDateString(first['Data'] || first['DATA FASE'] || ''))
           setHeaderFields({
             dataFase: formatISOToDisplay(first['DATA FASE'] || first['Data'] || '') || getTodayDisplay(),
             modelo: first['Modelo'] || '',
@@ -960,8 +973,9 @@ export default function EconomiaPage() {
       rs.forEach((r:any) => {
         let periodFound = false
         // Primeiro, tenta usar header_periodo se disponível
-        if (r.header_periodo && isValidPeriod(r.header_periodo)) {
-          periodsSet.add(r.header_periodo)
+        const headerPeriod = normalizePeriod(r.header_periodo)
+        if (headerPeriod) {
+          periodsSet.add(headerPeriod)
           periodFound = true
         }
         // Se não encontrou período no header, tenta derivar da data
@@ -969,8 +983,8 @@ export default function EconomiaPage() {
           try {
             const dt = new Date(r.data)
             if (!isNaN(dt.getTime())) {
-              const p = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`
-              if (isValidPeriod(p)) {
+              const p = normalizePeriod(`${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`)
+              if (p) {
                 periodsSet.add(p)
                 periodFound = true
               }
@@ -979,8 +993,8 @@ export default function EconomiaPage() {
         }
         // Também tenta derivar período do header_data se disponível
         if (!periodFound && r.header_data) {
-          const hp = getPeriodFromDateString(r.header_data)
-          if (hp && isValidPeriod(hp)) periodsSet.add(hp)
+          const hp = normalizePeriod(getPeriodFromDateString(r.header_data))
+          if (hp) periodsSet.add(hp)
         }
         if (r.modelo) modelsSet.add(r.modelo)
         // Também considera header_modelo como nome do modelo
@@ -1018,25 +1032,21 @@ export default function EconomiaPage() {
     // helper to derive period YYYY/MM from banco row (supports header_periodo fallback)
     const getRowPeriod = (r:any) => {
       // Primeiro, tenta usar header_periodo se disponível
-      const hp = r.header_periodo || r.header_periodo === 0 ? String(r.header_periodo) : ''
-      if (hp) {
-        const m = /^(\d{4})\/(\d{1,2})$/.exec(hp.trim())
-        if (m) return `${m[1]}/${m[2].padStart(2,'0')}`
-        if (isValidPeriod(hp.trim())) return hp.trim()
-      }
+      const hp = normalizePeriod(r.header_periodo || r.header_periodo === 0 ? String(r.header_periodo) : '')
+      if (hp) return hp
       // Tenta derivar da data
       if (r.data) {
         try {
           const dt = new Date(r.data)
           if (!isNaN(dt.getTime())) {
-            return `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`
+            return normalizePeriod(`${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`)
           }
         } catch (e) {}
       }
       // Tenta derivar do header_data
       if (r.header_data) {
-        const hp2 = getPeriodFromDateString(r.header_data)
-        if (hp2 && isValidPeriod(hp2)) return hp2
+        const hp2 = normalizePeriod(getPeriodFromDateString(r.header_data))
+        if (hp2) return hp2
       }
       // Retorna string vazia para registros sem período definido
       // Eles só aparecerão se nenhum período estiver selecionado (filtro está limpo)
@@ -1287,7 +1297,7 @@ export default function EconomiaPage() {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
             <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-[#488fce] rounded-2xl flex flex-row justify-center items-center gap-10 px-10 py-6 text-white" style={{ minWidth: 360, maxWidth: 720, whiteSpace: 'nowrap' }}>
               <div className="card-icon"><span className="text-5xl md:text-6xl whitespace-nowrap">R$</span></div>
-              <div className="value text-3xl md:text-4xl lg:text-4xl font-extrabold whitespace-nowrap" title="Soma de (dif × preco) sobre as linhas filtradas">{summary ? (Number(summary.totalEconomiaAll ?? summary.totalEconomia ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : '0,00'}</div>
+              <div className="value text-3xl md:text-4xl lg:text-4xl font-extrabold whitespace-nowrap" title="Soma de (dif × preco) sobre as linhas filtradas">{summary ? (Number(summary.filteredTotalEconomiaAll ?? summary.totalEconomiaAll ?? summary.totalEconomia ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : '0,00'}</div>
             </div>
             <div className="card-stats-economia">
               <div className="card-icon"><img src={shoeIcon} alt="modelos" className="rolls-icon"/></div>
