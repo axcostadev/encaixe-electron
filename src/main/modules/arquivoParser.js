@@ -15,10 +15,11 @@ export async function parseCTF(caminho) {
   const mapa = new Map();
 
   // aceitar padrões antigos (ex: COR43927547) e novos (CRP8346B,
-  // CRP8356, CRPMZ8590, CRPMZ8578I). permite prefixos de 3–5 letras
+  // CRP8356, CRPMZ8590, CRPMZ8578I). permite prefixos de 2–6 letras
   // seguidos de 3–9 dígitos, com opcional letra no final, além de um
   // fallback genérico para qualquer outra sequência alfanumérica.
-  const patternArtigoModelo = /([A-Z]{3,5}\d{3,9}[A-Z]?|[A-Z0-9]{7,12})\s+([A-Z0-9-]+)/;
+  // Tornar case-insensitive e permitir barras/pontos no grupo de modelo.
+  const patternArtigoModelo = /([A-Z]{2,6}\d{3,9}[A-Z]?|[A-Z0-9]{6,12})\s+([A-Z0-9\-\/.]+)/i;
   const patternOF = /PAR\s*(\d{9})(?:\/[^\s]+)?(?:\s[A-Z])?/;
   const patternPares = /N\s*([\d\.]+,[\d]{3})/;
 
@@ -37,27 +38,28 @@ export async function parseCTF(caminho) {
       modelo = mArtigoModelo[2];
     } else {
       // fallback: tentar extrair artigo a partir das colunas fixas (1-based):
-      // primeiro 43-51, depois 43-52 e por fim 43-54
+      // as ordens antigas colocavam o código na coluna 43, mas em alguns
+      // casos aparecem na coluna 53 (por exemplo CRP.../CRPMZ...). Vamos
+      // tentar ambos os deslocamentos e tamanhos variados.
       if (linha) {
-        let candidate = '';
-        let restStart = 54;
-        if (linha.length >= 51) {
-          candidate = linha.substring(42, Math.min(51, linha.length)).trim();
-          restStart = 51;
-        }
-        if (!candidate && linha.length >= 52) {
-          candidate = linha.substring(42, Math.min(52, linha.length)).trim();
-          restStart = 52;
-        }
-        if (!candidate && linha.length >= 54) {
-          candidate = linha.substring(42, Math.min(54, linha.length)).trim();
-          restStart = 54;
-        }
-        if (candidate && /^[A-Z0-9]{4,12}$/.test(candidate)) {
-          artigo = candidate.toUpperCase();
-          const rest = linha.substring(restStart).trim();
-          const mModelo = /([A-Z0-9-]+)/.exec(rest);
-          if (mModelo) modelo = mModelo[1];
+        const starts = [42, 52]; // índices 0-based para coluna 43 e 53
+        for (const start of starts) {
+          if (artigo) break; // já achou
+          // tentar comprimentos 9,10 e 12 (colunas finais 51/52/54 ou 61/%)
+          const lengths = [9, 10, 12];
+          for (const len of lengths) {
+            if (linha.length >= start + len) {
+              const candidate = linha.substring(start, start + len).trim();
+              if (candidate && /^[A-Z0-9]{4,12}$/.test(candidate)) {
+                artigo = candidate.toUpperCase();
+                const restStart = start + len;
+                const rest = linha.substring(restStart).trim();
+                const mModelo = /([A-Z0-9-]+)/.exec(rest);
+                if (mModelo) modelo = mModelo[1];
+                break;
+              }
+            }
+          }
         }
       }
     }
@@ -108,10 +110,11 @@ export async function parseCTC(caminho) {
   const mapa = new Map();
 
   // aceitar padrões antigos (ex: COR43927547) e novos (CRP8346B,
-  // CRP8356, CRPMZ8590, CRPMZ8578I). permite prefixos de 3–5 letras
+  // CRP8356, CRPMZ8590, CRPMZ8578I). permite prefixos de 2–6 letras
   // seguidos de 3–9 dígitos, com opcional letra no final, além de um
   // fallback genérico para qualquer outra sequência alfanumérica.
-  const patternArtigoModelo = /([A-Z]{3,5}\d{3,9}[A-Z]?|[A-Z0-9]{7,12})\s+([A-Z0-9-]+)/;
+  // Tornar case-insensitive e permitir barras/pontos no grupo de modelo.
+  const patternArtigoModelo = /([A-Z]{2,6}\d{3,9}[A-Z]?|[A-Z0-9]{6,12})\s+([A-Z0-9\-\/.]+)/i;
   const patternOF = /PAR\s*(\d{9}(?:\/[^\s]+)?(?:\s[A-Z])?)/;
   const patternPares = /N\s*([\d\.]+,[\d]{3})/;
   const patternEspecificacaoPrioridade = /Corte\s(.+?)(?:\s+PAR\s+\d{9}.*?)?(\s+PRIORIDADE\s*\S+)?$/;
@@ -140,26 +143,25 @@ export async function parseCTC(caminho) {
       artigo = mArtigoModelo[1];
       modelo = mArtigoModelo[2];
     } else {
+      // coluna 43 ou 53; mesma lógica usada em parseCTF acima
       if (linha) {
-        let candidate = '';
-        let restStart = 54;
-        if (linha.length >= 51) {
-          candidate = linha.substring(42, Math.min(51, linha.length)).trim();
-          restStart = 51;
-        }
-        if (!candidate && linha.length >= 52) {
-          candidate = linha.substring(42, Math.min(52, linha.length)).trim();
-          restStart = 52;
-        }
-        if (!candidate && linha.length >= 54) {
-          candidate = linha.substring(42, Math.min(54, linha.length)).trim();
-          restStart = 54;
-        }
-        if (candidate && /^[A-Z0-9]{4,12}$/.test(candidate)) {
-          artigo = candidate.toUpperCase();
-          const rest = linha.substring(restStart).trim();
-          const mModelo = /([A-Z0-9-]+)/.exec(rest);
-          if (mModelo) modelo = mModelo[1];
+        const starts = [42, 52];
+        for (const start of starts) {
+          if (artigo) break;
+          const lengths = [9, 10, 12];
+          for (const len of lengths) {
+            if (linha.length >= start + len) {
+              const candidate = linha.substring(start, start + len).trim();
+              if (candidate && /^[A-Z0-9]{4,12}$/.test(candidate)) {
+                artigo = candidate.toUpperCase();
+                const restStart = start + len;
+                const rest = linha.substring(restStart).trim();
+                const mModelo = /([A-Z0-9-]+)/.exec(rest);
+                if (mModelo) modelo = mModelo[1];
+                break;
+              }
+            }
+          }
         }
       }
     }

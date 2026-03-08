@@ -958,15 +958,35 @@ export default function EconomiaPage() {
       const periodsSet = new Set<string>()
       const modelsSet = new Set<string>()
       rs.forEach((r:any) => {
-        if (r.data) {
+        let periodFound = false
+        // Primeiro, tenta usar header_periodo se disponível
+        if (r.header_periodo && isValidPeriod(r.header_periodo)) {
+          periodsSet.add(r.header_periodo)
+          periodFound = true
+        }
+        // Se não encontrou período no header, tenta derivar da data
+        if (!periodFound && r.data) {
           try {
             const dt = new Date(r.data)
-            const p = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`
-            if (isValidPeriod(p)) periodsSet.add(p)
+            if (!isNaN(dt.getTime())) {
+              const p = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`
+              if (isValidPeriod(p)) {
+                periodsSet.add(p)
+                periodFound = true
+              }
+            }
           } catch(e) {}
         }
+        // Também tenta derivar período do header_data se disponível
+        if (!periodFound && r.header_data) {
+          const hp = getPeriodFromDateString(r.header_data)
+          if (hp && isValidPeriod(hp)) periodsSet.add(hp)
+        }
         if (r.modelo) modelsSet.add(r.modelo)
+        // Também considera header_modelo como nome do modelo
+        if (r.header_modelo && !r.modelo) modelsSet.add(r.header_modelo)
       })
+      
       const periods = Array.from(periodsSet).sort().reverse()
       const models = Array.from(modelsSet).sort()
       setAvailablePeriods(periods)
@@ -997,33 +1017,58 @@ export default function EconomiaPage() {
   const applyFilters = () => {
     // helper to derive period YYYY/MM from banco row (supports header_periodo fallback)
     const getRowPeriod = (r:any) => {
+      // Primeiro, tenta usar header_periodo se disponível
       const hp = r.header_periodo || r.header_periodo === 0 ? String(r.header_periodo) : ''
       if (hp) {
         const m = /^(\d{4})\/(\d{1,2})$/.exec(hp.trim())
         if (m) return `${m[1]}/${m[2].padStart(2,'0')}`
         if (isValidPeriod(hp.trim())) return hp.trim()
       }
+      // Tenta derivar da data
       if (r.data) {
         try {
           const dt = new Date(r.data)
-          return `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`
+          if (!isNaN(dt.getTime())) {
+            return `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}`
+          }
         } catch (e) {}
       }
+      // Tenta derivar do header_data
+      if (r.header_data) {
+        const hp2 = getPeriodFromDateString(r.header_data)
+        if (hp2 && isValidPeriod(hp2)) return hp2
+      }
+      // Retorna string vazia para registros sem período definido
+      // Eles só aparecerão se nenhum período estiver selecionado (filtro está limpo)
       return ''
     }
 
     const filtered = rows.filter((r:any) => {
       let okPeriod = true
       let okModel = true
-      // If there are period filters but none selected, treat as 'no period selected' => exclude all rows
-      if (selectedPeriods && selectedPeriods.length === 0) {
-        okPeriod = false
-      } else if (selectedPeriods && selectedPeriods.length > 0) {
+      // If there are period filters but none selected, treat as 'no period selected' => show all rows
+      if (!selectedPeriods || selectedPeriods.length === 0) {
+        // Nenhum período selecionado = mostra todos (sem filtro de período)
+        okPeriod = true
+      } else if (selectedPeriods.length === availablePeriods.length) {
+        // Todos os períodos selecionados = mostra todos (incluindo sem data)
+        okPeriod = true
+      } else {
+        // Filtro específico: só mostra registros que pertencem aos períodos selecionados
         const p = getRowPeriod(r)
         okPeriod = p ? selectedPeriods.includes(p) : false
       }
-      if (selectedModels && selectedModels.length > 0) {
-        okModel = selectedModels.includes(r.modelo)
+      // Filtro de modelo
+      if (!selectedModels || selectedModels.length === 0) {
+        // Nenhum modelo selecionado = mostra todos
+        okModel = true
+      } else if (selectedModels.length === availableModels.length) {
+        // Todos os modelos selecionados = mostra todos (incluindo sem modelo)
+        okModel = true
+      } else {
+        // Filtro específico: só mostra registros que pertencem aos modelos selecionados
+        const m = r.modelo || r.header_modelo || ''
+        okModel = m ? selectedModels.includes(m) : false
       }
       return okPeriod && okModel
     })
@@ -1080,7 +1125,7 @@ export default function EconomiaPage() {
   }
 
   // rerun applyFilters when rows or selections change
-  useEffect(()=>{ applyFilters() }, [rows, selectedPeriods, selectedModels])
+  useEffect(()=>{ applyFilters() }, [rows, selectedPeriods, selectedModels, availablePeriods, availableModels])
 
   // Fetch persisted economia rows for the "Banco de Dados" tab
   const fetchBancoRows = async () => {
