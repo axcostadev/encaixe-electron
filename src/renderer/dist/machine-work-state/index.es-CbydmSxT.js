@@ -1,4 +1,4 @@
-import { _ as Da } from "./main-C82Q6S8c.js";
+import { _ as Da } from "./main-xuoCgdYA.js";
 var Va = typeof globalThis < "u" ? globalThis : typeof window < "u" ? window : typeof global < "u" ? global : typeof self < "u" ? self : {};
 function il(n) {
   return n && n.__esModule && Object.prototype.hasOwnProperty.call(n, "default") ? n.default : n;
@@ -193,7 +193,7 @@ function nl() {
   _n = 1;
   var n = Ua(), e = Z(), r = Q(), t = r.String;
   return pt = !!Object.getOwnPropertySymbols && !e(function() {
-    var i = /* @__PURE__ */ Symbol("symbol detection");
+    var i = Symbol("symbol detection");
     return !t(i) || !(Object(i) instanceof Symbol) || // Chrome 38-40 symbols are not inherited from DOM collections prototypes to instances
     !Symbol.sham && n && n < 41;
   }), pt;
@@ -2764,6 +2764,20 @@ function mf() {
   }), _u;
 }
 mf();
+/*! *****************************************************************************
+Copyright (c) Microsoft Corporation.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+***************************************************************************** */
 var ql = function(n, e) {
   return (ql = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(r, t) {
     r.__proto__ = t;

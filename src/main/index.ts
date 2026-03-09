@@ -69,6 +69,19 @@ function createWindow(): void {
 		},
 	})
 
+	let didShowWindow = false
+	const showMainWindow = (reason: string) => {
+		if (didShowWindow || mainWindow.isDestroyed()) return
+		didShowWindow = true
+		try {
+			mainWindow.show()
+			mainWindow.focus()
+			console.log(`[WINDOW] main window shown via ${reason}`)
+		} catch (err) {
+			console.error(`[WINDOW] failed to show main window via ${reason}`, err)
+		}
+	}
+
 	mainWindow.on("ready-to-show", () => {
 		// abrir a janela maximizada antes de mostrá-la
 		try {
@@ -76,7 +89,7 @@ function createWindow(): void {
 		} catch (_) {
 			console.log("Failed to maximize window on ready-to-show")
 		}
-		mainWindow.show()
+		showMainWindow("ready-to-show")
 	})
 
 	mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -103,6 +116,7 @@ function createWindow(): void {
 				validatedURL,
 				isMainFrame,
 			})
+			if (isMainFrame) showMainWindow("did-fail-load")
 		},
 	)
 
@@ -112,7 +126,13 @@ function createWindow(): void {
 
 	mainWindow.webContents.on("did-finish-load", () => {
 		console.log("Renderer finished load")
+		showMainWindow("did-finish-load")
 	})
+
+	// Safety net: in dev, some renderer/network startup races can skip ready-to-show.
+	setTimeout(() => {
+		if (!didShowWindow) showMainWindow("timeout-fallback")
+	}, 5000)
 
 	// HMR for renderer base on electron-vite cli.
 	// Load the remote URL for development or the local html file for production.
