@@ -9,11 +9,14 @@
 		"src/renderer/src/env.d.ts",
 		"src/renderer/src/**/*",
 		"src/renderer/src/**/*.tsx",
-		"src/preload/*.d.ts",
-		"src/renderer/machine-work-state/frontend/src/**/*"
+		"src/preload/*.d.ts"
 	],
 	"compilerOptions": {
-		"composite": true,
+		// composite projects require existing declaration output; we don't build
+		// declarations in the web bundle so turn composite off and disable
+		// declaration emission to avoid TS6305 errors when no emit is used.
+		"composite": false,
+		"declaration": false,
 		"jsx": "react-jsx",
 		"baseUrl": ".",
 		"allowImportingTsExtensions": true,

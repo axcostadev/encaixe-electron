@@ -1401,10 +1401,10 @@ export default function EconomiaPage() {
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" type="category" interval={0} tick={VerticalTick} height={200} />
                             <YAxis type="number" domain={[ -yMax, yMax ]} tickFormatter={(v:any) => modelView === 'brl' ? Math.abs(Number(v)).toLocaleString(undefined,{ style: 'currency', currency: 'BRL' }) : `${Math.abs(Number(v)).toFixed(1)}%`} />
-                            <Tooltip formatter={(value: number | undefined) => {
+                            <Tooltip formatter={(value) => {
                               if (value === undefined || value === null) return ''
                               return modelView === 'brl' 
-                                ? Math.abs(value).toLocaleString(undefined,{ style: 'currency', currency: 'BRL' })
+                                ? Math.abs(Number(value)).toLocaleString(undefined,{ style: 'currency', currency: 'BRL' })
                                 : `${Math.abs(Number(value)).toFixed(1)}%`
                             }} />
                             <Bar dataKey="value">
@@ -1482,10 +1482,10 @@ export default function EconomiaPage() {
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" type="category" interval={0} tick={VerticalTick} height={200} />
                             <YAxis type="number" domain={[ -yMax, yMax ]} tickFormatter={(v:any) => materialView === 'brl' ? Math.abs(Number(v)).toLocaleString(undefined,{ style: 'currency', currency: 'BRL' }) : `${Math.abs(Number(v)).toFixed(1)}%`} />
-                            <Tooltip formatter={(value: number | undefined) => {
+                            <Tooltip formatter={(value) => {
                               if (value === undefined || value === null) return ''
                               return materialView === 'brl'
-                                ? Math.abs(value).toLocaleString(undefined,{ style: 'currency', currency: 'BRL' })
+                                ? Math.abs(Number(value)).toLocaleString(undefined,{ style: 'currency', currency: 'BRL' })
                                 : `${Math.abs(Number(value)).toFixed(1)}%`
                             }} />
                             <Bar dataKey="value">
