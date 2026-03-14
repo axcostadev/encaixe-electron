@@ -12,8 +12,11 @@ import { join as joinPath } from "path"
 
 async function tryStartViewCuttingMachineIpc() {
 	const candidates = [
+		// Dev mode: src files
 		joinPath(process.cwd(), "src/renderer/view-cutting-machine/src/main/service/server.js"),
 		joinPath(__dirname, "../renderer/view-cutting-machine/src/main/service/server.js"),
+		// Production: extraResources
+		joinPath(process.resourcesPath || "", "view-cutting-machine-service/server.js"),
 		joinPath(process.resourcesPath || "", "app.asar.unpacked/src/renderer/view-cutting-machine/src/main/service/server.js"),
 	]
 
@@ -171,26 +174,31 @@ app.whenReady().then(async () => {
 	await tryStartViewCuttingMachineIpc();
 
 	// Integrar opcionalmente o Machine Work State server
+	// TEMPORARIAMENTE DESABILITADO devido a incompatibilidade sqlite3/Electron
+	// Para reativar: reconstruir sqlite3 com electron-rebuild
+	console.log('Machine Work State temporariamente desabilitado (sqlite3 incompatível com Electron)')
+	/*
 	;(function tryStartMachineWorkState() {
-		const candidates = [
-			joinPath(__dirname, "../renderer/machine-work-state/server.js"),
-			joinPath(process.cwd(), "src/renderer/machine-work-state/server.js"),
-			joinPath(process.cwd(), "src/renderer/machine-work-state/server.backup.js"),
-		]
-		for (const p of candidates) {
-			if (existsSync(p)) {
-				try {
-					// eslint-disable-next-line @typescript-eslint/no-var-requires
-					require(p)
-					console.log(`Machine Work State server carregado de: ${p}`)
-					return
-				} catch (err) {
-					console.error('Erro ao carregar Machine Work State server:', err)
+		try {
+			const { fork } = require("child_process")
+			const child = fork(p, [], {
+				stdio: ["pipe", "inherit", "inherit", "ipc"],
+				env: { ...process.env },
+			})
+			child.on("error", (err: Error) => {
+				console.error("Machine Work State child process error:", err.message)
+			})
+			child.on("exit", (code: number | null) => {
+				if (code !== 0) {
+					console.warn(`Machine Work State process exited with code ${code}`)
 				}
-			}
+			})
+			console.log(`Machine Work State server iniciado em processo filho`)
+		} catch (err) {
+			console.error('Erro ao iniciar Machine Work State server:', err)
 		}
-		console.log('Machine Work State server não encontrado em paths conhecidos; ignorando.')
 	})()
+	*/
 
 	// Setup Menu
 	setupMenu()

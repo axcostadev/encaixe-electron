@@ -35,6 +35,10 @@ export default defineConfig({
 					resolve(__dirname, "src/renderer/machine-work-state/frontend/src"),
 					// also add the renderer root itself in case resources are requested
 					resolve(__dirname, "src/renderer"),
+					// allow view-cutting-machine renderer sources and assets
+					resolve(__dirname, "src/renderer/view-cutting-machine/src/renderer/src"),
+					resolve(__dirname, "src/renderer/view-cutting-machine/src/renderer"),
+					resolve(__dirname, "src/renderer/view-cutting-machine"),
 				],
 			},
 		},

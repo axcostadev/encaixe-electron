@@ -7,8 +7,11 @@ const CuttingDesktop = React.lazy(() =>
 
 export default function ViewCuttingMachinePage() {
   return (
-    <div className="h-full min-h-[600px] bg-background rounded-md shadow-sm overflow-auto">
-      <Suspense fallback={<div className="p-8">Carregando View Cutting Machine...</div>}>
+    <div
+      className="relative rounded-md shadow-sm overflow-auto -m-8"
+      style={{ height: "100vh", minHeight: 600 }}
+    >
+      <Suspense fallback={<div className="p-8 text-muted-foreground">Carregando View Cutting Machine...</div>}>
         <CuttingDesktop />
       </Suspense>
     </div>

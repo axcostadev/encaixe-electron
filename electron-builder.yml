@@ -9,6 +9,15 @@ files:
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+extraResources:
+  - from: src/renderer/view-cutting-machine/src/main/service
+    to: view-cutting-machine-service
+    filter:
+      - '**/*.js'
+  - from: src/renderer/view-cutting-machine/data
+    to: view-cutting-machine-data
+    filter:
+      - '**/*.json'
 asarUnpack:
   - resources/**
 win:
