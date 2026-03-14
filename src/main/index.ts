@@ -10,6 +10,8 @@ import { setupMenu } from "./menu"
 import { closeDatabase } from "./database"
 import { join as joinPath } from "path"
 
+let machineWorkStateProcess: import("child_process").ChildProcess | null = null
+
 async function tryStartViewCuttingMachineIpc() {
 	const candidates = [
 		// Dev mode: src files
@@ -32,6 +34,65 @@ async function tryStartViewCuttingMachineIpc() {
 	}
 
 	console.log("View Cutting Machine IPC não encontrado em paths conhecidos; ignorando.")
+}
+
+function tryStartMachineWorkStateServer() {
+	if (process.env.MWS_ENABLED === "false") {
+		console.log("Machine Work State desabilitado via MWS_ENABLED=false")
+		return
+	}
+
+	const candidates = [
+		joinPath(__dirname, "../renderer/machine-work-state/server.js"),
+		joinPath(process.cwd(), "src/renderer/machine-work-state/server.js"),
+		joinPath(process.cwd(), "src/renderer/machine-work-state/server.backup.js"),
+	]
+
+	for (const p of candidates) {
+		if (!existsSync(p)) continue
+
+		try {
+			const { spawn } = require("child_process")
+			const nodeBinary = process.env.NODE_EXECUTABLE || "node"
+			const child = spawn(nodeBinary, [p], {
+				cwd: process.cwd(),
+				env: { ...process.env },
+				stdio: ["ignore", "pipe", "pipe"],
+				windowsHide: true,
+			})
+
+			child.stdout?.on("data", (data: Buffer) => {
+				const msg = data.toString().trim()
+				if (msg) console.log(`[MWS] ${msg}`)
+			})
+
+			child.stderr?.on("data", (data: Buffer) => {
+				const msg = data.toString().trim()
+				if (msg) console.error(`[MWS] ${msg}`)
+			})
+
+			child.on("error", (err: Error) => {
+				console.error("Machine Work State process error:", err.message)
+			})
+
+			child.on("exit", (code: number | null, signal: string | null) => {
+				console.warn(
+					`Machine Work State process finalizado (code=${code}, signal=${signal})`,
+				)
+				if (machineWorkStateProcess?.pid === child.pid) {
+					machineWorkStateProcess = null
+				}
+			})
+
+			machineWorkStateProcess = child
+			console.log(`Machine Work State iniciado em processo Node externo: ${p}`)
+			return
+		} catch (err) {
+			console.error("Erro ao iniciar Machine Work State em processo externo:", err)
+		}
+	}
+
+	console.log("Machine Work State server não encontrado em paths conhecidos; ignorando.")
 }
 
 function createWindow(): void {
@@ -173,32 +234,8 @@ app.whenReady().then(async () => {
 	// Integra handlers IPC do View Cutting Machine (projeto embutido)
 	await tryStartViewCuttingMachineIpc();
 
-	// Integrar opcionalmente o Machine Work State server
-	// TEMPORARIAMENTE DESABILITADO devido a incompatibilidade sqlite3/Electron
-	// Para reativar: reconstruir sqlite3 com electron-rebuild
-	console.log('Machine Work State temporariamente desabilitado (sqlite3 incompatível com Electron)')
-	/*
-	;(function tryStartMachineWorkState() {
-		try {
-			const { fork } = require("child_process")
-			const child = fork(p, [], {
-				stdio: ["pipe", "inherit", "inherit", "ipc"],
-				env: { ...process.env },
-			})
-			child.on("error", (err: Error) => {
-				console.error("Machine Work State child process error:", err.message)
-			})
-			child.on("exit", (code: number | null) => {
-				if (code !== 0) {
-					console.warn(`Machine Work State process exited with code ${code}`)
-				}
-			})
-			console.log(`Machine Work State server iniciado em processo filho`)
-		} catch (err) {
-			console.error('Erro ao iniciar Machine Work State server:', err)
-		}
-	})()
-	*/
+	// Integrar Machine Work State em processo separado para evitar crash no Electron.
+	tryStartMachineWorkStateServer()
 
 	// Setup Menu
 	setupMenu()
@@ -232,6 +269,15 @@ app.on("window-all-closed", () => {
 })
 
 app.on("before-quit", () => {
+	if (machineWorkStateProcess && !machineWorkStateProcess.killed) {
+		try {
+			machineWorkStateProcess.kill()
+		} catch (err) {
+			console.warn("Falha ao encerrar processo Machine Work State:", err)
+		}
+		machineWorkStateProcess = null
+	}
+
 	closeDatabase()
 })
 
