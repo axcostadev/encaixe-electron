@@ -1,3 +1,4 @@
+import React from "react"
 import { MainLayout } from "@renderer/components/layout/MainLayout"
 import { Toaster as Sonner } from "@renderer/components/ui/sonner"
 import { Toaster } from "@renderer/components/ui/toaster"
@@ -32,6 +33,44 @@ import {
 import { Login } from "./pages/Login"
 
 const queryClient = new QueryClient()
+
+class AppErrorBoundary extends React.Component<
+	{ children: React.ReactNode },
+	{ hasError: boolean; errorMessage: string }
+> {
+	constructor(props: { children: React.ReactNode }) {
+		super(props)
+		this.state = { hasError: false, errorMessage: "" }
+	}
+
+	static getDerivedStateFromError(error: Error) {
+		return { hasError: true, errorMessage: error?.message || "Erro desconhecido" }
+	}
+
+	componentDidCatch(error: Error, info: React.ErrorInfo) {
+		console.error("Erro de render no App:", error, info)
+	}
+
+	render() {
+		if (this.state.hasError) {
+			return (
+				<div className="min-h-screen flex items-center justify-center bg-background p-6">
+					<div className="max-w-xl w-full rounded-lg border bg-card p-6 shadow">
+						<h1 className="text-lg font-semibold text-red-600 mb-2">Falha ao renderizar a aplicação</h1>
+						<p className="text-sm text-muted-foreground mb-4">
+							Tente recarregar a aplicação. Se persistir, abra o DevTools para ver o erro detalhado.
+						</p>
+						<pre className="text-xs bg-muted p-3 rounded overflow-auto">
+							{this.state.errorMessage}
+						</pre>
+					</div>
+				</div>
+			)
+		}
+
+		return this.props.children
+	}
+}
 
 function AuthenticatedApp() {
 	const { user, login } = useAuth()
@@ -89,23 +128,25 @@ function AuthenticatedApp() {
 function App() {
 	return (
 		<>
-			<QueryClientProvider client={queryClient}>
-				<LicenseProvider>
-					<AuthProvider>
-						<AppProvider>
-							<SetoresProvider>
-								<TooltipProvider>
-									<Toaster />
-									<Sonner />
-									<HashRouter>
-										<AuthenticatedApp />
-									</HashRouter>
-								</TooltipProvider>
-							</SetoresProvider>
-						</AppProvider>
-					</AuthProvider>
-				</LicenseProvider>
-			</QueryClientProvider>
+			<AppErrorBoundary>
+				<QueryClientProvider client={queryClient}>
+					<LicenseProvider>
+						<AuthProvider>
+							<AppProvider>
+								<SetoresProvider>
+									<TooltipProvider>
+										<Toaster />
+										<Sonner />
+										<HashRouter>
+											<AuthenticatedApp />
+										</HashRouter>
+									</TooltipProvider>
+								</SetoresProvider>
+							</AppProvider>
+						</AuthProvider>
+					</LicenseProvider>
+				</QueryClientProvider>
+			</AppErrorBoundary>
 		</>
 	)
 }
