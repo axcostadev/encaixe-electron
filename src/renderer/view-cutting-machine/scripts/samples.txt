@@ -1,0 +1,16 @@
+# Exemplo de amostras para validação
+# Formato: YYYY-MM-DD,turno,maquina
+# (turno: 1,2 ou 3)  maquinA: lectra, comelz, emma, laser
+
+2024-07-18,1,laser
+2024-07-19,1,laser
+2024-10-06,1,lectra
+2024-10-07,1,lectra
+2024-11-06,1,lectra
+2024-11-07,1,lectra
+2024-12-06,1,lectra
+2024-12-08,1,comelz
+2024-12-08,1,emma
+2024-12-08,1,laser
+2024-12-09,2,lectra
+2024-12-09,3,lectra

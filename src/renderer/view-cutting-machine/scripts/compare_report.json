@@ -1,0 +1,11 @@
+{
+  "summary": {
+    "expected": 889,
+    "dbRecords": 889,
+    "matches": 889,
+    "mismatches": 0,
+    "missing": 0
+  },
+  "sampleDiffs": [],
+  "allDiffs": []
+}

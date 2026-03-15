@@ -1,0 +1,117 @@
+{
+  "baseDir": "O:\\CORTE\\Alyson\\Laser\\Work",
+  "machineGroups": {
+    "Laser": {
+      "name": "LASER",
+      "baseDir": "O:\\CORTE\\Alyson\\Laser\\Work",
+      "machineMap": {
+        "1": "02-2010",
+        "2": "02-2416",
+        "3": "02-1765",
+        "4": "02-1702",
+        "5": "02-2388",
+        "6": "02-1804",
+        "7": "02-1867",
+        "8": "02-2871",
+        "9": "02-1767",
+        "10": "02-1868",
+        "11": "02-2840",
+        "12": "02-2830",
+        "13": "02-2831",
+        "14": "02-2832"
+      },
+      "fatigue": {
+        "phrases": [
+          "DEL "
+        ]
+      }
+    },
+    "Lectra": {
+      "name": "LECTRA",
+      "baseDir": "O:\\CORTE\\Alyson\\Laser\\Work\\Lectra",
+      "machineMap": {
+        "1": "02-1435",
+        "2": "02-2615",
+        "3": "02-1681",
+        "4": "02-1880",
+        "5": "02-1780",
+        "6": "02-1740",
+        "7": "02-2391",
+        "8": "02-2539",
+        "9": "02-1553",
+        "10": "02-1398",
+        "11": "02-1454"
+      }
+    },
+    "Emma": {
+      "name": "EMMA",
+      "baseDir": "\\va\\rede\\Grupos\\Horizonte\\Departamental\\CORTE\\Alyson\\Laser\\Work\\Emma",
+      "machineMap": {
+        "1": "02-2774",
+        "2": "02-2672",
+        "3": "02-2501",
+        "4": "02-2773"
+      }
+    },
+    "Comelz": {
+      "name": "COMELZ",
+      "baseDir": "O:\\CORTE\\Alyson\\Laser\\Work\\Comelz",
+      "machineMap": {
+        "1": "02-1555",
+        "2": "02-1556",
+        "3": "02-1558",
+        "4": "02-1507"
+      }
+    }
+  },
+  "networkDataPath": "\\\\va\\rede\\Grupos\\Horizonte\\Departamental\\CORTE\\Alyson\\Laser\\Work\\AppData",
+  "lastUpdated": "2026-02-08T21:34:07.681Z",
+  "version": "1.0.55",
+  "fatigue": {
+    "enabled": true,
+    "phrases": [
+      "",
+      "**Segurança em primeiro lugar** — beba água e alongue-se.D e "
+    ],
+    "periods": [
+      {
+        "inicio": "08:00",
+        "fim": "08:10"
+      },
+      {
+        "inicio": "10:50",
+        "fim": "11:00"
+      },
+      {
+        "inicio": "16:00",
+        "fim": "16:10"
+      },
+      {
+        "inicio": "20:00",
+        "fim": "20:10"
+      },
+      {
+        "inicio": "00:00",
+        "fim": "00:10"
+      },
+      {
+        "inicio": "03:00",
+        "fim": "03:10"
+      }
+    ],
+    "shiftPeriods": [
+      {
+        "inicio": "05:00",
+        "fim": "05:10"
+      },
+      {
+        "inicio": "13:20",
+        "fim": "13:30"
+      },
+      {
+        "inicio": "21:40",
+        "fim": "21:50"
+      }
+    ]
+  }
+}

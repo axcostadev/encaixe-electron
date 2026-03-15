@@ -1,0 +1,36 @@
+{
+  "baseDir": "\\\\va\\\\rede\\\\Grupos\\\\Horizonte\\\\Departamental\\\\CORTE\\\\Alyson\\\\Laser\\\\Work",
+  "machineGroups": {
+    "Laser": {
+      "name": "LASER",
+      "machineMap": {
+        "1": "02-2010",
+        "2": "02-2416",
+        "3": "02-1765",
+        "4": "02-1702",
+        "5": "02-2388",
+        "6": "02-1804",
+        "7": "02-1867",
+        "8": "02-1548",
+        "9": "02-1767",
+        "10": "02-1868",
+        "11": "02-2830",
+        "12": "02-2831",
+        "13": "02-2832",
+        "14": "02-2901"
+      }
+    },
+    "Lectra": {
+      "name": "Lectra",
+      "machineMap": {}
+    },
+    "Emma": {
+      "name": "Emma",
+      "machineMap": {}
+    },
+    "Comelz": {
+      "name": "Comelz",
+      "machineMap": {}
+    }
+  }
+}

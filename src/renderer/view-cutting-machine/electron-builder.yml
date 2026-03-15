@@ -1,0 +1,72 @@
+appId: com.aincrad.dev
+productName: aincrad.dev
+copyright: Copyright © 2025 aincrad.dev axcostadev & AlysonDEV
+forceCodeSigning: false
+directories:
+  buildResources: build
+extraResources:
+  - data
+  - build/view-cutting-machine.ico
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  # Exclude optional OS-specific native watcher (fsevents) which may be referenced in
+  # lockfiles but isn't present on Windows. Prevents ENOENT during electron-builder packaging.
+  - '!**/fsevents'
+  - '!**/fsevents/**'
+  - '!node_modules/fsevents/**'
+asarUnpack:
+  - resources/**
+win:
+  icon: build/view-cutting-machine.ico
+  executableName: view-cutting-machine
+  forceCodeSigning: false
+  signAndEditExecutable: false
+  signExts: null
+  legalTrademarks: aincrad.dev
+  requestedExecutionLevel: asInvoker
+  verifyUpdateCodeSignature: false
+nsis:
+  artifactName: ${name}-${version}-setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+  displayLanguageSelector: false
+  installerHeaderIcon: build/view-cutting-machine.ico
+  license: null
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  runAfterFinish: true
+  createStartMenuShortcut: true
+mac:
+  icon: build/view-cutting-machine.icns
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    - NSCameraUsageDescription: Application requests access to the device's camera.
+    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
+    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+  notarize: false
+dmg:
+  artifactName: ${name}-${version}.${ext}
+linux:
+  icon: build/view-cutting-machine-256x256.png
+  target:
+    - AppImage
+    - snap
+    - deb
+  maintainer: electronjs.org
+  category: Utility
+appImage:
+  artifactName: ${name}-${version}.${ext}
+npmRebuild: false
+publish:
+  provider: generic
+  url: https://example.com/auto-updates
+
+extraMetadata:
+  # Let electron-builder use the version from package.json by not overriding it here.
+  copyright: "Copyright © 2025 Aincrad.dev Axcostadev & AlysonDEV"
