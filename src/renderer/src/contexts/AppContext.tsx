@@ -75,6 +75,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 	async function loadModelos() {
 		const modelosFromAPI = await window.api.modelos.list()
+
+		// Alguns handlers podem retornar um objeto de erro em vez de um array,
+		// por exemplo quando a licença não está ativa.
+		if (!Array.isArray(modelosFromAPI)) {
+			console.error("modelos.list retornou valor inesperado:", modelosFromAPI)
+			setModelos([])
+			return
+		}
+
 		const modelosWithExtras = await Promise.all(
 			modelosFromAPI.map(async (m) => {
 				const coresFromAPI = await window.api.modelos.cores.list(m.id)

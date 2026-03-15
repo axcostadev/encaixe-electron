@@ -6,8 +6,13 @@ import fs from "fs"
 import path from "path"
 import { getSettings } from "./settingsManager.js"
 
+let cachedDataPath = null
+let loggedNetworkWriteFailure = false
+
 // Caminho para o arquivo JSON
 const getDataPath = () => {
+	if (cachedDataPath) return cachedDataPath
+
 	// Optionally allow saving to a network UNC path via environment variable.
 	// Standardized default UNC path (aligned with final rule):
 	// \\va\rede\Grupos\Horizonte\Departamental\CORTE\Alyson\Laser\Work\AppData
@@ -49,11 +54,13 @@ const getDataPath = () => {
 			fs.unlinkSync(testFile)
 			return true
 		} catch (e) {
-			console.warn("[DB-PERSISTENT] Teste de escrita em rede falhou:", {
-				message: e && e.message ? e.message : String(e),
-				code: e && e.code,
-				stack: e && e.stack,
-			})
+			if (!loggedNetworkWriteFailure) {
+				loggedNetworkWriteFailure = true
+				console.log("[DB-PERSISTENT] Caminho de rede indisponivel no momento (fallback local):", {
+					message: e && e.message ? e.message : String(e),
+					code: e && e.code,
+				})
+			}
 			return false
 		}
 	}
@@ -69,16 +76,16 @@ const getDataPath = () => {
 				candidate,
 			)
 			// Return the network candidate: save will be attempted there.
-			return candidate
+			cachedDataPath = candidate
+			return cachedDataPath
 		}
 		// If in dev and not forced, still prefer it when a quick write test succeeds
 		if (testNetworkWritable(envNetworkPath)) {
 			console.log("[DB-PERSISTENT] Usando caminho de rede válido:", candidate)
-			return candidate
+			cachedDataPath = candidate
+			return cachedDataPath
 		} else {
-			console.warn(
-				"[DB-PERSISTENT] Caminho de rede detectado mas teste de escrita falhou (em DEV) - usando fallback local.",
-			)
+			console.log("[DB-PERSISTENT] Caminho de rede detectado mas indisponivel em DEV; usando fallback local.")
 		}
 	}
 
@@ -86,9 +93,11 @@ const getDataPath = () => {
 		// Primeiro tenta a pasta data/ do projeto VCM embutido
 		const vcmDataPath = path.join(process.cwd(), "src", "renderer", "view-cutting-machine", "data", "turno_report.json")
 		if (fs.existsSync(vcmDataPath)) {
-			return vcmDataPath
+			cachedDataPath = vcmDataPath
+			return cachedDataPath
 		}
-		return path.join(process.cwd(), "data", "turno_report.json")
+		cachedDataPath = path.join(process.cwd(), "data", "turno_report.json")
+		return cachedDataPath
 	} else {
 		// In production prefer userData but keep network preference higher up the call
 		const userDataDir = path.join(app.getPath("userData"), "data")
@@ -97,7 +106,8 @@ const getDataPath = () => {
 		} catch (e) {
 			console.warn('[DB-PERSISTENT] Não foi possível garantir userDataDir:', e.message)
 		}
-		return path.join(userDataDir, "turno_report.json")
+		cachedDataPath = path.join(userDataDir, "turno_report.json")
+		return cachedDataPath
 	}
 }
 

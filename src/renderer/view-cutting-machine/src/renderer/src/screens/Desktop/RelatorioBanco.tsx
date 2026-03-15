@@ -585,7 +585,7 @@ export default function RelatorioBanco() {
 			{aba === "Dashboard" ? (
 				<Dashboard />
 			) : (
-			<div className="grid grid-cols-2 gap-6">
+			<div className="grid grid-cols-2 gap-6 text-black">
 				{/* Tabela de ocupação */}
 				<div className="bg-gray-50 rounded p-4">
 					<h3 className="font-semibold mb-2">
@@ -613,18 +613,18 @@ export default function RelatorioBanco() {
 						<tbody>
 							{maquinas.map((m) => (
 								<tr key={String(m)}>
-									<td className="p-1 font-bold border border-black text-center">
+									<td className="p-1 font-bold border border-black text-center text-black">
 										{String(m)}
 									</td>
 									{periodos.map((p) => {
 										const val = ocupacao[m][p]
-										let colorClass = ""
+										let colorClass = "text-black"
 										if (typeof val === "number") {
 											if (val < 75)
-												colorClass = "bg-red-700 text-white font-bold"
+												colorClass = "bg-red-700 text-black font-bold"
 											else if (val <= 80)
 												colorClass = "bg-yellow-400 text-black font-bold"
-											else colorClass = "bg-green-700 text-white font-bold"
+											else colorClass = "bg-green-700 text-black font-bold"
 										}
 										return (
 											<td
@@ -637,7 +637,7 @@ export default function RelatorioBanco() {
 									})}
 									<td className="p-1 bg-white"></td>
 									<td
-										className={`p-1 text-center border border-black ${machineGeralMap[m].percent < 75 ? "bg-red-700 text-white font-bold" : machineGeralMap[m].percent <= 80 ? "bg-yellow-400 text-black font-bold" : "bg-green-700 text-white font-bold"}`}
+										className={`p-1 text-center border border-black ${machineGeralMap[m].percent < 75 ? "bg-red-700 text-black font-bold" : machineGeralMap[m].percent <= 80 ? "bg-yellow-400 text-black font-bold" : "bg-green-700 text-black font-bold"}`}
 									>
 										{machineGeralMap[m].percentStr}
 									</td>
@@ -657,7 +657,7 @@ export default function RelatorioBanco() {
 									return (
 										<td
 											key={i}
-											className={`p-1 text-center border border-black ${avg < 75 ? "bg-red-700 text-white font-bold" : avg <= 80 ? "bg-yellow-400 text-black font-bold" : "bg-green-700 text-white font-bold"}`}
+											className={`p-1 text-center border border-black ${avg < 75 ? "bg-red-700 text-black font-bold" : avg <= 80 ? "bg-yellow-400 text-black font-bold" : "bg-green-700 text-black font-bold"}`}
 										>
 											{avg}%
 										</td>
@@ -665,9 +665,9 @@ export default function RelatorioBanco() {
 								})}
 								<td className="p-1 bg-white"></td>
 								<td
-									className={`p-1 text-center border border-black ${parseFloat(geralDonut) < 75 ? "bg-red-700 text-white font-bold" : parseFloat(geralDonut) <= 80 ? "bg-yellow-400 text-black font-bold" : "bg-green-700 text-white font-bold"}`}
+									className={`p-1 text-center border border-black ${parseFloat(geralDonut) < 75 ? "bg-red-700 text-black font-bold" : parseFloat(geralDonut) <= 80 ? "bg-yellow-400 text-black font-bold" : "bg-green-700 text-black font-bold"}`}
 								>
-									<span className="text-white font-bold">{geralDonut}</span>
+									<span className="text-black font-bold">{geralDonut}</span>
 								</td>
 							</tr>
 						</tbody>
@@ -694,7 +694,7 @@ export default function RelatorioBanco() {
 								return (
 									<li
 										key={String(item.nome)}
-										className={`mb-0.5 px-1 py-0.5 rounded text-xs ${colorClass} ${item.percent !== 0 ? "text-white font-bold" : ""}`}
+										className={`mb-0.5 px-1 py-0.5 rounded text-xs text-black ${colorClass} ${item.percent !== 0 ? "font-bold" : ""}`}
 										style={style}
 									>
 										{String(rankIdx + 1).padStart(2, "0")}º Lugar | Máquina{" "}

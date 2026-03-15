@@ -4,15 +4,13 @@
 <head>
   <meta charset="UTF-8" />
   <title>cutting room</title>
-  <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" />
+  <!-- CSP is set programmatically in the main process -->
   <!-- use leading slash so Vite resolves from project root -->
   <link rel="stylesheet" href="/src/assets/main.css">
 </head>
 
 <body>
-  <div id="root"></div>
+  <div id="root">Carregando aplicação…</div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 

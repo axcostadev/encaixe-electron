@@ -57,10 +57,22 @@ export function LicenseProvider({ children }: { children: React.ReactNode }) {
 	const [loading, setLoading] = useState(true)
 
 	const refresh = useCallback(async () => {
-		const res: LicenseStatus = await window.api.license.status()
-		setStatus(res)
-		setLoading(false)
-		return res
+		try {
+			const res: LicenseStatus = await window.api.license.status()
+			setStatus(res)
+			return res
+		} catch (error) {
+			console.error("Falha ao consultar status da licenca:", error)
+			const fallback: LicenseStatus = {
+				valid: false,
+				code: "INTERNAL_ERROR",
+				message: "Nao foi possivel validar a licenca",
+			}
+			setStatus(fallback)
+			return fallback
+		} finally {
+			setLoading(false)
+		}
 	}, [])
 
 	useEffect(() => {
@@ -69,10 +81,13 @@ export function LicenseProvider({ children }: { children: React.ReactNode }) {
 
 	const activate = useCallback(async (token: string) => {
 		setLoading(true)
-		const res: LicenseStatus = await window.api.license.activate(token)
-		setStatus(res)
-		setLoading(false)
-		return res
+		try {
+			const res: LicenseStatus = await window.api.license.activate(token)
+			setStatus(res)
+			return res
+		} finally {
+			setLoading(false)
+		}
 	}, [])
 
 	const fingerprint = useMemo(() => status?.fingerprint, [status?.fingerprint])

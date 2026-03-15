@@ -19,7 +19,6 @@
 		"declaration": false,
 		"jsx": "react-jsx",
 		"baseUrl": ".",
-		"allowImportingTsExtensions": true,
 		"paths": {
 			"@renderer/*": ["src/renderer/src/*"],
 			"machine-work-state": [

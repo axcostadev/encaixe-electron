@@ -1,5 +1,5 @@
 import { electronApp, is, optimizer } from "@electron-toolkit/utils"
-import { app, BrowserWindow, ipcMain, shell, nativeImage } from "electron"
+import { app, BrowserWindow, ipcMain, session, shell, nativeImage } from "electron"
 import { join } from "path"
 import { pathToFileURL } from "url"
 import icon from "../../resources/icon.png?asset"
@@ -134,6 +134,9 @@ function createWindow(): void {
 	})
 
 	let didShowWindow = false
+	let didFinishRendererLoad = false
+	let devLoadRetries = 0
+	const MAX_DEV_LOAD_RETRIES = 12
 	const showMainWindow = (reason: string) => {
 		if (didShowWindow || mainWindow.isDestroyed()) return
 		didShowWindow = true
@@ -171,6 +174,11 @@ function createWindow(): void {
 		},
 	)
 
+	// Optionally open devtools in development (set OPEN_DEVTOOLS=true to enable)
+	if (is.dev && process.env.OPEN_DEVTOOLS === "true") {
+		mainWindow.webContents.openDevTools({ mode: "right" })
+	}
+
 	mainWindow.webContents.on(
 		"did-fail-load",
 		(_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
@@ -180,6 +188,30 @@ function createWindow(): void {
 				validatedURL,
 				isMainFrame,
 			})
+
+			if (
+				isMainFrame &&
+				is.dev &&
+				process.env["ELECTRON_RENDERER_URL"] &&
+				!didFinishRendererLoad &&
+				devLoadRetries < MAX_DEV_LOAD_RETRIES
+			) {
+				devLoadRetries += 1
+				const delayMs = 500
+				console.warn(
+					`[WINDOW] renderer indisponivel, tentativa ${devLoadRetries}/${MAX_DEV_LOAD_RETRIES} em ${delayMs}ms`,
+				)
+				setTimeout(() => {
+					if (mainWindow.isDestroyed() || didFinishRendererLoad) return
+					mainWindow
+						.loadURL(process.env["ELECTRON_RENDERER_URL"] as string)
+						.catch((err) =>
+							console.error("[WINDOW] retry loadURL falhou:", err),
+						)
+				}, delayMs)
+				return
+			}
+
 			if (isMainFrame) showMainWindow("did-fail-load")
 		},
 	)
@@ -190,6 +222,7 @@ function createWindow(): void {
 
 	mainWindow.webContents.on("did-finish-load", () => {
 		console.log("Renderer finished load")
+		didFinishRendererLoad = true
 		showMainWindow("did-finish-load")
 	})
 
@@ -211,6 +244,20 @@ function createWindow(): void {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
+	// Configure CSP via headers – permissive in dev (Vite HMR needs inline scripts + ws),
+	// strict in production.
+	session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+		const csp = is.dev
+			? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws://localhost:5173 http://localhost:5173 ws://127.0.0.1:5173 http://127.0.0.1:5173 http://localhost:3000 http://127.0.0.1:3000"
+			: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+		callback({
+			responseHeaders: {
+				...details.responseHeaders,
+				'Content-Security-Policy': [csp],
+			},
+		})
+	})
+
 	// Set app user model id for windows and app name
 	electronApp.setAppUserModelId("com.aincrad.cuttingroom")
 	try {
@@ -231,8 +278,13 @@ app.whenReady().then(async () => {
 		console.error('Erro ao inicializar IPC:', err)
 	}
 
+	// Open UI first, then initialize heavier services in background.
+	createWindow()
+
 	// Integra handlers IPC do View Cutting Machine (projeto embutido)
-	await tryStartViewCuttingMachineIpc();
+	void tryStartViewCuttingMachineIpc().catch((err) => {
+		console.error("Erro ao iniciar View Cutting Machine IPC em background:", err)
+	})
 
 	// Integrar Machine Work State em processo separado para evitar crash no Electron.
 	tryStartMachineWorkStateServer()
@@ -249,8 +301,6 @@ app.whenReady().then(async () => {
 
 	// IPC test
 	ipcMain.on("ping", () => console.log("pong"))
-
-	createWindow()
 
 	app.on("activate", function () {
 		// On macOS it's common to re-create a window in the app when the
