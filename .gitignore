@@ -47,3 +47,12 @@ coverage/
 
 # Electron / packaging
 *.asar
+
+# Runtime app data (generated locally)
+data/backups/*.json
+data/turno_report.json
+src/renderer/view-cutting-machine/data/backups/*.json
+src/renderer/view-cutting-machine/data/turno_report.json
+src/renderer/view-cutting-machine/data/settings.json.bak.*
+src/renderer/view-cutting-machine/data/*.db
+src/renderer/view-cutting-machine/data/*.db.bak
