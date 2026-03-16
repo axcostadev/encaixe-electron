@@ -1,4 +1,4 @@
-import React from "react"
+import React, { Suspense } from "react"
 import { MainLayout } from "@renderer/components/layout/MainLayout"
 import { Toaster as Sonner } from "@renderer/components/ui/sonner"
 import { Toaster } from "@renderer/components/ui/toaster"
@@ -15,13 +15,15 @@ import { MateriaisPage } from "@renderer/pages/MateriaisPage"
 import { ModelosPage } from "@renderer/pages/ModelosPage"
 import EncaixePage from "@renderer/pages/EncaixePage"
 import ManualPage from "@renderer/pages/ManualPage"
-import ViewCuttingMachinePage from "@renderer/pages/ViewCuttingMachine"
-import MachineWorkStatePage from "@renderer/pages/MachineWorkState"
 import EconomiaPage from "@renderer/pages/EconomiaPage/EconomiaPage"
 import SetupPage from "@renderer/pages/SetupPage"
 import NotFound from "@renderer/pages/NotFound"
 import LicenseStatusPage from "@renderer/pages/LicenseStatusPage"
 import LicensePage from "@renderer/pages/LicensePage"
+
+// Lazy-load páginas pesadas para não bloquear o carregamento inicial
+const ViewCuttingMachinePage = React.lazy(() => import("@renderer/pages/ViewCuttingMachine"))
+const MachineWorkStatePage = React.lazy(() => import("@renderer/pages/MachineWorkState"))
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import {
 	HashRouter,
@@ -105,8 +107,8 @@ function AuthenticatedApp() {
 				<Route path="/" element={<Dashboard />} />
 					<Route path="/economia" element={<EconomiaPage />} />
 					<Route path="/encaixe" element={<EncaixePage />} />
-					<Route path="/view-cutting-machine" element={<ViewCuttingMachinePage />} />
-					<Route path="/machine-work-state/*" element={<MachineWorkStatePage />} />
+					<Route path="/view-cutting-machine" element={<Suspense fallback={<div className="p-8 text-muted-foreground">Carregando View Cutting Machine...</div>}><ViewCuttingMachinePage /></Suspense>} />
+					<Route path="/machine-work-state/*" element={<Suspense fallback={<div className="p-8 text-muted-foreground">Carregando Machine Work State...</div>}><MachineWorkStatePage /></Suspense>} />
 					<Route path="/modelos" element={<ModelosPage />} />
 				<Route path="/cores" element={<CoresPage />} />
 				<Route path="/materiais" element={<MateriaisPage />} />

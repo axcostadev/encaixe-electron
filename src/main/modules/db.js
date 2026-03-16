@@ -549,12 +549,28 @@ export function deleteEconomiaRows(ids) {
 	})
 }
 
-export function listEconomia(limit = 500) {
+export function listEconomia(limit = 0) {
 	return new Promise((resolve, reject) => {
-		// join with headers to include header info if present
-		db.all("SELECT e.*, h.data_fase as header_data_fase, h.modelo as header_modelo, h.artigo as header_artigo, h.data as header_data, h.periodo as header_periodo FROM economia e LEFT JOIN economia_headers h ON e.header_id = h.id ORDER BY e.id DESC LIMIT ?", [limit], (err, rows) => {
-			if (err) return reject(err)
-			resolve(rows || [])
+		// First check if economia_headers table exists to avoid JOIN errors on older DBs
+		db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='economia_headers'", [], (tErr, tbl) => {
+			if (tErr) {
+				console.error('[DB] listEconomia: error checking economia_headers table:', tErr)
+			}
+			const hasHeaders = !!tbl
+			const baseSql = hasHeaders
+				? "SELECT e.*, h.data_fase as header_data_fase, h.modelo as header_modelo, h.artigo as header_artigo, h.data as header_data, h.periodo as header_periodo FROM economia e LEFT JOIN economia_headers h ON e.header_id = h.id ORDER BY e.id DESC"
+				: "SELECT * FROM economia ORDER BY id DESC"
+			const useLimit = Number(limit) > 0
+			const sql = useLimit ? `${baseSql} LIMIT ?` : baseSql
+			const params = useLimit ? [limit] : []
+			db.all(sql, params, (err, rows) => {
+				if (err) {
+					console.error('[DB] listEconomia error:', err)
+					return reject(err)
+				}
+				console.log('[DB] listEconomia returned', (rows || []).length, 'rows (hasHeaders:', hasHeaders, ')')
+				resolve(rows || [])
+			})
 		})
 	})
 }

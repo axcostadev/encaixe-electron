@@ -321,7 +321,7 @@ const api = {
 		importCGCHeaders: (filePath?: string) => ipcRenderer.invoke("economia-import-cgc-headers", filePath),
 		searchCGC: (filePath: string, searchTerm?: string) => ipcRenderer.invoke("economia-search-cgc", filePath, searchTerm),
 		selectCGCFile: () => ipcRenderer.invoke("economia-select-cgc-file"),
-		list: (limit: number = 500) => ipcRenderer.invoke("economia-list", limit),
+		list: (limit: number = 0) => ipcRenderer.invoke("economia-list", limit),
 		clear: () => ipcRenderer.invoke("economia-clear"),
 		summary: () => ipcRenderer.invoke("economia-summary"),
 		byModelo: (limit: number = 10) => ipcRenderer.invoke("economia-by-modelo", limit),

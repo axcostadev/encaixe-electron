@@ -1156,7 +1156,7 @@ ipcMain.handle("settings:get-status", async () => {
 		}
 	})
 
-	ipcMain.handle("economia-list", async (_event, limit: number = 500) => {
+	ipcMain.handle("economia-list", async (_event, limit: number = 0) => {
 		const guard = ensureLicensed("economia")
 		if (guard) return guard
 		return await db.listEconomia(limit)

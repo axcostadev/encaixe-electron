@@ -120,7 +120,7 @@ export default function EconomiaPage() {
   }
   const formatDisplayToISO = (disp?: string) => {
     if (!disp) return ''
-    const m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(disp.trim())
+    const m = /^(\d{2})[-\/](\d{2})[-\/](\d{4})$/.exec(disp.trim())
     if (m) return `${m[3]}-${m[2]}-${m[1]}`
     if (/^\d{4}-\d{2}-\d{2}$/.test(disp)) return disp
     const d = new Date(disp)
@@ -137,7 +137,7 @@ export default function EconomiaPage() {
     if (!s) return ''
     const isoMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(s)
     if (isoMatch) return `${isoMatch[1]}/${isoMatch[2]}`
-    const dispMatch = /^(\d{2})-(\d{2})-(\d{4})$/.exec(s.trim())
+    const dispMatch = /^(\d{2})[-\/](\d{2})[-\/](\d{4})$/.exec(s.trim())
     if (dispMatch) return `${dispMatch[3]}/${dispMatch[2]}`
     const d = new Date(s)
     if (!isNaN(d.getTime())) return `${d.getFullYear()}/${pad2(d.getMonth()+1)}`
@@ -222,7 +222,15 @@ export default function EconomiaPage() {
     { key: 'modelo', label: 'Modelo', getter: (r:any) => (r.header_modelo || r.modelo) || '-' },
     { key: 'material', label: 'Material', getter: (r:any) => r.material || '-' },
     { key: 'cor', label: 'Cor/Espessura', getter: (r:any) => r.cor_espessura || '-' },
-    { key: 'periodo', label: 'Período', getter: (r:any) => r.periodo || r.header_periodo || '-' },
+    { key: 'periodo', label: 'Período', getter: (r:any) => {
+      // Prioriza a data em que o registro foi salvo (r.data)
+      const fromData = normalizePeriod(getPeriodFromDateString(r.data || ''))
+      if (fromData) return fromData
+      // Fallback: header_periodo
+      const hp = normalizePeriod(r.header_periodo || '')
+      if (hp) return hp
+      return '-'
+    }},
   ]
 
   const getUniqueValuesFor = (key: string) => {
@@ -668,7 +676,7 @@ export default function EconomiaPage() {
 
       // Refresh do banco e das tabelas dependentes
       try {
-        const all = await (window as any).api.economia.list(1000)
+        const all = await (window as any).api.economia.list(0)
         if (Array.isArray(all)) {
           setRows(all)
           setBancoRows(all)
@@ -948,7 +956,7 @@ export default function EconomiaPage() {
     setLoading(true)
     try {
       const [list, sum, modelos, materiais] = await Promise.all([
-        (window as any).api.economia.list(1000),
+        (window as any).api.economia.list(0),
         (window as any).api.economia.summary(),
         (window as any).api.economia.byModelo(12),
         (window as any).api.economia.byMaterial(12),
@@ -967,20 +975,19 @@ export default function EconomiaPage() {
       const modelsSet = new Set<string>()
       rs.forEach((r:any) => {
         let periodFound = false
-        // Primeiro tenta campos explícitos de período
-        const periodCandidates = [r.header_periodo, r.periodo]
-          .map((v:any) => normalizePeriod(v === undefined || v === null ? '' : String(v)))
-          .filter(Boolean)
-        if (periodCandidates.length > 0) {
-          periodsSet.add(periodCandidates[0])
+        // Prioriza a data em que o registro foi salvo (r.data)
+        const fromData = normalizePeriod(getPeriodFromDateString(r.data || ''))
+        if (fromData) {
+          periodsSet.add(fromData)
           periodFound = true
         }
-        // Depois tenta derivar de campos de data em formatos diversos (ISO ou DD-MM-YYYY)
+        // Fallback: header_periodo
         if (!periodFound) {
-          const fromDateCandidates = [r.data, r.header_data, r.header_data_fase]
-            .map((v:any) => normalizePeriod(getPeriodFromDateString(v === undefined || v === null ? '' : String(v))))
-            .filter(Boolean)
-          if (fromDateCandidates.length > 0) periodsSet.add(fromDateCandidates[0])
+          const hp = normalizePeriod(r.header_periodo || '')
+          if (hp) {
+            periodsSet.add(hp)
+            periodFound = true
+          }
         }
         if (r.modelo) modelsSet.add(r.modelo)
         // Também considera header_modelo como nome do modelo
@@ -1017,15 +1024,12 @@ export default function EconomiaPage() {
   const applyFilters = () => {
     // helper to derive period YYYY/MM from banco row (supports header_periodo fallback)
     const getRowPeriod = (r:any) => {
-      const explicit = [r.header_periodo, r.periodo]
-        .map((v:any) => normalizePeriod(v === undefined || v === null ? '' : String(v)))
-        .find(Boolean)
-      if (explicit) return explicit
-      const derived = [r.data, r.header_data, r.header_data_fase]
-        .map((v:any) => normalizePeriod(getPeriodFromDateString(v === undefined || v === null ? '' : String(v))))
-        .find(Boolean)
-      if (derived) return derived
-      // Retorna string vazia para registros sem período definido
+      // Prioriza a data em que o registro foi salvo (r.data)
+      const fromData = normalizePeriod(getPeriodFromDateString(r.data || ''))
+      if (fromData) return fromData
+      // Fallback: header_periodo
+      const hp = normalizePeriod(r.header_periodo || '')
+      if (hp) return hp
       return ''
     }
 
@@ -1116,8 +1120,13 @@ export default function EconomiaPage() {
   const fetchBancoRows = async () => {
     setBancoLoading(true)
     try {
-      const res = await (window as any).api.economia.list(1000)
+      const res = await (window as any).api.economia.list(0)
+      console.log('[DEBUG] fetchBancoRows result type:', typeof res, 'isArray:', Array.isArray(res), 'length:', Array.isArray(res) ? res.length : 'N/A', 'sample:', Array.isArray(res) && res.length > 0 ? JSON.stringify(res[0]) : 'empty')
       if (Array.isArray(res)) setBancoRows(res)
+      else {
+        console.warn('[DEBUG] fetchBancoRows: response is not an array, possibly license error:', res)
+        setBancoRows([])
+      }
     } catch (err) {
       console.error('Erro ao carregar banco de dados (economia):', err)
       setBancoRows([])
@@ -1801,6 +1810,9 @@ export default function EconomiaPage() {
           <div style={{marginTop: 18}}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
               <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                <span style={{fontSize:13, opacity:0.8}}>
+                  {bancoLoading ? 'Carregando...' : `Exibindo ${filteredBancoRows.length} de ${bancoRows.length} registros`}
+                </span>
                 {permissions?.canRefreshBancoDados && !hideBancoButtons && (
                   <button className="busca-btn busca-btn-secondary" onClick={fetchBancoRows} disabled={bancoLoading}>Atualizar</button>
                 )}
