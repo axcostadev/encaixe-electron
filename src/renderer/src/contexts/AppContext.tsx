@@ -74,6 +74,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 	}, [])
 
 	async function loadModelos() {
+		if (!window.api?.modelos?.list) {
+			console.error("API modelos.list não disponível")
+			setModelos([])
+			return
+		}
+
 		const modelosFromAPI = await window.api.modelos.list()
 
 		// Alguns handlers podem retornar um objeto de erro em vez de um array,

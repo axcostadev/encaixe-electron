@@ -920,7 +920,7 @@ export default function TurnoReport() {
 								maquinasIgnoradas.includes(idx) ? (
 									<React.Fragment key={m}>
 										<tr>
-											<td className="p-1 font-bold border border-black text-center">
+											<td className="p-1 font-bold border border-black text-center text-black">
 												{editIdx === idx ? (
 													<input
 														type="text"
@@ -970,7 +970,7 @@ export default function TurnoReport() {
 								) : (
 									<React.Fragment key={m}>
 										<tr>
-											<td className="p-1 font-bold border border-black text-center">
+											<td className="p-1 font-bold border border-black text-center text-black">
 												{editIdx === idx ? (
 													<input
 														type="text"
@@ -998,7 +998,7 @@ export default function TurnoReport() {
 												return (
 													<td
 														key={i}
-														className={`p-1 text-center border border-black ${getColor(percentStr)} ${percentStr !== "0%" ? "text-white font-bold" : ""}`}
+														className={`p-1 text-center border border-black ${getColor(percentStr)} text-white font-bold`}
 														style={
 															getColor(percentStr) === "custom-yellow"
 																? { backgroundColor: "#e6c200" }
@@ -1011,7 +1011,7 @@ export default function TurnoReport() {
 											})}
 											<td className="p-1 bg-white"></td>
 											<td
-												className={`p-1 text-center border border-black ${getColor(getGeralTurno(idx))} ${getGeralTurno(idx) !== "0%" ? "text-white font-bold" : ""}`}
+												className={`p-1 text-center border border-black ${getColor(getGeralTurno(idx))} text-white font-bold`}
 												style={
 													getColor(getGeralTurno(idx)) === "custom-yellow"
 														? { backgroundColor: "#e6c200" }
@@ -1043,7 +1043,7 @@ export default function TurnoReport() {
 									return (
 										<td
 											key={i}
-											className={`p-1 text-center border border-black ${getColor(percentStr)} ${percentStr === "0%" ? "text-white font-bold" : "text-white font-bold"}`}
+											className={`p-1 text-center border border-black ${getColor(percentStr)} text-white font-bold`}
 											style={
 												getColor(percentStr) === "custom-yellow"
 													? { backgroundColor: "#e6c200" }
@@ -1056,14 +1056,14 @@ export default function TurnoReport() {
 								})}
 								<td className="p-1 bg-white"></td>
 								<td
-									className={`p-1 text-center border border-black ${getColor(getGeralTurnoTotal())} ${getGeralTurnoTotal() !== "0%" ? "text-white font-bold" : ""}`}
+									className={`p-1 text-center border border-black ${getColor(getGeralTurnoTotal())} text-black font-bold`}
 									style={
 										getColor(getGeralTurnoTotal()) === "custom-yellow"
 											? { backgroundColor: "#e6c200" }
 											: {}
 									}
 								>
-									<span className="text-white font-bold">
+									<span className="text-black font-bold">
 										{getGeralTurnoTotal()}
 									</span>
 								</td>

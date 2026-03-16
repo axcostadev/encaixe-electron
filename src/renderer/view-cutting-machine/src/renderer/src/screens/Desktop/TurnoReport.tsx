@@ -15,6 +15,13 @@ function getColor(percentStr: string) {
 	return "bg-gray-200"
 }
 
+// Text color should be readable on the background returned by getColor.
+// When the value is not a number (e.g. "-"), default to black text.
+function getTextColor(percentStr: string) {
+	const percent = parseInt(percentStr.replace("%", ""))
+	return Number.isNaN(percent) ? "text-black" : "text-white"
+}
+
 import React, { useEffect, useState } from "react"
 
 // Exemplo de dados estáticos para o layout
@@ -766,7 +773,7 @@ export default function TurnoReport() {
 			<div className="grid grid-cols-2 gap-6">
 				{/* Tabela de ocupação */}
 				<div className="bg-gray-50 rounded p-4">
-					<h3 className="font-semibold mb-2">
+					<h3 className="font-semibold mb-2 text-blue-700">
 						{turnoSelecionado === null
 							? "Selecione o turno para visualizar o relatório"
 							: `LASER - ${turnos[turnoSelecionado]} - MÁQUINAS`}
@@ -804,7 +811,7 @@ export default function TurnoReport() {
 									return (
 										<React.Fragment key={m}>
 											<tr>
-												<td className="p-1 font-bold border border-black text-center">
+												<td className="p-1 font-bold border border-black text-center text-black">
 													{editIdx === m ? (
 														<input
 															type="text"
@@ -857,7 +864,7 @@ export default function TurnoReport() {
 								return (
 									<React.Fragment key={m}>
 										<tr>
-											<td className="p-1 font-bold border border-black text-center">
+											<td className="p-1 font-bold border border-black text-center text-black">
 												{editIdx === m ? (
 													<input
 														type="text"
@@ -885,7 +892,7 @@ export default function TurnoReport() {
 												return (
 													<td
 														key={i}
-														className={`p-1 text-center border border-black ${getColor(percentStr)} text-black font-bold`}
+														className={`p-1 text-center border border-black ${getColor(percentStr)} ${getTextColor(percentStr)} font-bold`}
 														style={
 															getColor(percentStr) === "custom-yellow"
 																? { backgroundColor: "#e6c200" }
@@ -898,7 +905,7 @@ export default function TurnoReport() {
 											})}
 											<td className="p-1 bg-white"></td>
 											<td
-												className={`p-1 text-center border border-black ${getColor(getGeralTurno(m))} text-black font-bold`}
+												className={`p-1 text-center border border-black ${getColor(getGeralTurno(m))} ${getTextColor(getGeralTurno(m))} font-bold`}
 												style={
 													getColor(getGeralTurno(m)) === "custom-yellow"
 														? { backgroundColor: "#e6c200" }
@@ -923,34 +930,34 @@ export default function TurnoReport() {
 							})}
 							<tr className="font-bold">
 								<td className="p-1 border border-black">
-									<span className="text-black font-bold">GERAL</span>
+									<span className="font-bold">GERAL</span>
 								</td>
 								{periodos.map((_, i) => {
 									const percentStr = getGeralPeriodo(i)
 									return (
 										<td
 											key={i}
-											className={`p-1 text-center border border-black ${getColor(percentStr)} text-black font-bold`}
+											className={`p-1 text-center border border-black ${getColor(percentStr)} ${getTextColor(percentStr)} font-bold`}
 											style={
 												getColor(percentStr) === "custom-yellow"
 													? { backgroundColor: "#e6c200" }
 													: {}
 											}
 										>
-											<span className="text-black font-bold">{percentStr}</span>
+											<span className="font-bold">{percentStr}</span>
 										</td>
 									)
 								})}
 								<td className="p-1 bg-white"></td>
 								<td
-									className={`p-1 text-center border border-black ${getColor(getGeralTurnoTotal())} text-black font-bold`}
+									className={`p-1 text-center border border-black ${getColor(getGeralTurnoTotal())} ${getTextColor(getGeralTurnoTotal())} font-bold`}
 									style={
 										getColor(getGeralTurnoTotal()) === "custom-yellow"
 											? { backgroundColor: "#e6c200" }
 											: {}
 									}
 								>
-									<span className="text-black font-bold">
+									<span className="font-bold">
 										{getGeralTurnoTotal()}
 									</span>
 								</td>
@@ -995,7 +1002,7 @@ export default function TurnoReport() {
 						</ul>
 					</div>
 					<div className="bg-gray-50 rounded p-4 flex flex-col items-center">
-						<h3 className="font-semibold mb-2">
+						<h3 className="font-semibold mb-2 text-blue-700">
 							% INTERFERÊNCIAS E OCUPAÇÃO POR CATEGORIAS
 						</h3>
 						<div className="flex flex-row items-center gap-6">
