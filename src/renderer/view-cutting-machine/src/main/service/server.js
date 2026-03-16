@@ -97,6 +97,18 @@ async function captureAllData() {
 	try {
 		const now = new Date()
 		const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+		// O 3º turno começa às 21:40 e cruza a meia-noite (vai até 05:00).
+		// Se estamos entre 00:00 e 05:00, o turno 3 ainda pertence ao dia ANTERIOR.
+		const nowMinutes = now.getHours() * 60 + now.getMinutes()
+		const isInsideTurno3NextDay = nowMinutes < 300 // antes de 05:00
+		let dateTurno3 = date
+		if (isInsideTurno3NextDay) {
+			const yesterday = new Date(now)
+			yesterday.setDate(yesterday.getDate() - 1)
+			dateTurno3 = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`
+			console.log(`[AUTO-CAPTURE] Entre 00:00-05:00 - turno 3 usa data anterior: ${dateTurno3}`)
+		}
 		
 		console.log(`[AUTO-CAPTURE] Iniciando captura automática para ${date}`)
 		
@@ -108,7 +120,9 @@ async function captureAllData() {
 		for (const grupo of grupos) {
 			for (const turno of turnos) {
 				try {
-					const result = await captureDataForTurno(date, turno, grupo)
+					// Turno 3 (índice 2): usa data correta mesmo após meia-noite
+					const dateForTurno = turno === 2 ? dateTurno3 : date
+					const result = await captureDataForTurno(dateForTurno, turno, grupo)
 					if (result.success) {
 						totalSaved += result.count || 0
 					}
