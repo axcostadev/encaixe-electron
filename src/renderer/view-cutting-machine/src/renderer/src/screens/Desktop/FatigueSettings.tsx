@@ -51,6 +51,14 @@ export default function FatigueSettings({
 	const globalSaveTimer = React.useRef<any>(null)
 	const groupSaveTimer = React.useRef<any>(null)
 
+	// Ref estável para ensureIpc — evita que o useEffect de load re-execute
+	// quando o pai re-renderiza (ex: ao chamar setStatus)
+	const ensureIpcRef = React.useRef(ensureIpc)
+	React.useEffect(() => { ensureIpcRef.current = ensureIpc }, [ensureIpc])
+
+	// Flag para não recarregar enquanto o usuário está editando
+	const isEditingRef = React.useRef(false)
+
 	const scheduleSaveGlobalPhrase = (phrases: string[], index: number, phrase: string) => {
 		if (globalSaveTimer.current) clearTimeout(globalSaveTimer.current)
 		globalSaveTimer.current = setTimeout(async () => {
@@ -122,7 +130,8 @@ export default function FatigueSettings({
 	// Load current settings on mount / activeGroup change
 	React.useEffect(() => {
 		;(async () => {
-			if (!(await ensureIpc())) return
+			if (isEditingRef.current) return // não recarregar enquanto editando
+			if (!(await ensureIpcRef.current())) return
 			try {
 				const res = await ipcHelper.invoke('get-settings')
 				if (res && res.success && res.settings) {
@@ -136,7 +145,8 @@ export default function FatigueSettings({
 				}
 			} catch (e) { console.warn('[FatigueSettings] load error:', e) }
 		})()
-	}, [activeGroup, ensureIpc])
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [activeGroup])
 
 	const saveFatigue = async () => {
 		setStatus('⏳ Salvando configurações de fadiga...')
@@ -189,17 +199,23 @@ export default function FatigueSettings({
 					<div className="space-y-2">
 						{shiftPeriods.map((sp, idx) => (
 							<div key={idx} className="flex gap-2 items-center">
-								<input type="time" value={sp.inicio} onChange={(e) => {
-									const copy = [...shiftPeriods]
-									copy[idx] = { ...copy[idx], inicio: e.target.value }
-									setShiftPeriods(copy)
-								}} className="px-2 py-1 border rounded" />
+								<input type="time" value={sp.inicio}
+									onFocus={() => { isEditingRef.current = true }}
+									onBlur={() => { isEditingRef.current = false }}
+									onChange={(e) => {
+										const copy = [...shiftPeriods]
+										copy[idx] = { ...copy[idx], inicio: e.target.value }
+										setShiftPeriods(copy)
+									}} className="px-2 py-1 border rounded" />
 								<span className="text-sm">→</span>
-								<input type="time" value={sp.fim} onChange={(e) => {
-									const copy = [...shiftPeriods]
-									copy[idx] = { ...copy[idx], fim: e.target.value }
-									setShiftPeriods(copy)
-								}} className="px-2 py-1 border rounded" />
+								<input type="time" value={sp.fim}
+									onFocus={() => { isEditingRef.current = true }}
+									onBlur={() => { isEditingRef.current = false }}
+									onChange={(e) => {
+										const copy = [...shiftPeriods]
+										copy[idx] = { ...copy[idx], fim: e.target.value }
+										setShiftPeriods(copy)
+									}} className="px-2 py-1 border rounded" />
 							</div>
 						))}
 					</div>
@@ -210,17 +226,24 @@ export default function FatigueSettings({
 					<div className="space-y-2">
 						{fatiguePeriods.map((p, idx) => (
 							<div key={idx} className="flex gap-2 items-center">
-								<input type="time" value={p.inicio} onChange={(e) => {
-									const copy = [...fatiguePeriods]
-									copy[idx] = { ...copy[idx], inicio: e.target.value }
-									setFatiguePeriods(copy)
-								}} className="px-2 py-1 border rounded" />
+								<input type="time" value={p.inicio}
+									onFocus={() => { isEditingRef.current = true }}
+									onBlur={() => { isEditingRef.current = false }}
+									onChange={(e) => {
+										const copy = [...fatiguePeriods]
+										copy[idx] = { ...copy[idx], inicio: e.target.value }
+										setFatiguePeriods(copy)
+									}} className="px-2 py-1 border rounded" />
 								<span className="text-sm">→</span>
-								<input type="time" value={p.fim} onChange={(e) => {
-									const copy = [...fatiguePeriods]
-									copy[idx] = { ...copy[idx], fim: e.target.value }
-									setFatiguePeriods(copy)
-								}} className="px-2 py-1 border rounded" />
+								<input type="time" value={p.fim}
+									onFocus={() => { isEditingRef.current = true }}
+									onBlur={() => { isEditingRef.current = false }}
+									onChange={(e) => {
+										const copy = [...fatiguePeriods]
+										copy[idx] = { ...copy[idx], fim: e.target.value }
+										setFatiguePeriods(copy)
+									}} className="px-2 py-1 border rounded" />
+
 								<button onClick={() => setFatiguePeriods((prev) => prev.filter((_, i) => i !== idx))} className="px-2 py-1 bg-red-500 text-white rounded ml-2">Remover</button>
 							</div>
 						))}
@@ -239,10 +262,12 @@ export default function FatigueSettings({
 									const copy = [...fatiguePhrases]
 									copy[idx] = e.target.value
 									setFatiguePhrases(copy)
-									try { window.dispatchEvent(new CustomEvent('fatigue-editing', { detail: { editing: true } })) } catch { void 0 }									
-				scheduleSaveGlobalPhrase(copy, idx, e.target.value)								}}
-								onFocus={() => { try { window.dispatchEvent(new CustomEvent('fatigue-editing', { detail: { editing: true } })) } catch { void 0 }} }
-								onBlur={() => { try { window.dispatchEvent(new CustomEvent('fatigue-editing', { detail: { editing: false } })) } catch { void 0 }} }
+							isEditingRef.current = true
+							try { window.dispatchEvent(new CustomEvent('fatigue-editing', { detail: { editing: true } })) } catch { void 0 }
+							scheduleSaveGlobalPhrase(copy, idx, e.target.value)
+						}}
+						onFocus={() => { isEditingRef.current = true; try { window.dispatchEvent(new CustomEvent('fatigue-editing', { detail: { editing: true } })) } catch { void 0 }} }
+						onBlur={() => { isEditingRef.current = false; try { window.dispatchEvent(new CustomEvent('fatigue-editing', { detail: { editing: false } })) } catch { void 0 }} }
 							rows={3} className="w-full p-2 border rounded font-mono text-sm" />
 								<div className="flex gap-2 justify-end mt-2">
 									<button className="px-3 py-1 bg-red-500 text-white rounded" onClick={() => setFatiguePhrases((prev) => prev.filter((_, i) => i !== idx))}>Remover</button>
@@ -279,10 +304,12 @@ export default function FatigueSettings({
 											const copy = [...groupPhrases]
 											copy[idx] = e.target.value
 											setGroupPhrases(copy)
-											try { window.dispatchEvent(new CustomEvent('fatigue-editing', { detail: { editing: true } })) } catch { void 0 }											
-				scheduleSaveGroupPhrase(copy, idx, e.target.value)										}}
-										onFocus={() => { try { window.dispatchEvent(new CustomEvent('fatigue-editing', { detail: { editing: true } })) } catch { void 0 }} }
-										onBlur={() => { try { window.dispatchEvent(new CustomEvent('fatigue-editing', { detail: { editing: false } })) } catch { void 0 }} }
+											isEditingRef.current = true
+											try { window.dispatchEvent(new CustomEvent('fatigue-editing', { detail: { editing: true } })) } catch { void 0 }
+											scheduleSaveGroupPhrase(copy, idx, e.target.value)
+										}}
+										onFocus={() => { isEditingRef.current = true; try { window.dispatchEvent(new CustomEvent('fatigue-editing', { detail: { editing: true } })) } catch { void 0 }} }
+										onBlur={() => { isEditingRef.current = false; try { window.dispatchEvent(new CustomEvent('fatigue-editing', { detail: { editing: false } })) } catch { void 0 }} }
 										rows={3} className="w-full p-2 border rounded font-mono text-sm" />
 										<div className="flex gap-2 justify-end mt-2">
 											<button className="px-3 py-1 bg-red-500 text-white rounded" onClick={() => setGroupPhrases((prev) => prev.filter((_, i) => i !== idx))}>Remover</button>

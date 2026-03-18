@@ -33,6 +33,8 @@ npm run dev```bash
 # Windows
 npm run build:win
 
+npm run build:unpack
+
 # Build manual
 npx electron-builder
 

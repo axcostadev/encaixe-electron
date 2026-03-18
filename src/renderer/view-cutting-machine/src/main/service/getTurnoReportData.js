@@ -1,72 +1,41 @@
 // src/main/service/getTurnoReportData.js
 
 import fs from "fs"
-import os from "os"
 import path from "path"
-import { getSettings, getGroupConfig, addSettingsWatcher } from "./settingsManager.js"
-import { getMachineOccupation } from "./getMachineAmountOcuppation.js"
+import { getGroupConfig } from "./settingsManager.js"
 
-// Detecta se está rodando no Electron
-let app = null
-let isElectron = false
-try {
-	// Use require when available to avoid top-level await during bundling
-	// eslint-disable-next-line global-require
-	const electronPkg = typeof require === "function" ? require("electron") : null
-	if (electronPkg && electronPkg.app) {
-		app = electronPkg.app
-		isElectron = true
-	} else {
-		// Fallback para runtime ESM: usa import dinâmico de forma assíncrona sem bloquear o bundler
-		;(async () => {
-			try {
-				const electronPkgDynamic = await import("electron")
-				app = electronPkgDynamic.app
-				isElectron = true
-			} catch (_) {
-				isElectron = false
-			}
-		})()
+// Default baseDir (fallback)
+const defaultBaseDir = "\\\\va\\rede\\Grupos\\Horizonte\\Departamental\\CORTE\\Alyson\\Laser\\Work"
+
+// Resolve baseDir from settings if available. Fall back to built-in default.
+function resolveBaseDir(group = "Laser") {
+	try {
+		const cfg = getGroupConfig && getGroupConfig(group)
+		if (cfg && cfg.baseDir && typeof cfg.baseDir === "string" && cfg.baseDir.trim()) {
+			console.log('[getTurnoReportData] Usando baseDir das configurações:', cfg.baseDir)
+			return cfg.baseDir
+		}
+	} catch (err) {
+		console.warn('[getTurnoReportData] Falha ao obter baseDir do settingsManager:', err)
 	}
-} catch (e) {
-	isElectron = false
+	console.log('[getTurnoReportData] Usando baseDir padrão:', defaultBaseDir)
+	return defaultBaseDir
 }
 
-// Sistema automático: usa configurações centralizadas
-let settingsUnsubscribe = null
-
-// Monitora mudanças nas configurações
-function initializeAutoSync() {
-	if (settingsUnsubscribe) {
-		settingsUnsubscribe()
+function resolveMachineMap(group = "Laser") {
+	try {
+		const cfg = getGroupConfig && getGroupConfig(group)
+		if (cfg && cfg.machineMap && Object.keys(cfg.machineMap).length > 0) {
+			console.log('[getTurnoReportData] Usando machineMap das configurações:', cfg.machineMap)
+			return cfg.machineMap
+		}
+	} catch (err) {
+		console.warn('[getTurnoReportData] Falha ao obter mapeamento do settingsManager:', err)
 	}
-	
-	settingsUnsubscribe = addSettingsWatcher((newSettings) => {
-		console.log("[getTurnoReportData] Configurações atualizadas automaticamente:", 
-			Object.keys(newSettings.machineGroups || {}).map(group => 
-				`${group}: ${Object.keys(newSettings.machineGroups[group].machineMap || {}).length} máquinas`
-			).join(", ")
-		)
-	})
+
+	console.log('[getTurnoReportData] Usando machineMap padrão (Laser)')
+	return {}
 }
-
-// Inicializa o sistema automático
-initializeAutoSync()
-
-// Try to load persisted settings (baseDir / machineGroups) from data/settings.json
-function loadSettings() {
-	// Agora usa o sistema centralizado
-	return getSettings()
-}
-
-const settings = loadSettings()
-
-const baseDir =
-	(settings && settings.baseDir) ||
-	"\\\\va\\rede\\Grupos\\Horizonte\\Departamental\\CORTE\\Alyson\\Laser\\Work"
-
-// Default machine map (Laser) - mantido para compatibilidade, mas agora usa sistema centralizado
-const defaultMachineMap = getGroupConfig("Laser").machineMap
 
 // Períodos de cada turno
 const periodosTurno1 = [
@@ -112,12 +81,16 @@ function getLocalDateString() {
 
 function getAllTxtFiles(dir) {
 	try {
-		if (!fs.existsSync(dir)) return []
+		if (!fs.existsSync(dir)) {
+			console.warn(`[getTurnoReportData] Diretório não existe ou inacessível: ${dir}`)
+			return []
+		}
 		const arquivos = fs.readdirSync(dir)
 		return arquivos
 			.filter((name) => name.endsWith(".txt"))
 			.map((name) => path.join(dir, name))
-	} catch {
+	} catch (err) {
+		console.error(`[getTurnoReportData] Erro ao acessar diretório ${dir}:`, err.code || err.message)
 		return []
 	}
 }
@@ -175,9 +148,8 @@ export function getTurnoReportData(
 	group = "Laser",
 ) {
 	// Resolve baseDir e machineMap dinamicamente a cada chamada
-	const groupConfig = getGroupConfig(group)
-	const groupBaseDir = groupConfig.baseDir
-	const machineMap = groupConfig.machineMap
+	const groupBaseDir = resolveBaseDir(group)
+	const machineMap = resolveMachineMap(group)
 	
 	// Adaptação para preencher uma máquina por vez usando a lógica do getMachineAmountOcuppation.js
 	const result = {}
@@ -224,18 +196,7 @@ export function getTurnoReportData(
 	}
 
 	Object.values(machineMap).forEach((machine) => {
-		// Build dir carefully using the resolved groupBaseDir
-		let dir
-		try {
-			if (process.platform === "win32" && /^\\\\/.test(groupBaseDir)) {
-				const trimmed = groupBaseDir.replace(/[\\/]+$/, "")
-				dir = trimmed + "\\" + machine
-			} else {
-				dir = path.join(groupBaseDir, machine)
-			}
-		} catch {
-			dir = path.join(groupBaseDir, machine)
-		}
+		const dir = path.join(groupBaseDir, machine)
 		const txtFiles = getAllTxtFiles(dir)
 		if (txtFiles.length) {
 			console.log(`[DEBUG][${machine}] Arquivos TXT encontrados:`, txtFiles)
@@ -710,27 +671,9 @@ export function getTurnoReportData(
 		result[machine] = occupationPercent
 	})
 
-		// Fallback: se para o grupo solicitado todas as máquinas ficaram com zeros
-		// e a consulta é para a data de hoje, preencher com ocupação atual (registro.txt)
-		try {
-			const isTodayRequest = !dateStr || dateStr === localDateStr
-			if (isTodayRequest) {
-				const live = getMachineOccupation(group) || {}
-				Object.keys(result).forEach((m) => {
-					const periods = result[m]
-					if (!periods) return
-					const allZero = Object.values(periods).every((v) => v === 0)
-					if (allZero && live[m]) {
-						console.log(`[DEBUG][${m}] Fallback: usando ocupação atual para preencher períodos (hoje)`)
-						Object.keys(periods).forEach((k) => {
-							if (live[m][k] !== undefined) periods[k] = live[m][k]
-						})
-					}
-				})
-			}
-		} catch (err) {
-			console.warn(`[DEBUG] Erro ao aplicar fallback de ocupação atual: ${err.message}`)
-		}
-
-		return result
+	console.log(
+		`[DEBUG] FINAL getTurnoReportData - resultado completo:`,
+		JSON.stringify(result, null, 2),
+	)
+	return result
 }
