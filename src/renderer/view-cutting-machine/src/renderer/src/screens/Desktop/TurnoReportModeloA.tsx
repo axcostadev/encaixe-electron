@@ -19,12 +19,11 @@ import React, { useEffect, useState } from "react"
 
 // Exemplo de dados estáticos para o layout
 const turnos = ["1º Turno", "2º Turno", "3º Turno"]
-const maquinas = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 
-// Mapeamento para os nomes das máquinas usados no backend
-const machineMap = {
+// Mapeamento padrão para os nomes das máquinas usados no backend
+const defaultMachineMap = {
 	1: "02-1435",
-	2: "02-2540",
+	2: "02-2615",
 	3: "02-1681",
 	4: "02-1880",
 	5: "02-1780",
@@ -34,7 +33,6 @@ const machineMap = {
 	9: "02-1553",
 	10: "02-1398",
 	11: "02-1454",
-	12: "02-2617",
 }
 
 const periodosTurno1 = [
@@ -72,9 +70,12 @@ const periodosTurno3 = [
 
 export default function TurnoReport() {
 	// Estado para edição do machineMap
-	const [machineMapEdit, setMachineMapEdit] = useState(machineMap)
+	const [machineMapEdit, setMachineMapEdit] = useState(defaultMachineMap)
 	const [editIdx, setEditIdx] = useState<number | null>(null)
 	const [editValue, setEditValue] = useState("")
+
+	// Lista de máquinas derivada dinamicamente do machineMap
+	const maquinas = Object.keys(machineMapEdit).map(Number).sort((a, b) => a - b)
 
 	// Handler para iniciar edição
 	function handleEditStart(idx: number) {

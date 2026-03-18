@@ -43,7 +43,6 @@ function resolveMachineMap() {
 		9: "02-1553",
 		10: "02-1398",
 		11: "02-1454",
-		12: "02-2617",
 	}
 	console.log('[getTurnoReportDataModeloA] Usando machineMap padrão:', defaultMap)
 	return defaultMap

@@ -19,10 +19,9 @@ import React, { useEffect, useState } from "react"
 
 // Exemplo de dados estáticos para o layout - Comelz
 const turnos = ["1º Turno", "2º Turno", "3º Turno"]
-const maquinas = [1, 2, 3, 4]
 
-// Mapeamento para os nomes das máquinas usados no backend - Comelz
-const machineMap = {
+// Mapeamento padrão para os nomes das máquinas usados no backend - Comelz
+const defaultMachineMap = {
 	1: "02-1555",
 	2: "02-1556",
 	3: "02-1558",
@@ -113,9 +112,12 @@ async function salvarDadosNoBanco(
 
 export default function TurnoReportModeloC() {
 	// Estado para edição do machineMap
-	const [machineMapEdit, setMachineMapEdit] = useState(machineMap)
+	const [machineMapEdit, setMachineMapEdit] = useState(defaultMachineMap)
 	const [editIdx, setEditIdx] = useState<number | null>(null)
 	const [editValue, setEditValue] = useState("")
+
+	// Lista de máquinas derivada dinamicamente do machineMap
+	const maquinas = Object.keys(machineMapEdit).map(Number).sort((a, b) => a - b)
 
 	// Handler para iniciar edição
 	function handleEditStart(idx: number) {

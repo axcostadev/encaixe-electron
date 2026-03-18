@@ -19,10 +19,9 @@ import React, { useEffect, useState } from "react"
 
 // Exemplo de dados estáticos para o layout
 const turnos = ["1º Turno", "2º Turno", "3º Turno"]
-const maquinas = [1, 2, 3, 4]
 
-// Mapeamento para os nomes das máquinas usados no backend
-const machineMap = {
+// Mapeamento padrão para os nomes das máquinas usados no backend
+const defaultMachineMap = {
 	1: "02-2774",
 	2: "02-2672",
 	3: "02-2501",
@@ -113,9 +112,12 @@ async function salvarDadosNoBanco(
 
 export default function TurnoReport() {
 	// Estado para edição do machineMap
-	const [machineMapEdit, setMachineMapEdit] = useState(machineMap)
+	const [machineMapEdit, setMachineMapEdit] = useState(defaultMachineMap)
 	const [editIdx, setEditIdx] = useState<number | null>(null)
 	const [editValue, setEditValue] = useState("")
+
+	// Lista de máquinas derivada dinamicamente do machineMap
+	const maquinas = Object.keys(machineMapEdit).map(Number).sort((a, b) => a - b)
 
 	// Handler para iniciar edição
 	function handleEditStart(idx: number) {

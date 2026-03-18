@@ -184,7 +184,7 @@ export default function Dashboard() {
 				{ maquina: "02-2774", ocupacao: 89.5, grupo: "Emma" },
 				{ maquina: "02-1555", ocupacao: 87.1, grupo: "Comelz" },
 				{ maquina: "02-2416", ocupacao: 85.9, grupo: "Laser" },
-				{ maquina: "02-2540", ocupacao: 84.3, grupo: "Lectra" },
+				{ maquina: "02-2615", ocupacao: 84.3, grupo: "Lectra" },
 				{ maquina: "02-2672", ocupacao: 82.7, grupo: "Emma" },
 				{ maquina: "02-1556", ocupacao: 81.4, grupo: "Comelz" },
 				{ maquina: "02-1765", ocupacao: 79.8, grupo: "Laser" },

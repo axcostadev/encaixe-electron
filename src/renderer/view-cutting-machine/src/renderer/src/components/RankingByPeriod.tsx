@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 
 interface RankingData {
 	[machine: string]: {
@@ -11,34 +11,57 @@ interface MachineInfo {
 	label: string
 }
 
-const machines: MachineInfo[] = [
-	{ id: "02-2010", label: "01" },
-	{ id: "02-2416", label: "02" },
-	{ id: "02-1765", label: "03" },
-	{ id: "02-1702", label: "04" },
-	{ id: "02-2388", label: "05" },
-	{ id: "02-1804", label: "06" },
-	{ id: "02-1867", label: "07" },
-	{ id: "02-1548", label: "08" },
-	{ id: "02-1767", label: "09" },
-	{ id: "02-1868", label: "10" },
-	{ id: "02-1869", label: "11" },
-	{ id: "02-1870", label: "12" },
-	{ id: "02-1871", label: "13" },
-]
-
 interface Props {
 	rankingData: RankingData
 	periods: string[]
 	onPeriodChange?: (period: string) => void
+	machines?: MachineInfo[]
+	grupo?: string
 }
 
 export const RankingByPeriod: React.FC<Props> = ({
 	rankingData,
 	periods,
 	onPeriodChange,
+	machines: machinesProp,
+	grupo = "laser",
 }) => {
 	const [selectedPeriod, setSelectedPeriod] = useState(periods[0])
+	const [settingsMachines, setSettingsMachines] = useState<MachineInfo[]>([])
+
+	useEffect(() => {
+		if (machinesProp) return
+		const grupoKey = grupo === "laser" ? "laser" : grupo === "lectra" ? "lectra" : grupo === "emma" ? "emma" : grupo === "comelz" ? "comelz" : "laser"
+		window.electron.ipcRenderer.invoke("get-settings").then((settings: any) => {
+			const grp = settings?.machineGroups?.[grupoKey]
+			if (grp?.machineMap) {
+				const map = grp.machineMap as Record<string, string>
+				setSettingsMachines(
+					Object.entries(map)
+						.sort(([a], [b]) => Number(a) - Number(b))
+						.map(([label, id]) => ({ id, label: label.padStart(2, "0") }))
+				)
+			}
+		})
+
+		const handler = (_event: any, settings: any) => {
+			const grp = settings?.machineGroups?.[grupoKey]
+			if (grp?.machineMap) {
+				const map = grp.machineMap as Record<string, string>
+				setSettingsMachines(
+					Object.entries(map)
+						.sort(([a], [b]) => Number(a) - Number(b))
+						.map(([label, id]) => ({ id, label: label.padStart(2, "0") }))
+				)
+			}
+		}
+		window.electron.ipcRenderer.on("settings-updated", handler)
+		return () => {
+			window.electron.ipcRenderer.removeListener("settings-updated", handler)
+		}
+	}, [machinesProp, grupo])
+
+	const machines = machinesProp ?? settingsMachines
 
 	// Notifica o pai quando o período muda
 	function handlePeriodClick(period: string) {

@@ -1,24 +1,36 @@
 // src/main/service/getCategoriaOcupacaoData.js
 import fs from "fs"
 import path from "path"
+import { getSettings, getDefaultSettings } from "./settingsManager.js"
 
-const baseDir =
-	"\\\\va\\rede\\Grupos\\Horizonte\\Departamental\\CORTE\\Alyson\\Laser\\Work"
-
-const machineMap = {
-	1: "02-2010",
-	2: "02-2416",
-	3: "02-1765",
-	4: "02-1702",
-	5: "02-2388",
-	6: "02-1804",
-	7: "02-1867",
-	8: "02-1548",
-	9: "02-1767",
-	10: "02-1868",
-	11: "02-2830",
-	12: "02-2831",
-	13: "02-2832",
+// Obtém baseDir e machineMap dinamicamente das settings (grupo Laser)
+function getLaserConfig() {
+	try {
+		const settings = getSettings()
+		const laserGroup = settings?.machineGroups?.Laser
+		if (laserGroup) {
+			return {
+				baseDir: laserGroup.baseDir || "\\\\va\\rede\\Grupos\\Horizonte\\Departamental\\CORTE\\Alyson\\Laser\\Work",
+				machineMap: laserGroup.machineMap || {}
+			}
+		}
+	} catch (err) {
+		console.error('[getCategoriaOcupacaoData] Erro ao obter settings:', err)
+	}
+	// Fallback dinâmico dos defaults
+	try {
+		const defaults = getDefaultSettings()
+		const laserDefault = defaults?.machineGroups?.Laser
+		return {
+			baseDir: laserDefault?.baseDir || "\\\\va\\rede\\Grupos\\Horizonte\\Departamental\\CORTE\\Alyson\\Laser\\Work",
+			machineMap: laserDefault?.machineMap || {}
+		}
+	} catch (_) {
+		return {
+			baseDir: "\\\\va\\rede\\Grupos\\Horizonte\\Departamental\\CORTE\\Alyson\\Laser\\Work",
+			machineMap: {}
+		}
+	}
 }
 
 function getLocalDateString() {
@@ -154,6 +166,7 @@ export function getMotivosParadasPorCategoria(dateStr, turno = null) {
 		}`,
 	)
 
+	const { baseDir, machineMap } = getLaserConfig()
 	console.log(`[DEBUG] Diretório base configurado: ${baseDir}`)
 	console.log(`[DEBUG] Processando ${Object.keys(machineMap).length} máquinas`)
 

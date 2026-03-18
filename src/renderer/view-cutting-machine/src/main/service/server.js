@@ -18,7 +18,7 @@ import { createDefaultNetworkSettings } from "./settingsManager.js"
 import { getMachineOccupation } from "./getMachineAmountOcuppation.js"
 import getMachineSpeeds from "./getMachineSpeeds.js"
 import getOccupationData from "./getOccupationData.js"
-import { initializeSettingsManager, getSettings, saveSettings, reloadSettings, getSettingsStats, resetAllSettings } from "./settingsManager.js"
+import { initializeSettingsManager, getSettings, getDefaultSettings, saveSettings, reloadSettings, getSettingsStats, resetAllSettings } from "./settingsManager.js"
 import { readHistoricalTxtData } from "./readTxtHistory.js"
 
 console.log('[SERVER] Imports concluídos, iniciando banco de dados...')
@@ -76,15 +76,28 @@ function getAllConfiguredMachines() {
 		return machines
 	} catch (err) {
 		console.error('[CONFIG] Erro ao obter máquinas das configurações:', err)
-		// Fallback para lista padrão em caso de erro
-		return [
-			'02-2010', '02-2416', '02-1765', '02-1702', '02-2388', '02-1804',
-			'02-1867', '02-1548', '02-1767', '02-1868', '02-2830', '02-2831', '02-2832',
-			'02-1435', '02-2540', '02-1681', '02-1880', '02-1780', '02-1740',
-			'02-2391', '02-2539', '02-1553', '02-1398', '02-1454', '02-2617',
-			'02-2774', '02-2672', '02-2501', '02-2773',
-			'02-1555', '02-1556', '02-1558', '02-1507'
-		]
+		// Fallback dinâmico: extrai máquinas dos defaults do settingsManager
+		try {
+			const defaults = getDefaultSettings()
+			const fallback = []
+			if (defaults && defaults.machineGroups) {
+				for (const groupData of Object.values(defaults.machineGroups)) {
+					const machineMap = groupData?.machineMap || groupData
+					if (machineMap && typeof machineMap === 'object') {
+						for (const machineId of Object.values(machineMap)) {
+							if (machineId && !fallback.includes(String(machineId))) {
+								fallback.push(String(machineId))
+							}
+						}
+					}
+				}
+			}
+			console.log(`[CONFIG] Fallback dinâmico: ${fallback.length} máquinas dos defaults`)
+			return fallback
+		} catch (fallbackErr) {
+			console.error('[CONFIG] Erro no fallback dinâmico:', fallbackErr)
+			return []
+		}
 	}
 }
 
@@ -1845,7 +1858,7 @@ function gerarDadosExemplo(date) {
 			{ maquina: "02-2774", ocupacao: 89.5, grupo: "Emma" },
 			{ maquina: "02-1555", ocupacao: 87.1, grupo: "Comelz" },
 			{ maquina: "02-2416", ocupacao: 85.9, grupo: "Laser" },
-			{ maquina: "02-2540", ocupacao: 84.3, grupo: "Lectra" },
+			{ maquina: "02-2615", ocupacao: 84.3, grupo: "Lectra" },
 			{ maquina: "02-2672", ocupacao: 82.7, grupo: "Emma" },
 			{ maquina: "02-1556", ocupacao: 81.4, grupo: "Comelz" },
 			{ maquina: "02-1765", ocupacao: 79.8, grupo: "Laser" },

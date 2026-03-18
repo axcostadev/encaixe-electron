@@ -265,7 +265,7 @@ function createDefaultNetworkSettings(customSettings = null) {
 /**
  * Retorna as configuraÃ§Ãµes padrÃ£o
  */
-function getDefaultSettings() {
+export function getDefaultSettings() {
 	return {
 		baseDir: "\\\\va\\rede\\Grupos\\Horizonte\\Departamental\\CORTE\\Alyson\\Laser\\Work",
 		machineGroups: {
