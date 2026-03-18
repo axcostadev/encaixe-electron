@@ -35,6 +35,7 @@ export interface UserPermissions {
 	canDeleteSetores: boolean
 	canViewEncaixe: boolean
 	canCreateEncaixe: boolean
+	canViewCuttingMachine: boolean
 	canViewManual: boolean
 	canEditManual: boolean
 	canViewEconomia: boolean
@@ -79,6 +80,7 @@ export const DEFAULT_PERMISSIONS: UserPermissions = {
 	canDeleteSetores: false,
 	canViewEncaixe: false,
 	canCreateEncaixe: false,
+	canViewCuttingMachine: false,
 	canViewManual: false,
 	canEditManual: false,
 	canViewEconomia: false,
@@ -118,6 +120,7 @@ export const SYSTEM_ROLES: Omit<Role, "id" | "created_at">[] = [
 			canDeleteSetores: true,
 			canViewEncaixe: true,
 			canCreateEncaixe: true,
+			canViewCuttingMachine: true,
 			canViewManual: true,
 			canEditManual: true,
 			canViewEconomia: true,
@@ -155,6 +158,7 @@ export const SYSTEM_ROLES: Omit<Role, "id" | "created_at">[] = [
 			canDeleteSetores: false,
 			canViewEncaixe: true,
 			canCreateEncaixe: false,
+			canViewCuttingMachine: false,
 			canViewManual: true,
 			canEditManual: true,
 			canViewEconomia: true,
@@ -192,6 +196,7 @@ export const SYSTEM_ROLES: Omit<Role, "id" | "created_at">[] = [
 			canDeleteSetores: false,
 			canViewEncaixe: false,
 			canCreateEncaixe: false,
+			canViewCuttingMachine: false,
 			canViewManual: true,
 			canEditManual: false,
 			canViewEconomia: false,

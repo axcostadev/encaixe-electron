@@ -21,6 +21,7 @@ export interface UserPermissions {
 	canDeleteSetores: boolean
 	canViewEncaixe: boolean
 	canCreateEncaixe: boolean
+	canViewCuttingMachine: boolean
 	canViewManual: boolean
 	canEditManual: boolean
 	canViewFls: boolean
@@ -64,6 +65,7 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
 	canDeleteSetores: false,
 	canViewEncaixe: false,
 	canCreateEncaixe: false,
+	canViewCuttingMachine: false,
 	canViewManual: false,
 	canEditManual: false,
 	canViewFls: false,
@@ -99,6 +101,7 @@ const ROLE_PERMISSIONS: Record<string, UserPermissions> = {
 		canDeleteSetores: true,
 		canViewEncaixe: true,
 		canCreateEncaixe: true,
+		canViewCuttingMachine: true,
 		canViewManual: true,
 		canEditManual: true,
 		canViewFls: true,
@@ -131,6 +134,7 @@ const ROLE_PERMISSIONS: Record<string, UserPermissions> = {
 		canDeleteSetores: false,
 		canViewEncaixe: true,
 		canCreateEncaixe: false,
+		canViewCuttingMachine: false,
 		canViewManual: true,
 		canEditManual: true,
 		canViewFls: true,
@@ -163,6 +167,7 @@ const ROLE_PERMISSIONS: Record<string, UserPermissions> = {
 		canDeleteSetores: false,
 		canViewEncaixe: false,
 		canCreateEncaixe: false,
+		canViewCuttingMachine: false,
 		canViewManual: true,
 		canEditManual: false,
 		canViewFls: false,

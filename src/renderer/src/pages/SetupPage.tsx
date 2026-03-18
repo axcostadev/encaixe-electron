@@ -92,6 +92,7 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
 	canDeleteSetores: false,
 	canViewEncaixe: false,
 	canCreateEncaixe: false,
+	canViewCuttingMachine: false,
 	canViewManual: false,
 	canEditManual: false,
 	canViewFls: false,

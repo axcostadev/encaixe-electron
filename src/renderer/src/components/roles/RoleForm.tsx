@@ -41,6 +41,7 @@ export type UserPermissions = {
 	canDeleteSetores: boolean
 	canViewEncaixe: boolean
 	canCreateEncaixe: boolean
+	canViewCuttingMachine: boolean
 	canViewManual: boolean
 	canEditManual: boolean
 	canViewFls: boolean
@@ -92,6 +93,7 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
 	canDeleteSetores: false,
 	canViewEncaixe: false,
 	canCreateEncaixe: false,
+	canViewCuttingMachine: false,
 	canViewManual: false,
 	canEditManual: false,
 	canViewFls: false,
@@ -159,6 +161,12 @@ const PERMISSION_CATEGORIES = [
 		permissions: [
 			{ key: "canViewEncaixe", label: "Visualizar Encaixe" },
 			{ key: "canCreateEncaixe", label: "Criar Encaixe" },
+		],
+	},
+	{
+		title: "View Cutting Machine",
+		permissions: [
+			{ key: "canViewCuttingMachine", label: "Acessar View Cutting Machine" },
 		],
 	},
 	{

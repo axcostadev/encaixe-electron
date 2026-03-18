@@ -33,7 +33,7 @@ const menuItems: MenuItem[] = [
 	{ path: "/materiais", label: "Materiais", icon: Layers, permission: "canViewMateriais" },
 	{ path: "/componentes", label: "Componentes", icon: Package, permission: "canViewComponentes" },
 	{ path: "/encaixe", label: "Encaixe", icon: Zap, permission: "canViewEncaixe" },
-	{ path: "/view-cutting-machine", label: "View Cutting Machine", icon: Layers },
+	{ path: "/view-cutting-machine", label: "View Cutting Machine", icon: Layers, permission: "canViewCuttingMachine" },
 	{ path: "/machine-work-state", label: "Machine Work State", icon: Cpu },
 	{ path: "/manual", label: "Manual", icon: Book, permission: "canViewManual" },
 	{ path: "/economia", label: "Economia Dashboard", icon: LayoutDashboard, permission: "canViewEconomia" },
