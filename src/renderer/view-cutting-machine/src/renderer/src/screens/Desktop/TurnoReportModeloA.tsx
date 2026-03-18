@@ -278,7 +278,7 @@ export default function TurnoReport() {
 
 			// Processar cada máquina
 			for (const machineNum of maquinas) {
-				const machineName = machineMap[machineNum]
+				const machineName = machineMapEdit[machineNum]
 				const machineOcupacao = ocupacao[machineName] || {}
 
 				// Calcular ocupação por período
