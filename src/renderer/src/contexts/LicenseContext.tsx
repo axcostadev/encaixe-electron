@@ -52,11 +52,27 @@ interface LicenseContextValue {
 
 const LicenseContext = createContext<LicenseContextValue | undefined>(undefined)
 
+// No-license branch: desativa validação de licença por padrão (pode ser desativado explicitamente)
+const NO_LICENSE = process.env.NO_LICENSE !== "false"
+
 export function LicenseProvider({ children }: { children: React.ReactNode }) {
-	const [status, setStatus] = useState<LicenseStatus | null>(null)
-	const [loading, setLoading] = useState(true)
+	// NO-LICENSE BRANCH: licença sempre válida para testes na fábrica
+	const bypassStatus: LicenseStatus = {
+		valid: true,
+		code: "OK",
+		message: "Licença desativada (modo teste)",
+	}
+
+	const [status, setStatus] = useState<LicenseStatus | null>(NO_LICENSE ? bypassStatus : null)
+	const [loading, setLoading] = useState(NO_LICENSE ? false : true)
 
 	const refresh = useCallback(async () => {
+		if (NO_LICENSE) {
+			setStatus(bypassStatus)
+			setLoading(false)
+			return bypassStatus
+		}
+
 		try {
 			const res: LicenseStatus = await window.api.license.status()
 			setStatus(res)
@@ -75,22 +91,33 @@ export function LicenseProvider({ children }: { children: React.ReactNode }) {
 		}
 	}, [])
 
-	useEffect(() => {
-		void refresh()
-	}, [refresh])
-
 	const activate = useCallback(async (token: string) => {
-		setLoading(true)
+		if (NO_LICENSE) {
+			return bypassStatus
+		}
 		try {
 			const res: LicenseStatus = await window.api.license.activate(token)
 			setStatus(res)
 			return res
-		} finally {
-			setLoading(false)
+		} catch (error) {
+			console.error("Falha ao ativar licença:", error)
+			const fallback: LicenseStatus = {
+				valid: false,
+				code: "INTERNAL_ERROR",
+				message: "Erro ao ativar a licença",
+			}
+			setStatus(fallback)
+			return fallback
 		}
 	}, [])
 
-	const fingerprint = useMemo(() => status?.fingerprint, [status?.fingerprint])
+	useEffect(() => {
+		if (!NO_LICENSE) {
+			void refresh()
+		}
+	}, [refresh])
+
+	const fingerprint = useMemo(() => (NO_LICENSE ? undefined : status?.fingerprint), [status])
 
 	const value = useMemo<LicenseContextValue>(
 		() => ({
@@ -98,7 +125,7 @@ export function LicenseProvider({ children }: { children: React.ReactNode }) {
 			loading,
 			activate,
 			refresh,
-			isValid: Boolean(status?.valid),
+			isValid: NO_LICENSE ? true : Boolean(status?.valid),
 			fingerprint,
 		}),
 		[status, loading, activate, refresh, fingerprint],

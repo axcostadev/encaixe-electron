@@ -196,7 +196,10 @@ export function setupIPC(): void {
 	// Inicializar sistema de licença (validação offline)
 	initLicense()
 
+	// NO-LICENSE BRANCH: bypass de licença para testes na fábrica (desativado apenas se NO_LICENSE=false)
+	const NO_LICENSE = process.env.NO_LICENSE !== "false"
 	const ensureLicensed = (feature?: string) => {
+		if (NO_LICENSE) return null
 		const status = requireLicense(feature)
 		if (!status.valid) {
 			return {

@@ -6,6 +6,7 @@ import { resolve } from "path"
 export default defineConfig({
 	define: {
 		"process.env.APP_VERSION": JSON.stringify(process.env.npm_package_version),
+		"process.env.NO_LICENSE": JSON.stringify(process.env.NO_LICENSE === "true" ? "true" : "false"),
 	},
 	publicDir: "resources",
 	main: {

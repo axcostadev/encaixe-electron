@@ -24,6 +24,8 @@
 		"build:portable": "npm run build && electron-builder --win portable",
 		"build:mac": "electron-vite build && electron-builder --mac",
 		"build:linux": "electron-vite build && electron-builder --linux",
+		"build:no-license": "cross-env NO_LICENSE=true npm run build",
+		"dev:no-license": "cross-env NO_LICENSE=true npm run dev",
 		"migrate:economia": "node ./scripts/migrate_economia_to_appdb.js"
 	},
 	"dependencies": {
@@ -92,6 +94,7 @@
 		"@types/react": "^19.1.8",
 		"@types/react-dom": "^19.1.6",
 		"@vitejs/plugin-react": "^4.7.0",
+		"cross-env": "^7.0.3",
 		"electron": "^37.2.3",
 		"electron-builder": "^25.1.8",
 		"electron-vite": "^4.0.0",
