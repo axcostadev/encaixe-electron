@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { Box, User, Lock, Mail, Eye, EyeOff, Monitor, Loader2, ShieldCheck, Shield, EyeIcon } from "lucide-react"
 import type { UserRole, User as UserType } from "@renderer/contexts/AuthContext"
+import appLogo from "@renderer/assets/images/view-cutting-machine.png"
 
 interface LoginProps {
 	onLoginSuccess: (user: UserType) => void
@@ -212,6 +213,11 @@ export function Login({ onLoginSuccess }: LoginProps): React.JSX.Element {
 						<span className="text-xl font-bold text-white">ModelManager</span>
 					</div>
 
+					{/* Logo */}
+					<div className="flex justify-center mb-6">
+						<img src={appLogo} alt="Logo" className="h-16 object-contain" />
+					</div>
+
 					{/* Header */}
 					<div className="text-center mb-8">
 						<h2 className="text-2xl font-bold text-white mb-2">
@@ -398,12 +404,7 @@ export function Login({ onLoginSuccess }: LoginProps): React.JSX.Element {
 						)}
 					</div>
 
-					{/* Demo credentials */}
-					<div className="mt-8 pt-6 border-t border-slate-800">
-						<p className="text-center text-slate-600 text-xs">
-							Credenciais de demonstração: <span className="text-slate-400">admin / 123456</span>
-						</p>
-					</div>
+
 				</div>
 			</div>
 		</div>

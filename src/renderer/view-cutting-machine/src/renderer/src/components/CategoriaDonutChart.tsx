@@ -131,7 +131,7 @@ export default function CategoriaDonutChart({
 				}}
 			/>
 			<span
-				style={{ fontSize: 15, wordBreak: "keep-all", whiteSpace: "nowrap" }}
+				style={{ fontSize: 15, wordBreak: "keep-all", whiteSpace: "nowrap", color: "#000" }}
 			>
 				{label}
 			</span>
@@ -160,11 +160,11 @@ export default function CategoriaDonutChart({
 			style={{
 				display: "flex",
 				flexDirection: "row",
-				alignItems: "flex-start",
-				gap: 32,
+				alignItems: "center",
+				gap: 24,
 			}}
 		>
-			<div style={{ width: 260, position: "relative", height: 260 }}>
+			<div style={{ width: 180, position: "relative", height: 180, flexShrink: 0 }}>
 				<Doughnut ref={chartRef} data={chartData} options={options} />
 				<div
 					style={{
@@ -208,7 +208,7 @@ export default function CategoriaDonutChart({
 					display: "flex",
 					flexDirection: "column",
 					justifyContent: "center",
-					marginTop: 16,
+					flexShrink: 0,
 				}}
 			>
 				{legendaLabels}

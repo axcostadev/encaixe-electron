@@ -1031,7 +1031,7 @@ export const Desktop = (): React.ReactElement => {
 						</div>
 					)}
 					{activeTab === "setup" && (
-						<div className="flex-1 mb-4">
+						<div className="mb-4">
 							<Setup />
 						</div>
 					)}

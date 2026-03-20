@@ -1114,49 +1114,35 @@ export default function TurnoReport() {
 						<h3 className="font-semibold mb-2">
 							% INTERFERÊNCIAS E OCUPAÇÃO POR CATEGORIAS
 						</h3>
-						<div className="flex flex-row items-center gap-6">
-							<div style={{ width: 180 }}>
-								{/* Gráfico donut real */}
-								<CategoriaDonutChart
-									data={
-										motivosData && motivosData.data.length >= 4
-											? motivosData.data
-											: [
-													0,
-													0,
-													0,
-													parseFloat(
-														getGeralTurnoTotal()
-															.replace("%", "")
-															.replace("-", "0"),
-													),
-													0,
-												]
-									}
-									geral={getGeralTurnoTotal()}
-									trabalhando={mostrarTrabalhando ? geralTrabalhando : null}
-									labels={motivosData?.labels}
-									colors={motivosData?.colors}
-								/>
-							</div>
+						<div className="flex flex-col items-center gap-4">
+							<CategoriaDonutChart
+								data={
+									motivosData && motivosData.data.length >= 4
+										? motivosData.data
+										: [
+												0,
+												0,
+												0,
+												parseFloat(
+													getGeralTurnoTotal()
+														.replace("%", "")
+														.replace("-", "0"),
+												),
+												0,
+											]
+								}
+								geral={getGeralTurnoTotal()}
+								trabalhando={mostrarTrabalhando ? geralTrabalhando : null}
+								labels={motivosData?.labels}
+								colors={motivosData?.colors}
+							/>
 							<div
 								style={{
-									minWidth: 160,
-									marginLeft: 72,
-									textAlign: "left",
 									display: "flex",
 									flexDirection: "column",
-									alignItems: "flex-start",
+									alignItems: "center",
 								}}
 							>
-								<div
-									style={{
-										marginTop: 180,
-										display: "flex",
-										flexDirection: "column",
-										alignItems: "center",
-									}}
-								>
 									<div
 										style={{
 											display: "flex",
@@ -1200,8 +1186,7 @@ export default function TurnoReport() {
 										alt="Logo da Vulcabras"
 										style={{ maxWidth: "180px", height: "auto" }}
 									/>
-									{/* Legenda removida conforme solicitado */}
-								</div>
+								{/* Legenda removida conforme solicitado */}
 							</div>
 						</div>
 					</div>

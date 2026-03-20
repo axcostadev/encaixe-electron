@@ -502,7 +502,7 @@ export default function Setup(): React.ReactElement {
 	}
 
 	return (
-		<div className="p-4">
+		<div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 140px)' }}>
 			<h2 className="text-2xl font-bold text-blue-900 mb-3">SETUP MACHINE</h2>
 
 			<SettingsStatus className="mb-6" />
