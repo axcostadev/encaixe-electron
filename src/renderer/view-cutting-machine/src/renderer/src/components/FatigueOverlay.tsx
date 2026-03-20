@@ -68,16 +68,7 @@ export default function FatigueOverlay({ phrase, shiftPeriods }: FatigueOverlayP
             <div className="text-[clamp(3.5rem,12vw,12rem)] font-extrabold leading-tight text-white" dangerouslySetInnerHTML={{ __html: html }} />
           </div>
 
-          {Array.isArray(shiftPeriods) && shiftPeriods.length > 0 && (
-            <div className="text-[clamp(1.4rem,4vw,3rem)] text-white/90 mt-6">
-              <strong className="font-semibold block mb-3">Início dos turnos:</strong>
-              <div className="mt-3 space-y-3">
-                {shiftPeriods.map((p, i) => (
-                  <div key={i} className="text-2xl">{p.inicio} — {p.fim}</div>
-                ))}
-              </div>
-            </div>
-          )}
+
         </div>
       </div>
     </div>
