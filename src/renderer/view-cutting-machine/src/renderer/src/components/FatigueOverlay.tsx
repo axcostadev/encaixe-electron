@@ -33,7 +33,7 @@ function renderMarkdownToHtml(md: string) {
   return htmlLines.join('\n')
 }
 
-export default function FatigueOverlay({ phrase, shiftPeriods }: FatigueOverlayProps): React.ReactElement | null {
+export default function FatigueOverlay({ phrase }: FatigueOverlayProps): React.ReactElement | null {
   const html = renderMarkdownToHtml(phrase || '')
   const [visible, setVisible] = React.useState<boolean>(true)
 
