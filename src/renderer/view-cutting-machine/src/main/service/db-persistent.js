@@ -1,13 +1,34 @@
 // db-persistent.js
-// Versão melhorada do db-mock.js que persiste dados no arquivo JSON
+// Sistema profissional de persistência de dados de relatórios de turno
+// - Escrita debounced para evitar I/O excessivo
+// - Métricas de operação e diagnóstico
+// - Backup diário automático com rotação
+// - Validação de integridade dos dados
 
 import { app } from "electron"
 import fs from "fs"
 import path from "path"
 import { getSettings } from "./settingsManager.js"
 
+// ============================================================================
+// CONFIGURAÇÃO
+// ============================================================================
+const DEBOUNCE_SAVE_MS = 3000  // Aguarda 3s de inatividade antes de salvar em disco
+const MAX_BACKUPS = 30         // Mantém no máximo 30 backups (1 mês)
+
 let cachedDataPath = null
 let loggedNetworkWriteFailure = false
+
+// Métricas de operação
+const dbStats = {
+	insertsTotal: 0,
+	updatesTotal: 0,
+	duplicatesSkipped: 0,
+	savesTotal: 0,
+	lastSaveTime: null,
+	lastError: null,
+	startedAt: new Date().toISOString(),
+}
 
 // Caminho para o arquivo JSON
 const getDataPath = () => {
@@ -150,16 +171,47 @@ const initExistingKeys = () => {
 
 initExistingKeys()
 
-// Função para salvar dados no arquivo JSON
-const saveDataToFile = () => {
+// ============================================================================
+// SISTEMA DE ESCRITA DEBOUNCED
+// ============================================================================
+let saveTimer = null
+let savePending = false
+
+// Agenda uma escrita em disco (debounced). Múltiplas chamadas dentro de
+// DEBOUNCE_SAVE_MS resultam em uma única escrita.
+const scheduleSave = () => {
+	savePending = true
+	if (saveTimer) clearTimeout(saveTimer)
+	saveTimer = setTimeout(() => {
+		saveTimer = null
+		savePending = false
+		_writeDataToFile()
+	}, DEBOUNCE_SAVE_MS)
+}
+
+// Força escrita imediata (usado na inicialização e shutdown)
+const flushSave = () => {
+	if (saveTimer) {
+		clearTimeout(saveTimer)
+		saveTimer = null
+	}
+	if (savePending) {
+		savePending = false
+		_writeDataToFile()
+	}
+}
+
+// Função interna de escrita atômica no disco
+const _writeDataToFile = () => {
 	const filePath = getDataPath()
-	console.log("[DB-PERSISTENT] saveDataToFile target path:", filePath)
+	console.log("[DB-PERSISTENT] Escrita em disco:", filePath, `(${turnoReportData.length} registros)`)
 
 	try {
 		const dataToSave = {
 			turnoReports: turnoReportData,
 			lastModified: new Date().toISOString(),
 			totalRecords: turnoReportData.length,
+			stats: dbStats,
 		}
 
 			// Cria o diretório se não existir. Se o caminho alvo estiver em rede, tentamos
@@ -222,13 +274,21 @@ const saveDataToFile = () => {
 		console.log(
 			`[DB-PERSISTENT] Salvos ${turnoReportData.length} registros no arquivo JSON`,
 		)
+		dbStats.savesTotal++
+		dbStats.lastSaveTime = new Date().toISOString()
 	} catch (error) {
 		console.error("[DB-PERSISTENT] Erro ao salvar dados:", error)
+		dbStats.lastError = { time: new Date().toISOString(), message: error.message }
 		throw error
 	}
 }
 
-// Função para criar backup diário do turno_report.json em data/backups/
+// Wrapper público: usa debounce por padrão
+const saveDataToFile = () => {
+	scheduleSave()
+}
+
+// Função para criar backup diário do turno_report.json em data/backups/ com rotação
 const backupDaily = () => {
 	try {
 		const filePath = getDataPath()
@@ -255,14 +315,38 @@ const backupDaily = () => {
 		// Se já existe backup para hoje, não sobrescreve
 		if (fs.existsSync(dest)) {
 			console.log("[DB-PERSISTENT] Backup diário já existe:", dest)
+			rotateBackups(backupsDir)
 			return dest
 		}
 		fs.copyFileSync(filePath, dest)
 		console.log("[DB-PERSISTENT] Backup diário criado em:", dest)
+		rotateBackups(backupsDir)
 		return dest
 	} catch (e) {
 		console.error("[DB-PERSISTENT] Erro ao criar backup diário:", e)
 		return false
+	}
+}
+
+// Remove backups antigos mantendo apenas MAX_BACKUPS mais recentes
+const rotateBackups = (backupsDir) => {
+	try {
+		const files = fs.readdirSync(backupsDir)
+			.filter(f => f.startsWith('turno_report-') && f.endsWith('.json'))
+			.sort()
+		if (files.length > MAX_BACKUPS) {
+			const toRemove = files.slice(0, files.length - MAX_BACKUPS)
+			for (const f of toRemove) {
+				try {
+					fs.unlinkSync(path.join(backupsDir, f))
+					console.log(`[DB-PERSISTENT] Backup antigo removido: ${f}`)
+				} catch (e) {
+					console.warn(`[DB-PERSISTENT] Falha ao remover backup antigo ${f}:`, e.message)
+				}
+			}
+		}
+	} catch (e) {
+		// Não-crítico
 	}
 }
 
@@ -295,8 +379,8 @@ const initializeDatabase = async () => {
 			)
 		}
 
-		// Salva os dados carregados para garantir que o arquivo esteja atualizado
-		saveDataToFile()
+		// Salva os dados carregados (flush imediato na inicialização)
+		flushSave()
 
 		// Após carregar e normalizar, tentar reparar datas deslocadas (1º/2º turno) se existirem
 		try {
@@ -308,7 +392,7 @@ const initializeDatabase = async () => {
 				if (removedAfterFix > 0) {
 					console.log(`[DB-PERSISTENT] Duplicatas removidas após correção de datas: ${removedAfterFix}`)
 				}
-				saveDataToFile()
+				flushSave()
 			}
 		} catch (e) {
 			console.warn('[DB-PERSISTENT] Falha ao executar reparo de datas 1º/2º turnos:', e)
@@ -329,6 +413,7 @@ const initializeDatabase = async () => {
 			)
 		}
 
+		console.log(`[DB-PERSISTENT] Inicialização completa: ${turnoReportData.length} registros, caminho: ${getDataPath()}`)
 		return true
 	} catch (error) {
 		console.error("[DB-PERSISTENT] Erro na inicialização:", error)
@@ -427,6 +512,7 @@ const insertTurnoReport = async (data) => {
 				console.log(
 					`[DB-PERSISTENT] Registro já existe com mesma porcentagem - ignorando inserção`,
 				)
+				dbStats.duplicatesSkipped++
 				return existing.id
 			}
 
@@ -439,6 +525,7 @@ const insertTurnoReport = async (data) => {
 				porcentagem: data.porcentagem,
 				created: new Date().toISOString(),
 			}
+			dbStats.updatesTotal++
 			// Salva e retorna id
 			saveDataToFile()
 			return turnoReportData[existingIndex].id
@@ -463,11 +550,12 @@ const insertTurnoReport = async (data) => {
 
 		turnoReportData.push(newRecord)
 		existingKeys.add(key)
+		dbStats.insertsTotal++
 		console.log(
 			`[DB-PERSISTENT] Novo registro criado: ${storedDate}, ${normalizedTurno}, ${maquinaTrim}, ${periodoTrim}`,
 		)
 
-		// Salvar no arquivo após cada inserção
+		// Salvar no arquivo (debounced)
 		saveDataToFile()
 
 		// Retorna o id do registro inserido/atualizado
@@ -574,6 +662,8 @@ export {
 	insertTurnoReport,
 	initializeDatabase,
 	removeDuplicates,
+	flushSave,
+	dbStats,
 }
 
 // Export getDataPath so other modules (server.js) can query the effective file path

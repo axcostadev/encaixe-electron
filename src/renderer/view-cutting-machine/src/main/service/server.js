@@ -13,6 +13,8 @@ import {
 	initializeDatabase,
 	insertTurnoReport,
 	getDataPath as getTurnoReportDataPath,
+	flushSave,
+	dbStats,
 } from "./db-persistent.js"
 import { createDefaultNetworkSettings } from "./settingsManager.js"
 import { getMachineOccupation } from "./getMachineAmountOcuppation.js"
@@ -101,110 +103,261 @@ function getAllConfiguredMachines() {
 	}
 }
 
-// Sistema de captura automática de dados
-let captureInterval = null
-const CAPTURE_INTERVAL_MS = 30 * 60 * 1000 // 30 minutos
+// ============================================================================
+// SISTEMA PROFISSIONAL DE CAPTURA AUTOMÁTICA DE DADOS
+// ============================================================================
+// - Captura inteligente: só captura turnos ativos ou recém-finalizados
+// - Captura final garantida quando um turno termina
+// - Usa funções específicas de cada grupo (Laser, Lectra, Emma, Comelz)
+// - Intervalo de 15 minutos para dados mais atualizados
+// - Logs detalhados para diagnóstico
+// ============================================================================
 
-// Função para capturar dados de todos os turnos e grupos automaticamente
+let captureInterval = null
+let shiftEndTimeouts = []
+const CAPTURE_INTERVAL_MS = 15 * 60 * 1000 // 15 minutos
+
+// Limites de cada turno em minutos desde meia-noite
+const TURNO_BOUNDS = {
+	0: { start: 300, end: 800 },   // Turno 1: 05:00 - 13:20
+	1: { start: 800, end: 1300 },  // Turno 2: 13:20 - 21:40
+	2: { start: 1300, end: 1740 }, // Turno 3: 21:40 - 29:00 (05:00 do dia seguinte = 24*60+5*60)
+}
+
+// Formata uma Date como 'YYYY-MM-DD'
+function formatDateStr(d) {
+	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// Retorna o turno ativo no momento (0, 1 ou 2)
+function getCurrentTurno() {
+	const now = new Date()
+	const m = now.getHours() * 60 + now.getMinutes()
+	if (m >= 300 && m < 800) return 0
+	if (m >= 800 && m < 1300) return 1
+	return 2 // 21:40 - 05:00
+}
+
+// Retorna lista de turnos que devem ser capturados agora:
+// - Turno ativo (dados parciais atualizados)
+// - Turno que acabou de terminar (dentro de janela de 90 min) para captura final
+function getTurnosToCapture() {
+	const now = new Date()
+	const m = now.getHours() * 60 + now.getMinutes()
+	const active = getCurrentTurno()
+	const result = [active]
+	const GRACE_MINUTES = 90
+
+	// Turno 1 (05:00-13:20): se acabou, janela de graça até 14:50
+	if (active === 1 && m < TURNO_BOUNDS[0].end + GRACE_MINUTES) {
+		result.push(0) // Captura final do turno 1
+	}
+	// Turno 2 (13:20-21:40): se acabou, janela de graça até 23:10
+	if (active === 2 && m >= TURNO_BOUNDS[1].end && m < TURNO_BOUNDS[1].end + GRACE_MINUTES) {
+		result.push(1) // Captura final do turno 2
+	}
+	// Turno 3 (21:40-05:00): se acabou, janela de graça até 06:30
+	if (active === 0 && m < TURNO_BOUNDS[0].start + GRACE_MINUTES) {
+		result.push(2) // Captura final do turno 3 (dia anterior)
+	}
+
+	return [...new Set(result)]
+}
+
+// Determina a data correta para salvar/consultar dados de um turno
+function getDateForTurno(turno) {
+	const now = new Date()
+	const m = now.getHours() * 60 + now.getMinutes()
+	const today = formatDateStr(now)
+
+	if (turno === 2) {
+		// Turno 3 cruza meia-noite (21:40 → 05:00). A "data do turno" é o dia em que 21:40 cai.
+		// Entre 00:00 e 05:00: turno 3 ainda está ativo, pertence ao dia anterior
+		if (m < 300) {
+			const yesterday = new Date(now)
+			yesterday.setDate(yesterday.getDate() - 1)
+			return formatDateStr(yesterday)
+		}
+		// Entre 05:00 e ~06:30 (período de graça): turno 3 acabou mas estamos
+		// capturando dados finais — o turno 3 que acabou pertence ao dia ANTERIOR.
+		// Sem esta correção, a captura final às 05:02 salvaria com a data de HOJE,
+		// buscando dados de um turno 3 que ainda não começou.
+		const currentTurno = getCurrentTurno()
+		if (currentTurno !== 2) {
+			// Turno 3 não está mais ativo (estamos no turno 1), então
+			// o turno 3 que acabou pertence a ontem
+			const yesterday = new Date(now)
+			yesterday.setDate(yesterday.getDate() - 1)
+			return formatDateStr(yesterday)
+		}
+		// Turno 3 ativo (21:40+): pertence a hoje
+		return today
+	}
+	return today
+}
+
+// Calcula dateInicial e dateFinal para turno 3
+function getTurno3DateRange(turnoDate) {
+	const dateInicial = turnoDate
+	const d = new Date(turnoDate + 'T00:00:00')
+	d.setDate(d.getDate() + 1)
+	const dateFinal = formatDateStr(d)
+	return { dateInicial, dateFinal }
+}
+
+// Captura dados usando a função correta para cada grupo de máquinas
+async function captureDataForGroup(date, turno, grupo) {
+	try {
+		let dateInicial = null
+		let dateFinal = null
+
+		if (turno === 2) {
+			const range = getTurno3DateRange(date)
+			dateInicial = range.dateInicial
+			dateFinal = range.dateFinal
+		}
+
+		let report = null
+
+		// Usa a função de relatório específica do grupo
+		switch (grupo) {
+			case 'Laser': {
+				const { getTurnoReportData } = await import('./getTurnoReportData.js')
+				report = getTurnoReportData(date, turno, dateInicial, dateFinal, 'Laser')
+				break
+			}
+			case 'Lectra': {
+				const modA = await import('./getTurnoReportDataModeloA.js')
+				const fn = modA.default || modA.getTurnoReportData || modA.getTurnoReportDataLectra
+				if (fn) report = fn(date, turno, dateInicial, dateFinal)
+				break
+			}
+			case 'Emma': {
+				const modB = await import('./getTurnoReportDataModeloB.js')
+				const fn = modB.default || modB.getTurnoReportDataTrabalhandoModeloB || modB.getTurnoReportDataModeloB
+				if (fn) {
+					// ModeloB pode não aceitar dateInicial/dateFinal; usa assinatura compatível
+					try {
+						report = fn(date, turno, dateInicial, dateFinal)
+					} catch {
+						report = fn(date, turno)
+					}
+				}
+				break
+			}
+			case 'Comelz': {
+				const modC = await import('./getTurnoReportDataModeloC.js')
+				const fn = modC.getTurnoReportDataModeloC || modC.default
+				if (fn) report = fn(date, turno, dateInicial, dateFinal)
+				break
+			}
+			default: {
+				const { getTurnoReportData } = await import('./getTurnoReportData.js')
+				report = getTurnoReportData(date, turno, dateInicial, dateFinal, grupo)
+			}
+		}
+
+		if (!report || typeof report !== 'object') {
+			return { success: false, count: 0 }
+		}
+
+		let savedCount = 0
+
+		for (const [maquina, periodosObj] of Object.entries(report)) {
+			if (!periodosObj || typeof periodosObj !== 'object') continue
+			for (const [periodo, porcentagem] of Object.entries(periodosObj)) {
+				if (porcentagem === undefined || porcentagem === null) continue
+				try {
+					await insertTurnoReport({ date, turno, maquina, periodo, porcentagem })
+					savedCount++
+				} catch (insertError) {
+					console.error(`[AUTO-CAPTURE] Erro ao salvar ${grupo}/${maquina}/${periodo}:`, insertError.message)
+				}
+			}
+		}
+
+		return { success: true, count: savedCount }
+	} catch (err) {
+		console.error(`[AUTO-CAPTURE] Erro em captureDataForGroup (${grupo}, turno ${turno}):`, err.message)
+		return { success: false, count: 0 }
+	}
+}
+
+// Captura principal: só captura turnos ativos + turnos recém-finalizados
 async function captureAllData() {
 	try {
 		const now = new Date()
-		const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-
-		// O 3º turno começa às 21:40 e cruza a meia-noite (vai até 05:00).
-		// Se estamos entre 00:00 e 05:00, o turno 3 ainda pertence ao dia ANTERIOR.
-		const nowMinutes = now.getHours() * 60 + now.getMinutes()
-		const isInsideTurno3NextDay = nowMinutes < 300 // antes de 05:00
-		let dateTurno3 = date
-		if (isInsideTurno3NextDay) {
-			const yesterday = new Date(now)
-			yesterday.setDate(yesterday.getDate() - 1)
-			dateTurno3 = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`
-			console.log(`[AUTO-CAPTURE] Entre 00:00-05:00 - turno 3 usa data anterior: ${dateTurno3}`)
-		}
-		
-		console.log(`[AUTO-CAPTURE] Iniciando captura automática para ${date}`)
-		
+		const turnosToCapture = getTurnosToCapture()
 		const grupos = ['Laser', 'Lectra', 'Emma', 'Comelz']
-		const turnos = [0, 1, 2] // Índices dos turnos
-		
+
+		console.log(`[AUTO-CAPTURE] ${formatDateStr(now)} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} - Capturando turnos: [${turnosToCapture.join(', ')}]`)
+
 		let totalSaved = 0
-		
-		for (const grupo of grupos) {
-			for (const turno of turnos) {
+
+		for (const turno of turnosToCapture) {
+			const dateForTurno = getDateForTurno(turno)
+
+			// Log detalhado para turno 3 (cruza meia-noite)
+			if (turno === 2) {
+				const range = getTurno3DateRange(dateForTurno)
+				console.log(`[AUTO-CAPTURE] Turno 3: date=${dateForTurno}, dateInicial=${range.dateInicial}, dateFinal=${range.dateFinal}`)
+			}
+
+			for (const grupo of grupos) {
 				try {
-					// Turno 3 (índice 2): usa data correta mesmo após meia-noite
-					const dateForTurno = turno === 2 ? dateTurno3 : date
-					const result = await captureDataForTurno(dateForTurno, turno, grupo)
+					const result = await captureDataForGroup(dateForTurno, turno, grupo)
 					if (result.success) {
 						totalSaved += result.count || 0
 					}
 				} catch (err) {
-					console.error(`[AUTO-CAPTURE] Erro ao capturar ${grupo} turno ${turno}:`, err)
+					console.error(`[AUTO-CAPTURE] Erro ${grupo} turno ${turno}:`, err.message)
 				}
 			}
 		}
-		
-		console.log(`[AUTO-CAPTURE] Captura automática concluída. Total: ${totalSaved} registros`)
+
+		console.log(`[AUTO-CAPTURE] Captura concluída: ${totalSaved} registros salvos/atualizados`)
 	} catch (err) {
 		console.error('[AUTO-CAPTURE] Erro na captura automática:', err)
 	}
 }
 
-// Função auxiliar para capturar dados de um turno específico
-async function captureDataForTurno(date, turno, aba) {
-	try {
-		let dateInicial = null
-		let dateFinal = null
-		
-		if (turno === 2) {
-			dateInicial = date
-			try {
-				const d = new Date(date + 'T00:00:00')
-				d.setDate(d.getDate() + 1)
-				dateFinal = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-			} catch {
-				dateFinal = null
-			}
+// Agenda capturas finais nos horários de fim de turno (05:00, 13:20, 21:40)
+function scheduleShiftEndCaptures() {
+	// Limpa agendamentos anteriores
+	shiftEndTimeouts.forEach(t => clearTimeout(t))
+	shiftEndTimeouts = []
+
+	const now = new Date()
+	const todayBase = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+	// Horários de fim de turno + 2 minutos de margem para garantir dados completos
+	const shiftEnds = [
+		{ h: 5, m: 2 },   // Turno 3 termina às 05:00
+		{ h: 13, m: 22 }, // Turno 1 termina às 13:20
+		{ h: 21, m: 42 }, // Turno 2 termina às 21:40
+	]
+
+	for (const se of shiftEnds) {
+		const target = new Date(todayBase.getTime())
+		target.setHours(se.h, se.m, 0, 0)
+
+		// Se já passou, agendar para amanhã
+		if (target.getTime() <= now.getTime()) {
+			target.setDate(target.getDate() + 1)
 		}
-		
-		const { getTurnoReportData } = await import('./getTurnoReportData.js')
-		const report = getTurnoReportData(date, turno, dateInicial, dateFinal, aba)
-		
-		if (!report || typeof report !== 'object') {
-			return { success: false, count: 0 }
+
+		const delay = target.getTime() - now.getTime()
+		if (delay > 0 && delay < 24 * 60 * 60 * 1000) {
+			const tid = setTimeout(() => {
+				console.log(`[AUTO-CAPTURE] Captura programada de fim de turno (${se.h}:${String(se.m).padStart(2,'0')})`)
+				captureAllData().then(() => {
+					// Re-agenda para o próximo dia
+					scheduleShiftEndCaptures()
+				})
+			}, delay)
+			shiftEndTimeouts.push(tid)
+			console.log(`[AUTO-CAPTURE] Captura de fim de turno agendada para ${target.toLocaleTimeString()} (em ${Math.round(delay / 60000)} min)`)
 		}
-		
-		let savedCount = 0
-		
-		// Obter máquinas configuradas dinamicamente
-		const allMachines = getAllConfiguredMachines()
-		
-		for (const [maquina, periodosObj] of Object.entries(report)) {
-			if (allMachines.includes(maquina)) {
-				for (const [periodo, porcentagem] of Object.entries(periodosObj)) {
-					if (porcentagem !== undefined && porcentagem !== null) {
-						try {
-							await insertTurnoReport({
-								date,
-								turno,
-								maquina,
-								periodo,
-								porcentagem
-							})
-							savedCount++
-						} catch (insertError) {
-							console.error(`[AUTO-CAPTURE] Erro ao salvar ${maquina}/${periodo}:`, insertError)
-						}
-					}
-				}
-			}
-		}
-		
-		return { success: true, count: savedCount }
-	} catch (err) {
-		console.error('[AUTO-CAPTURE] Erro em captureDataForTurno:', err)
-		return { success: false, count: 0 }
 	}
 }
 
@@ -213,17 +366,54 @@ export function startAutomaticDataCapture() {
 	if (captureInterval) {
 		clearInterval(captureInterval)
 	}
-	
-	// Executar imediatamente na inicialização
-	captureAllData()
-	
-	// Depois executar a cada 30 minutos
+
+	console.log('[AUTO-CAPTURE] Iniciando sistema profissional de captura automática...')
+
+	// Executar primeira captura após breve delay para não bloquear inicialização
+	setTimeout(() => {
+		captureAllData()
+	}, 5000)
+
+	// Captura periódica a cada 15 minutos
 	captureInterval = setInterval(() => {
 		captureAllData()
 	}, CAPTURE_INTERVAL_MS)
-	
-	console.log('[AUTO-CAPTURE] Sistema de captura automática configurado (intervalo: 30min)')
+
+	// Agendar capturas finais nos horários de fim de turno
+	scheduleShiftEndCaptures()
+
+	console.log(`[AUTO-CAPTURE] Sistema configurado: intervalo ${CAPTURE_INTERVAL_MS / 60000}min + capturas agendadas em fins de turno`)
 }
+
+// Garante flush dos dados pendentes ao fechar o app
+app.on('before-quit', () => {
+	console.log('[SHUTDOWN] Salvando dados pendentes antes de fechar...')
+	try {
+		if (captureInterval) clearInterval(captureInterval)
+		shiftEndTimeouts.forEach(t => clearTimeout(t))
+		flushSave()
+		console.log('[SHUTDOWN] Dados salvos com sucesso.')
+	} catch (err) {
+		console.error('[SHUTDOWN] Erro ao salvar dados:', err)
+	}
+})
+
+// IPC: Estatísticas do banco de dados
+ipcMain.handle('get-db-stats', async () => {
+	try {
+		return {
+			success: true,
+			stats: {
+				...dbStats,
+				totalRecords: undefined, // será preenchido abaixo
+			},
+			totalRecords: (await getTurnoReport({})).length,
+			dataPath: getTurnoReportDataPath(),
+		}
+	} catch (err) {
+		return { success: false, error: err.message }
+	}
+})
 
 // Handler para capturar dados do relatório por turno e salvar automaticamente
 
@@ -1415,7 +1605,7 @@ ipcMain.handle("get-dashboard-metrics", async (event, params) => {
 		let allTurnoData = []
 
 		for (const date of dates) {
-			for (let turno = 1; turno <= 3; turno++) {
+			for (let turno = 0; turno <= 2; turno++) {
 				for (const grupo of allGroups) {
 					try {
 						const data = await getTurnoReport({ date, turno, maquinas: getMachineMaps()[grupo] })
@@ -1438,7 +1628,7 @@ ipcMain.handle("get-dashboard-metrics", async (event, params) => {
 		const turnoMetrics = {}
 		
 		// Agrupar por turno
-		for (let turno = 1; turno <= 3; turno++) {
+		for (let turno = 0; turno <= 2; turno++) {
 			const turnoData = allTurnoData.filter(item => item.turno === turno)
 			
 			if (turnoData.length > 0) {
