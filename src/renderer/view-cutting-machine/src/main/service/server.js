@@ -191,27 +191,15 @@ function getDateForTurno(turno) {
 	const today = formatDateStr(now)
 
 	if (turno === 2) {
-		// Turno 3 cruza meia-noite (21:40 → 05:00). A "data do turno" é o dia em que 21:40 cai.
-		// Entre 00:00 e 05:00: turno 3 ainda está ativo, pertence ao dia anterior
-		if (m < 300) {
-			const yesterday = new Date(now)
-			yesterday.setDate(yesterday.getDate() - 1)
-			return formatDateStr(yesterday)
+		// Turno 3 cruza meia-noite (21:40 → 05:00). A data do turno é o dia
+		// em que o turno começou, ou seja, o dia anterior para registros de
+		// 00:00-05:00.
+		if (m >= TURNO_BOUNDS[2].start) {
+			return today
 		}
-		// Entre 05:00 e ~06:30 (período de graça): turno 3 acabou mas estamos
-		// capturando dados finais — o turno 3 que acabou pertence ao dia ANTERIOR.
-		// Sem esta correção, a captura final às 05:02 salvaria com a data de HOJE,
-		// buscando dados de um turno 3 que ainda não começou.
-		const currentTurno = getCurrentTurno()
-		if (currentTurno !== 2) {
-			// Turno 3 não está mais ativo (estamos no turno 1), então
-			// o turno 3 que acabou pertence a ontem
-			const yesterday = new Date(now)
-			yesterday.setDate(yesterday.getDate() - 1)
-			return formatDateStr(yesterday)
-		}
-		// Turno 3 ativo (21:40+): pertence a hoje
-		return today
+		const yesterday = new Date(now)
+		yesterday.setDate(yesterday.getDate() - 1)
+		return formatDateStr(yesterday)
 	}
 	return today
 }
