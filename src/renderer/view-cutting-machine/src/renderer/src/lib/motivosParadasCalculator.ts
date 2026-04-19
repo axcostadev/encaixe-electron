@@ -223,3 +223,37 @@ export async function fetchMotivosDataModeloC(
 		return {}
 	}
 }
+
+// Função específica para ModeloD (Comelz Montagem)
+export async function fetchMotivosDataModeloD(
+	dateStr: string,
+	turno: number,
+): Promise<Record<string, Record<string, string[]>>> {
+	try {
+		const result = await window.electron.ipcRenderer.invoke(
+			"get-motivos-paradas-modelo-d",
+			{ dateStr, turno },
+		)
+		return result || {}
+	} catch (error) {
+		console.error("Erro ao buscar dados de motivos ModeloD:", error)
+		return {}
+	}
+}
+
+// Função específica para ModeloE (Comelz Solas)
+export async function fetchMotivosDataModeloE(
+	dateStr: string,
+	turno: number,
+): Promise<Record<string, Record<string, string[]>>> {
+	try {
+		const result = await window.electron.ipcRenderer.invoke(
+			"get-motivos-paradas-modelo-e",
+			{ dateStr, turno },
+		)
+		return result || {}
+	} catch (error) {
+		console.error("Erro ao buscar dados de motivos ModeloE:", error)
+		return {}
+	}
+}

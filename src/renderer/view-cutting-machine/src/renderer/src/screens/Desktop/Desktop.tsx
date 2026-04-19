@@ -24,6 +24,8 @@ import TurnoReport from "./TurnoReport"
 import TurnoReportModeloA from "./TurnoReportModeloA"
 import TurnoReportModeloB from "./TurnoReportModeloB"
 import TurnoReportModeloC from "./TurnoReportModeloC"
+import TurnoReportModeloD from "./TurnoReportModeloD"
+import TurnoReportModeloE from "./TurnoReportModeloE"
 import FatigueOverlay from "../../components/FatigueOverlay"
 
 // Tipos para ocupação por períodos e máquinas
@@ -145,6 +147,8 @@ export const Desktop = (): React.ReactElement => {
 		{ label: "Lectra", key: "modeloA" },
 		{ label: "Emma", key: "modeloB" },
 		{ label: "Comelz", key: "modeloC" },
+		{ label: "Comelz Montagem", key: "modeloD" },
+		{ label: "Comelz Solas", key: "modeloE" },
 	]
 	const [activeTurnoModel, setActiveTurnoModel] = useState("laser")
 
@@ -201,6 +205,21 @@ export const Desktop = (): React.ReactElement => {
 				9: "02-1553",
 				10: "02-1398",
 				11: "02-1454",
+			},
+		},
+		ComelzMontagem: {
+			name: "COMELZ MONTAGEM",
+			machineMap: {
+				1: "02-1471",
+				2: "02-1334",
+				3: "02-1557",
+			},
+		},
+		ComelzSolas: {
+			name: "COMELZ SOLAS",
+			machineMap: {
+				1: "02-1559",
+				2: "02-1325",
 			},
 		},
 	}
@@ -291,7 +310,7 @@ export const Desktop = (): React.ReactElement => {
 	}, [])
 
 	const [activeRankingGroup, setActiveRankingGroup] = useState<
-		"Laser" | "Emma" | "Lectra" | "Comelz"
+		"Laser" | "Emma" | "Lectra" | "Comelz" | "ComelzMontagem" | "ComelzSolas"
 	>("Laser")
 
 	const periodos = [
@@ -453,7 +472,7 @@ export const Desktop = (): React.ReactElement => {
 	const [occupationData, setOccupationData] = useState<MachineSpeedStatus[]>([])
 
 	// Initialize occupation data with default values for current group
-	const initializeOccupationData = useCallback((group: "Laser" | "Emma" | "Lectra" | "Comelz") => {
+	const initializeOccupationData = useCallback((group: "Laser" | "Emma" | "Lectra" | "Comelz" | "ComelzMontagem" | "ComelzSolas") => {
 		const groupMachines = Object.entries(
 			machineGroups[group]?.machineMap || defaultMachineGroups[group]?.machineMap || {},
 		)
@@ -480,7 +499,7 @@ export const Desktop = (): React.ReactElement => {
 	})
 	// Initialize ranking data for current group
 	const getInitialRanking = useCallback(
-		(group: "Laser" | "Emma" | "Lectra" | "Comelz") => {
+		(group: "Laser" | "Emma" | "Lectra" | "Comelz" | "ComelzMontagem" | "ComelzSolas") => {
 			return Object.values(machineGroups[group].machineMap).map(
 				(machineCode, idx) => ({
 					machine: machineCode,
@@ -717,7 +736,7 @@ export const Desktop = (): React.ReactElement => {
 
 			// Lectra e Comelz não têm dados de velocidade válidos, então sempre mostrar 0
 			const speedAverage =
-				activeRankingGroup === "Lectra" || activeRankingGroup === "Comelz"
+				activeRankingGroup === "Lectra" || activeRankingGroup === "Comelz" || activeRankingGroup === "ComelzMontagem" || activeRankingGroup === "ComelzSolas"
 					? 0
 					: speedsFiltered.length > 0
 						? Math.round(
@@ -878,7 +897,7 @@ export const Desktop = (): React.ReactElement => {
 											key={key}
 											className={`px-4 py-2 rounded font-bold ${activeRankingGroup === key ? "bg-blue-600 text-white" : "bg-gray-200 text-blue-900"}`}
 											onClick={() =>
-												setActiveRankingGroup(key as "Laser" | "Emma" | "Lectra" | "Comelz")
+												setActiveRankingGroup(key as "Laser" | "Emma" | "Lectra" | "Comelz" | "ComelzMontagem" | "ComelzSolas")
 											}
 										>
 											{config.name}
@@ -924,6 +943,8 @@ export const Desktop = (): React.ReactElement => {
 							{activeTurnoModel === "modeloA" && <TurnoReportModeloA />}
 							{activeTurnoModel === "modeloB" && <TurnoReportModeloB />}
 							{activeTurnoModel === "modeloC" && <TurnoReportModeloC />}
+							{activeTurnoModel === "modeloD" && <TurnoReportModeloD />}
+							{activeTurnoModel === "modeloE" && <TurnoReportModeloE />}
 						</div>
 					)}
 					{/* Ocupação em tempo real só na aba atual */}

@@ -31,7 +31,7 @@ export const RankingByPeriod: React.FC<Props> = ({
 
 	useEffect(() => {
 		if (machinesProp) return
-		const grupoKey = grupo === "laser" ? "laser" : grupo === "lectra" ? "lectra" : grupo === "emma" ? "emma" : grupo === "comelz" ? "comelz" : "laser"
+		const grupoKey = grupo === "laser" ? "laser" : grupo === "lectra" ? "lectra" : grupo === "emma" ? "emma" : grupo === "comelz" ? "comelz" : grupo === "ComelzMontagem" ? "ComelzMontagem" : grupo === "ComelzSolas" ? "ComelzSolas" : grupo
 		window.electron.ipcRenderer.invoke("get-settings").then((settings: any) => {
 			const grp = settings?.machineGroups?.[grupoKey]
 			if (grp?.machineMap) {

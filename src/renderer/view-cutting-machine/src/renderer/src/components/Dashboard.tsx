@@ -129,7 +129,7 @@ export default function Dashboard() {
 
 	// Dados de exemplo como fallback com nova estrutura
 	const getExampleData = (): DashboardData => {
-		const grupos = ["Laser", "Lectra", "Emma", "Comelz"]
+		const grupos = ["Laser", "Lectra", "Emma", "Comelz", "ComelzMontagem", "ComelzSolas"]
 		
 	const generateTurnoMetrics = (turno: number, grupo: string): TurnoMetrics => {
 		const baseOcupacao = 85 - (turno - 1) * 7 // 1º turno melhor que outros
@@ -504,6 +504,8 @@ export default function Dashboard() {
 						<option value="Lectra">Lectra</option>
 						<option value="Emma">Emma</option>
 						<option value="Comelz">Comelz</option>
+						<option value="ComelzMontagem">Comelz Montagem</option>
+						<option value="ComelzSolas">Comelz Solas</option>
 					</select>
 
 					{/* Botões de View Mode */}

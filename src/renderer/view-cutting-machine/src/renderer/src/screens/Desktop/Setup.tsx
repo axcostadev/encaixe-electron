@@ -91,6 +91,23 @@ export default function Setup(): React.ReactElement {
 				4: "02-1507",
 			},
 		},
+			ComelzMontagem: {
+			name: "COMELZ MONTAGEM",
+				baseDir: "\\\\va\\rede\\Grupos\\Horizonte\\Departamental\\CORTE\\Alyson\\Laser\\Work\\Comelz",
+			machineMap: {
+				1: "02-1471",
+				2: "02-1334",
+				3: "02-1557",
+			},
+		},
+			ComelzSolas: {
+			name: "COMELZ SOLAS",
+				baseDir: "\\\\va\\rede\\Grupos\\Horizonte\\Departamental\\CORTE\\Alyson\\Laser\\Work\\Comelz",
+			machineMap: {
+				1: "02-1559",
+				2: "02-1325",
+			},
+		},
 	}
 
 	const [machineGroups, setMachineGroups] = useState<Record<string, GroupConfig>>(

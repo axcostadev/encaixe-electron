@@ -24,7 +24,7 @@ function testMachineGroups() {
 			return
 		}
 		
-		const expectedGroups = ["Laser", "Emma", "Comelz", "Lectra"]
+		const expectedGroups = ["Laser", "Emma", "Comelz", "Lectra", "ComelzMontagem", "ComelzSolas"]
 		
 		for (const groupName of expectedGroups) {
 			console.log(`📁 Grupo: ${groupName}`)

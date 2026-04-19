@@ -46,10 +46,19 @@ const defaultMachineMaps: Record<string, Record<string, string>> = {
 		3: "02-1558",
 		4: "02-1507",
 	},
+	ComelzMontagem: {
+		1: "02-1471",
+		2: "02-1334",
+		3: "02-1557",
+	},
+	ComelzSolas: {
+		1: "02-1559",
+		2: "02-1325",
+	},
 }
 
 const turnos = ["1º Turno", "2º Turno", "3º Turno"]
-const abas = ["Dashboard", "Laser", "Lectra", "Emma", "Comelz"]
+const abas = ["Dashboard", "Laser", "Lectra", "Emma", "Comelz", "ComelzMontagem", "ComelzSolas"]
 
 type ReportRow = {
 	id: number

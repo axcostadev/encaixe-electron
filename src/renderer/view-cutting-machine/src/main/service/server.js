@@ -12,6 +12,7 @@ import {
 	getTurnoReport,
 	initializeDatabase,
 	insertTurnoReport,
+	migrateMachineNames,
 	getDataPath as getTurnoReportDataPath,
 	flushSave,
 	dbStats,
@@ -103,9 +104,28 @@ function getAllConfiguredMachines() {
 	}
 }
 
-// ============================================================================
-// SISTEMA PROFISSIONAL DE CAPTURA AUTOMÁTICA DE DADOS
-// ============================================================================
+function buildMachineRenameMap(oldSettings, newSettings) {
+	const renameMap = {}
+	const oldGroups = oldSettings?.machineGroups || {}
+	const newGroups = newSettings?.machineGroups || {}
+	const groupNames = new Set([...Object.keys(oldGroups), ...Object.keys(newGroups)])
+
+	for (const groupName of groupNames) {
+		const oldMachineMap = oldGroups[groupName]?.machineMap || {}
+		const newMachineMap = newGroups[groupName]?.machineMap || {}
+		const slots = new Set([...Object.keys(oldMachineMap), ...Object.keys(newMachineMap)])
+
+		for (const slot of slots) {
+			const oldValue = String(oldMachineMap[slot] ?? "").trim()
+			const newValue = String(newMachineMap[slot] ?? "").trim()
+			if (oldValue && newValue && oldValue !== newValue) {
+				renameMap[oldValue] = newValue
+			}
+		}
+	}
+
+	return renameMap
+}
 // - Captura inteligente: só captura turnos ativos ou recém-finalizados
 // - Captura final garantida quando um turno termina
 // - Usa funções específicas de cada grupo (Laser, Lectra, Emma, Comelz)
@@ -251,6 +271,18 @@ async function captureDataForGroup(date, turno, grupo) {
 				if (fn) report = fn(date, turno, dateInicial, dateFinal)
 				break
 			}
+			case 'ComelzMontagem': {
+				const modD = await import('./getTurnoReportDataModeloD.js')
+				const fn = modD.getTurnoReportDataModeloD || modD.default
+				if (fn) report = fn(date, turno, dateInicial, dateFinal)
+				break
+			}
+			case 'ComelzSolas': {
+				const modE = await import('./getTurnoReportDataModeloE.js')
+				const fn = modE.getTurnoReportDataModeloE || modE.default
+				if (fn) report = fn(date, turno, dateInicial, dateFinal)
+				break
+			}
 			default: {
 				const { getTurnoReportData } = await import('./getTurnoReportData.js')
 				report = getTurnoReportData(date, turno, dateInicial, dateFinal, grupo)
@@ -288,7 +320,7 @@ async function captureAllData() {
 	try {
 		const now = new Date()
 		const turnosToCapture = getTurnosToCapture()
-		const grupos = ['Laser', 'Lectra', 'Emma', 'Comelz']
+		const grupos = ['Laser', 'Lectra', 'Emma', 'Comelz', 'ComelzMontagem', 'ComelzSolas']
 
 		console.log(`[AUTO-CAPTURE] ${formatDateStr(now)} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} - Capturando turnos: [${turnosToCapture.join(', ')}]`)
 
@@ -475,7 +507,7 @@ ipcMain.handle("capture-turno-data", async (event, args = {}) => {
 				)
 			} else {
 				// Sem aba: capture para todos os grupos conhecidos e mescle os resultados
-				const groups = ["Laser", "Lectra", "Emma", "Comelz"]
+				const groups = ["Laser", "Lectra", "Emma", "Comelz", "ComelzMontagem", "ComelzSolas"]
 				for (const g of groups) {
 					const r = getTurnoReportData(
 						date,
@@ -1016,9 +1048,20 @@ ipcMain.handle("save-settings", async (event, settings) => {
 		}
 
 		// Sistema automático: usa sistema centralizado para salvar
+		const previousSettings = getSettings()
 		const success = saveSettings(settings)
         
 		if (success) {
+			const renamedMachines = buildMachineRenameMap(previousSettings, getSettings())
+			if (Object.keys(renamedMachines).length > 0) {
+				try {
+					const migratedCount = migrateMachineNames(renamedMachines)
+					console.log(`[save-settings] Migrados ${migratedCount} registros de máquina para novos nomes`, renamedMachines)
+				} catch (migrateErr) {
+					console.warn("[save-settings] Falha ao migrar histórico de máquinas:", migrateErr)
+				}
+			}
+
 			// Notifica todas as janelas que as configurações foram atualizadas
 			try {
 				BrowserWindow.getAllWindows().forEach((win) => {
@@ -1466,11 +1509,101 @@ ipcMain.handle(
 	},
 )
 
+// Handler para relatório do turno Comelz Montagem
+import { getTurnoReportDataModeloD } from "./getTurnoReportDataModeloD.js"
+
+ipcMain.handle(
+	"turno-report-data-comelz-montagem",
+	async (event, { dateInicial, dateFinal, date, turno }) => {
+		try {
+			const dateToUse = turno === 2 && dateInicial ? dateInicial : date
+			const report = getTurnoReportDataModeloD(
+				dateToUse,
+				turno,
+				dateInicial,
+				dateFinal,
+			)
+			console.log(
+				`[DEBUG] Resultado getTurnoReportDataModeloD: dateInicial=${dateInicial}, dateFinal=${dateFinal}, date=${date}, turno=${turno}`,
+				JSON.stringify(report, null, 2),
+			)
+
+			if (report && typeof report === "object") {
+				Object.entries(report).forEach(([maquina, periodosObj]) => {
+					Object.entries(periodosObj).forEach(
+						async ([periodo, porcentagem]) => {
+							if (porcentagem !== undefined && porcentagem !== null) {
+								await insertTurnoReport({
+									date: dateToUse,
+									turno,
+									maquina,
+									periodo,
+									porcentagem,
+								})
+							}
+						},
+					)
+				})
+			}
+			return report
+		} catch (err) {
+			console.error(`[ERROR] turno-report-data-comelz-montagem:`, err)
+			return { error: err.message }
+		}
+	},
+)
+
+// Handler para relatório do turno Comelz Solas
+import { getTurnoReportDataModeloE } from "./getTurnoReportDataModeloE.js"
+
+ipcMain.handle(
+	"turno-report-data-comelz-solas",
+	async (event, { dateInicial, dateFinal, date, turno }) => {
+		try {
+			const dateToUse = turno === 2 && dateInicial ? dateInicial : date
+			const report = getTurnoReportDataModeloE(
+				dateToUse,
+				turno,
+				dateInicial,
+				dateFinal,
+			)
+			console.log(
+				`[DEBUG] Resultado getTurnoReportDataModeloE: dateInicial=${dateInicial}, dateFinal=${dateFinal}, date=${date}, turno=${turno}`,
+				JSON.stringify(report, null, 2),
+			)
+
+			if (report && typeof report === "object") {
+				Object.entries(report).forEach(([maquina, periodosObj]) => {
+					Object.entries(periodosObj).forEach(
+						async ([periodo, porcentagem]) => {
+							if (porcentagem !== undefined && porcentagem !== null) {
+								await insertTurnoReport({
+									date: dateToUse,
+									turno,
+									maquina,
+									periodo,
+									porcentagem,
+								})
+							}
+						},
+					)
+				})
+			}
+			return report
+		} catch (err) {
+			console.error(`[ERROR] turno-report-data-comelz-solas:`, err)
+			return { error: err.message }
+		}
+	},
+)
+
 // Handler para motivos de paradas por categoria
 import { getMotivosParadasPorCategoria } from "./getCategoriaOcupacaoData.js"
 import { getMotivosParadasPorCategoriaModeloA } from "./getTurnoReportDataModeloA.js"
 import { getMotivosParadasPorCategoriaModeloB } from "./getTurnoReportDataModeloB.js"
 import { getMotivosParadasPorCategoriaModeloC } from "./getTurnoReportDataModeloC.js"
+import { getMotivosParadasPorCategoriaModeloD } from "./getTurnoReportDataModeloD.js"
+import { getMotivosParadasPorCategoriaModeloE } from "./getTurnoReportDataModeloE.js"
 
 ipcMain.handle("get-motivos-paradas", async (event, { dateStr, turno }) => {
 	try {
@@ -1516,6 +1649,32 @@ ipcMain.handle(
 			return motivos
 		} catch (err) {
 			console.error("[ERROR] get-motivos-paradas-modelo-c:", err)
+			return { error: err.message }
+		}
+	},
+)
+
+ipcMain.handle(
+	"get-motivos-paradas-modelo-d",
+	async (event, { dateStr, turno }) => {
+		try {
+			const motivos = getMotivosParadasPorCategoriaModeloD(dateStr, turno)
+			return motivos
+		} catch (err) {
+			console.error("[ERROR] get-motivos-paradas-modelo-d:", err)
+			return { error: err.message }
+		}
+	},
+)
+
+ipcMain.handle(
+	"get-motivos-paradas-modelo-e",
+	async (event, { dateStr, turno }) => {
+		try {
+			const motivos = getMotivosParadasPorCategoriaModeloE(dateStr, turno)
+			return motivos
+		} catch (err) {
+			console.error("[ERROR] get-motivos-paradas-modelo-e:", err)
 			return { error: err.message }
 		}
 	},
@@ -1601,7 +1760,7 @@ ipcMain.handle("get-dashboard-metrics", async (event, params) => {
 		}
 
 		// Buscar dados de todos os grupos
-		const allGroups = ["Laser", "Lectra", "Emma", "Comelz"]
+		const allGroups = ["Laser", "Lectra", "Emma", "Comelz", "ComelzMontagem", "ComelzSolas"]
 		let allTurnoData = []
 
 		for (const date of dates) {
@@ -1827,7 +1986,7 @@ ipcMain.handle("get-dashboard-by-date", async (event, params) => {
 		}
 
 		const machineMaps = getMachineMaps()
-		const allGroups = ["Laser", "Lectra", "Emma", "Comelz"]
+		const allGroups = ["Laser", "Lectra", "Emma", "Comelz", "ComelzMontagem", "ComelzSolas"]
 		
 		// Determinar quais grupos buscar
 		const gruposParaBuscar = grupo === "todos" ? allGroups : [grupo]
@@ -1879,7 +2038,7 @@ ipcMain.handle("get-dashboard-by-date", async (event, params) => {
 
 // Função para processar dados do banco e gerar métricas
 function processarDadosDashboard(allTurnoData, date) {
-	const allGroups = ["Laser", "Lectra", "Emma", "Comelz"]
+	const allGroups = ["Laser", "Lectra", "Emma", "Comelz", "ComelzMontagem", "ComelzSolas"]
 	
 	// Calcular métricas gerais por turno
 	const metricas = { geral: [], porGrupo: [] }
@@ -1994,7 +2153,7 @@ function processarDadosDashboard(allTurnoData, date) {
 
 // Função para gerar dados de exemplo quando não há dados reais
 function gerarDadosExemplo(date) {
-	const grupos = ["Laser", "Lectra", "Emma", "Comelz"]
+	const grupos = ["Laser", "Lectra", "Emma", "Comelz", "ComelzMontagem", "ComelzSolas"]
 	
 	const generateTurnoMetrics = (turno, grupo) => {
 		const baseOcupacao = 85 - (turno - 1) * 7

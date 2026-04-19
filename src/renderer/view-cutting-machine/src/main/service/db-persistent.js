@@ -597,6 +597,46 @@ const getTurnoReport = async ({ date, turno, maquinas }) => {
 	}
 }
 
+// Função para renomear máquinas antigas para novas em todo o histórico de turno
+const migrateMachineNames = (renameMap) => {
+	if (!renameMap || typeof renameMap !== 'object') return 0
+
+	let migrated = 0
+
+	for (let i = turnoReportData.length - 1; i >= 0; i--) {
+		const record = turnoReportData[i]
+		const oldName = String(record.maquina || "").trim()
+		const newName = String(renameMap[oldName] || "").trim()
+		if (!oldName || !newName || oldName === newName) continue
+
+		const normalizedTurno = record.turno
+		const periodoTrim = String(record.periodo || "").trim()
+		const oldKey = `${record.date}_${normalizedTurno}_${oldName}_${periodoTrim}`
+		const newKey = `${record.date}_${normalizedTurno}_${newName}_${periodoTrim}`
+
+		if (existingKeys.has(newKey)) {
+			// Já existe registro com o novo nome e mesmo date/turno/período.
+			// Remove o registro antigo para evitar duplicata.
+			turnoReportData.splice(i, 1)
+			existingKeys.delete(oldKey)
+			migrated++
+			continue
+		}
+
+		record.maquina = newName
+		existingKeys.delete(oldKey)
+		existingKeys.add(newKey)
+		migrated++
+	}
+
+	if (migrated > 0) {
+		saveDataToFile()
+		console.log(`[DB-PERSISTENT] Migrados ${migrated} registros de máquina para novos nomes`)
+	}
+
+	return migrated
+}
+
 // Função para remover duplicatas existentes
 const removeDuplicates = () => {
 	const uniqueRecords = []
@@ -660,6 +700,7 @@ export {
 	db,
 	getTurnoReport,
 	insertTurnoReport,
+	migrateMachineNames,
 	initializeDatabase,
 	removeDuplicates,
 	flushSave,

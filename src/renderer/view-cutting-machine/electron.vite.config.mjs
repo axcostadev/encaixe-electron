@@ -5,6 +5,14 @@ import { resolve } from "path"
 export default defineConfig({
 	main: {
 		plugins: [externalizeDepsPlugin()],
+		build: {
+			rollupOptions: {
+				output: {
+					format: "cjs",
+					entryFileNames: "[name].cjs",
+				},
+			},
+		},
 	},
 	preload: {
 		plugins: [externalizeDepsPlugin()],
