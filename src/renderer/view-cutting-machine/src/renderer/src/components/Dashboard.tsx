@@ -1,6 +1,7 @@
 import { Clock, TrendingUp, Users, Calendar, Filter, Download, RefreshCw, AlertCircle, CheckCircle2, XCircle, Activity, BarChart3 } from "lucide-react"
 import React, { useCallback, useEffect, useState } from "react"
 import HistoricalAnalysis from "./HistoricalAnalysis"
+import { usePeriodosConfig } from "../hooks/usePeriodosConfig"
 
 // Tipos para métricas do dashboard
 type TurnoMetrics = {
@@ -49,65 +50,20 @@ type MetricCard = {
 	}
 }
 
-// Períodos de cada turno
-const periodosTurno1 = [
-	{ inicio: "05:00", fim: "06:00", baseCalculo: 60 },
-	{ inicio: "06:00", fim: "07:00", baseCalculo: 50 },
-	{ inicio: "07:00", fim: "08:00", baseCalculo: 60 },
-	{ inicio: "08:00", fim: "09:00", baseCalculo: 40 },
-	{ inicio: "09:00", fim: "10:00", baseCalculo: 20 },
-	{ inicio: "10:00", fim: "11:00", baseCalculo: 60 },
-	{ inicio: "11:00", fim: "12:00", baseCalculo: 50 },
-	{ inicio: "12:00", fim: "13:20", baseCalculo: 80 },
-]
-
-const periodosTurno2 = [
-	{ inicio: "13:20", fim: "14:00", baseCalculo: 40 },
-	{ inicio: "14:00", fim: "15:00", baseCalculo: 60 },
-	{ inicio: "15:00", fim: "16:00", baseCalculo: 50 },
-	{ inicio: "16:00", fim: "17:00", baseCalculo: 60 },
-	{ inicio: "17:00", fim: "18:00", baseCalculo: 40 },
-	{ inicio: "18:00", fim: "19:00", baseCalculo: 20 },
-	{ inicio: "19:00", fim: "20:00", baseCalculo: 60 },
-	{ inicio: "20:00", fim: "21:40", baseCalculo: 90 },
-]
-
-const periodosTurno3 = [
-	{ inicio: "21:40", fim: "22:00", baseCalculo: 20 },
-	{ inicio: "22:00", fim: "23:00", baseCalculo: 60 },
-	{ inicio: "23:00", fim: "00:00", baseCalculo: 50 },
-	{ inicio: "00:00", fim: "01:00", baseCalculo: 40 },
-	{ inicio: "01:00", fim: "02:00", baseCalculo: 20 },
-	{ inicio: "02:00", fim: "03:00", baseCalculo: 60 },
-	{ inicio: "03:00", fim: "04:00", baseCalculo: 50 },
-	{ inicio: "04:00", fim: "05:00", baseCalculo: 60 },
-]
-
-// Função helper para calcular total de horas do turno baseado no baseCalculo
-const calcularHorasTurno = (turno: number): number => {
-	let periodos: typeof periodosTurno1 = []
-	
-	switch(turno) {
-		case 1:
-			periodos = periodosTurno1
-			break
-		case 2:
-			periodos = periodosTurno2
-			break
-		case 3:
-			periodos = periodosTurno3
-			break
-		default:
-			return 0
-	}
-	
-	// Soma todos os baseCalculo (em minutos) e converte para horas
-	const totalMinutos = periodos.reduce((sum, periodo) => sum + periodo.baseCalculo, 0)
-	return Number((totalMinutos / 60).toFixed(2)) // Retorna horas com 2 casas decimais
-}
-
 export default function Dashboard() {
 	const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+
+	// Períodos carregados localmente via IPC (nunca da rede)
+	const periodosConfig = usePeriodosConfig()
+
+	// Função helper para calcular total de horas do turno baseado no baseCalculo
+	const calcularHorasTurno = (turno: number): number => {
+		let periodos = periodosConfig.turno1
+		if (turno === 2) periodos = periodosConfig.turno2
+		else if (turno === 3) periodos = periodosConfig.turno3
+		const totalMinutos = periodos.reduce((sum, periodo) => sum + periodo.baseCalculo, 0)
+		return Number((totalMinutos / 60).toFixed(2))
+	}
 
 	// Use local date string (YYYY-MM-DD) to avoid UTC toISOString() shifting the date
 	const getLocalDateString = () => {
@@ -206,10 +162,10 @@ export default function Dashboard() {
 			}
 			
 			// Buscar dados reais do backend por data específica
-			const response = await window.electron.ipcRenderer.invoke("get-dashboard-by-date", { 
+			const response = await (await import('../services/turnoService')).getDashboardByDate({
 				date: selectedDate,
 				turno: selectedTurno,
-				grupo: selectedGrupo
+				grupo: selectedGrupo,
 			})
 			
 			if (response && response.metricas) {
@@ -274,9 +230,7 @@ export default function Dashboard() {
 				downloadFile(json, `dashboard-${selectedDate}.json`, 'application/json')
 			} else if (format === 'pdf') {
 				// Chamar backend para gerar PDF
-				if (window.electron?.ipcRenderer) {
-					await window.electron.ipcRenderer.invoke('export-dashboard-pdf', exportData)
-				}
+				await (await import('../services/turnoService')).exportDashboardPdf(exportData)
 			}
 			
 			setShowExportMenu(false)

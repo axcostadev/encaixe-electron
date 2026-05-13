@@ -240,8 +240,7 @@ export const Desktop = (): React.ReactElement => {
 				}
 
 				console.log("[Desktop] Carregando configurações de máquinas...")
-				const res = await window.electron.ipcRenderer.invoke("get-settings")
-				
+			const res = await (await import('../../lib/ipcHelper')).default.invoke("get-settings")
 				if (res && res.success && res.settings && res.settings.machineGroups) {
 					// Merge with defaults to ensure all groups exist
 					const loadedGroups = res.settings.machineGroups
@@ -289,7 +288,7 @@ export const Desktop = (): React.ReactElement => {
 		const loadFatigueSettings = async () => {
 			try {
 				if (!window.electron || !window.electron.ipcRenderer) return
-				const res = await window.electron.ipcRenderer.invoke("get-settings")
+				const res = await (await import('../../lib/ipcHelper')).default.invoke("get-settings")
 				if (res && res.success && res.settings && res.settings.fatigue) {
 					const f = res.settings.fatigue
 					setFatigueEnabled(Boolean(f.enabled ?? true))
@@ -399,7 +398,7 @@ export const Desktop = (): React.ReactElement => {
 					(async () => {
 						try {
 							if (!window.electron || !window.electron.ipcRenderer) return
-							const res = await window.electron.ipcRenderer.invoke('get-settings')
+							const res = await (await import('../../lib/ipcHelper')).default.invoke('get-settings')
 							if (res && res.success && res.settings && res.settings.fatigue) {
 								const f = res.settings.fatigue
 								if (Array.isArray(f.phrases) && !editingFatigue) setFatiguePhrases(f.phrases)
@@ -528,12 +527,12 @@ export const Desktop = (): React.ReactElement => {
 
 			console.log(`[Desktop] Buscando dados para grupo: ${activeRankingGroup}`)
 			
-			const occupation: Occupation = await window.electron.ipcRenderer.invoke(
-				"machine-occupation-group",
+			const occupation: Occupation = await (await import('../../lib/ipcHelper')).default.invoke(
+				'machine-occupation-group',
 				activeRankingGroup,
 			)
-			const speedRawData = await window.electron.ipcRenderer.invoke(
-				"occupation-group",
+			const speedRawData = await (await import('../../lib/ipcHelper')).default.invoke(
+				'occupation-group',
 				activeRankingGroup,
 			)
 			const speedData: MachineSpeedStatus[] = Array.isArray(speedRawData)

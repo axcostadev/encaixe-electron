@@ -79,7 +79,7 @@ export default function HistoricalAnalysis() {
 			}
 			
 			const groupBy = selectedPeriod === 'custom' ? 'day' : selectedPeriod
-			let response = await window.electron.ipcRenderer.invoke('get-historical-metrics', {
+			let response = await (await import('../services/turnoService')).getHistoricalMetrics({
 				startDate: start,
 				endDate: end,
 				groupBy,
@@ -88,7 +88,7 @@ export default function HistoricalAnalysis() {
 
 			// Se não retornar nada no intervalo selecionado, tenta intervalo completo automaticamente
 			if (response && response.success && response.summary.totalRecords === 0) {
-				const fullResp = await window.electron.ipcRenderer.invoke('get-historical-metrics', {
+				const fullResp = await (await import('../services/turnoService')).getHistoricalMetrics({
 					groupBy,
 					rangeMode: 'full'
 				})
@@ -114,28 +114,26 @@ export default function HistoricalAnalysis() {
 
 	// Carregar dados quando período mudar
 	useEffect(() => {
-		loadHistoricalData()
+		loadHistoricalData();
 		// Carregar o caminho dos dados na montagem
-		window.electron?.ipcRenderer.invoke('get-data-path').then(result => {
-			if (result.success) {
-				setDataPath(result.path)
+		(async () => {
+			try {
+				const result = await (await import('../lib/ipcHelper')).default.invoke('get-data-path')
+				if (result && result.success) setDataPath(result.path)
+			} catch (e) {
+				// ignore
 			}
-		})
+		})()
 	}, [loadHistoricalData])
 
 	// Importar dados de uma pasta
 	const importHistoricalData = async () => {
-		if (!window.electron?.ipcRenderer) {
-			setImportStatus('❌ IPC não disponível')
-			return
-		}
-		
 		try {
 			setImporting(true)
 			setImportStatus('📂 Selecionando pasta...')
 			
 			// Selecionar pasta
-			const selectResult = await window.electron.ipcRenderer.invoke('select-import-folder')
+			const selectResult = await (await import('../lib/ipcHelper')).default.invoke('select-import-folder')
 			
 			if (selectResult.canceled) {
 				setImportStatus('Seleção cancelada')
@@ -152,9 +150,7 @@ export default function HistoricalAnalysis() {
 			setImportStatus(`⏳ Importando dados de: ${selectResult.path}`)
 			
 			// Importar dados
-			const importResult = await window.electron.ipcRenderer.invoke('import-historical-data', {
-				folderPath: selectResult.path
-			})
+			const importResult = await (await import('../services/turnoService')).importHistoricalData(selectResult.path)
 			
 			if (importResult.success) {
 				setImportStatus(
@@ -182,8 +178,11 @@ export default function HistoricalAnalysis() {
 
 	// Abrir pasta de dados
 	const openDataFolder = async () => {
-		if (window.electron?.ipcRenderer) {
-			await window.electron.ipcRenderer.invoke('open-data-folder');
+		try {
+			const ipcHelper = (await import('../lib/ipcHelper')).default
+			await ipcHelper.invoke('open-data-folder')
+		} catch (e) {
+			console.error('Erro ao abrir pasta de dados', e)
 		}
 	}
 

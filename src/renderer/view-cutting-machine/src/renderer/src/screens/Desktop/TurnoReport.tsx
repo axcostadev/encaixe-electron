@@ -23,6 +23,7 @@ function getTextColor(percentStr: string) {
 }
 
 import React, { useEffect, useState } from "react"
+import { usePeriodosConfig } from "../../hooks/usePeriodosConfig"
 
 // Exemplo de dados estáticos para o layout
 const turnos = ["1º Turno", "2º Turno", "3º Turno"]
@@ -44,39 +45,6 @@ const machineMap = {
 	13: "02-2831",
 	14: "02-2832",
 }
-
-const periodosTurno1 = [
-	{ inicio: "05:00", fim: "06:00", baseCalculo: 60 },
-	{ inicio: "06:00", fim: "07:00", baseCalculo: 50 },
-	{ inicio: "07:00", fim: "08:00", baseCalculo: 60 },
-	{ inicio: "08:00", fim: "09:00", baseCalculo: 40 },
-	{ inicio: "09:00", fim: "10:00", baseCalculo: 20 },
-	{ inicio: "10:00", fim: "11:00", baseCalculo: 60 },
-	{ inicio: "11:00", fim: "12:00", baseCalculo: 50 },
-	{ inicio: "12:00", fim: "13:20", baseCalculo: 80 },
-]
-
-const periodosTurno2 = [
-	{ inicio: "13:20", fim: "14:00", baseCalculo: 40 },
-	{ inicio: "14:00", fim: "15:00", baseCalculo: 60 },
-	{ inicio: "15:00", fim: "16:00", baseCalculo: 50 },
-	{ inicio: "16:00", fim: "17:00", baseCalculo: 60 },
-	{ inicio: "17:00", fim: "18:00", baseCalculo: 40 },
-	{ inicio: "18:00", fim: "19:00", baseCalculo: 20 },
-	{ inicio: "19:00", fim: "20:00", baseCalculo: 60 },
-	{ inicio: "20:00", fim: "21:40", baseCalculo: 90 },
-]
-
-const periodosTurno3 = [
-	{ inicio: "21:40", fim: "22:00", baseCalculo: 20 },
-	{ inicio: "22:00", fim: "23:00", baseCalculo: 60 },
-	{ inicio: "23:00", fim: "00:00", baseCalculo: 50 },
-	{ inicio: "00:00", fim: "01:00", baseCalculo: 40 },
-	{ inicio: "01:00", fim: "02:00", baseCalculo: 20 },
-	{ inicio: "02:00", fim: "03:00", baseCalculo: 60 },
-	{ inicio: "03:00", fim: "04:00", baseCalculo: 50 },
-	{ inicio: "04:00", fim: "05:00", baseCalculo: 60 },
-]
 
 // Função para salvar dados automaticamente no banco JSON
 async function salvarDadosNoBanco(
@@ -115,8 +83,9 @@ async function salvarDadosNoBanco(
 		})
 
 		// Salvar no banco via IPC
+		const ipcHelper = (await import('../../lib/ipcHelper')).default
 		for (const dado of dadosParaSalvar) {
-			await window.electron?.ipcRenderer?.invoke("insert-turno-report", dado)
+			await ipcHelper.invoke('insert-turno-report', dado)
 		}
 
 		console.log(
@@ -132,6 +101,12 @@ export default function TurnoReport() {
 	const [machineMapEdit, setMachineMapEdit] = useState(machineMap)
 	const [editIdx, setEditIdx] = useState<number | null>(null)
 	const [editValue, setEditValue] = useState("")
+
+	// Períodos carregados via IPC (local) com fallback nos defaults
+	const periodosConfig = usePeriodosConfig()
+	const periodosTurno1 = periodosConfig.turno1
+	const periodosTurno2 = periodosConfig.turno2
+	const periodosTurno3 = periodosConfig.turno3
 
 	// Handler para iniciar edição (recebe número da máquina)
 	function handleEditStart(machineNum: number) {
@@ -157,7 +132,7 @@ export default function TurnoReport() {
 		let mounted = true
 		async function loadSettings() {
 			try {
-				const res = await window.electron.ipcRenderer.invoke("get-settings")
+				const res = await (await import('../../lib/ipcHelper')).default.invoke("get-settings")
 				if (res && res.success && res.settings) {
 					const groups =
 						res.settings.machineGroups ?? res.settings.machineMap ?? {}
@@ -172,30 +147,23 @@ export default function TurnoReport() {
 		loadSettings()
 
 		let unsubscribe: (() => void) | null = null
-		// Prefer IPC notification from main process; preload.on returns an unsubscribe
-		try {
-			if (window.electron?.ipcRenderer?.on) {
-				unsubscribe = window.electron.ipcRenderer.on("settings-updated", () => {
+		;(async () => {
+			try {
+				const ipcHelper = (await import('../../lib/ipcHelper')).default
+				ipcHelper.on('settings-updated', () => {
 					loadSettings()
 				})
-			} else {
+				unsubscribe = () => ipcHelper.removeAllListeners('settings-updated')
+			} catch {
 				// fallback to DOM event if IPC not exposed
 				function onSettingsSaved() {
 					loadSettings()
 				}
-				window.addEventListener(
-					"settings-saved",
-					onSettingsSaved as EventListener,
-				)
+				window.addEventListener('settings-saved', onSettingsSaved as EventListener)
 				unsubscribe = () =>
-					window.removeEventListener(
-						"settings-saved",
-						onSettingsSaved as EventListener,
-					)
+					window.removeEventListener('settings-saved', onSettingsSaved as EventListener)
 			}
-		} catch {
-			// ignore
-		}
+		})()
 
 		return () => {
 			mounted = false
@@ -293,14 +261,16 @@ export default function TurnoReport() {
 			}, 200)
 
 			// Carrega dados de ocupação
-			window.electron?.ipcRenderer
-				?.invoke("turno-report-data", {
-					dateInicial: dataInicial,
-					dateFinal: dataFinal,
-					date: dataSelecionada, // mantém compatibilidade
-					turno: turnoSelecionado,
-				})
-				.then((data) => {
+			;(async () => {
+				try {
+					const ipcHelper = (await import('../../lib/ipcHelper')).default
+					const data = await ipcHelper.invoke('turno-report-data', {
+						dateInicial: dataInicial,
+						dateFinal: dataFinal,
+						date: dataSelecionada, // mantém compatibilidade
+						turno: turnoSelecionado,
+					})
+					console.log("[FRONTEND] OCUPACAO RECEBIDA:", data)
 					console.log("[FRONTEND] OCUPACAO RECEBIDA:", data)
 					clearInterval(progressInterval)
 					setLoadingProgress(100)
@@ -311,12 +281,12 @@ export default function TurnoReport() {
 
 					// Salvar automaticamente os dados no banco JSON
 					salvarDadosNoBanco(data, dataSelecionada, turnoSelecionado + 1)
-				})
-				.catch((error) => {
-					console.error("[FRONTEND] Erro ao carregar dados:", error)
+				} catch (error) {
+					console.error('[FRONTEND] Erro ao carregar dados:', error)
 					clearInterval(progressInterval)
 					setIsLoading(false)
-				})
+				}
+			})()
 		}
 	}, [turnoSelecionado, dataInicial, dataFinal, dataSelecionada])
 

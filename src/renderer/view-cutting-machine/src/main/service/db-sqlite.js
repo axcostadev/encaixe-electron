@@ -58,9 +58,10 @@ async function initTables() {
             turno INTEGER NOT NULL CHECK(turno IN (0, 1, 2)),
             grupo TEXT NOT NULL,
             maquina TEXT NOT NULL,
+            periodo TEXT NOT NULL,
             porcentagem REAL NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(data, turno, grupo, maquina)
+            UNIQUE(data, turno, grupo, maquina, periodo)
         );
 
         CREATE INDEX IF NOT EXISTS idx_data ON turno_history(data);
@@ -73,16 +74,16 @@ async function initTables() {
 }
 
 // Salva dados de um turno
-export async function saveTurnoData(data, turno, grupo, maquina, porcentagem) {
+export async function saveTurnoData(data, turno, grupo, maquina, periodo, porcentagem) {
     const database = await getDB();
-    
+
     await database.run(
-        `INSERT OR REPLACE INTO turno_history (data, turno, grupo, maquina, porcentagem) 
-         VALUES (?, ?, ?, ?, ?)`,
-        [data, turno, grupo, maquina, porcentagem]
+        `INSERT OR REPLACE INTO turno_history (data, turno, grupo, maquina, periodo, porcentagem) 
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [data, turno, grupo, maquina, periodo || '', porcentagem]
     );
-    
-    console.log(`[SQLite] Salvo: ${data} T${turno + 1} ${grupo}/${maquina} = ${porcentagem}%`);
+
+    console.log(`[SQLite] Salvo: ${data} T${turno + 1} ${grupo}/${maquina} ${periodo || ''} = ${porcentagem}%`);
 }
 
 // Salva múltiplos registros de uma vez (batch)
@@ -94,9 +95,9 @@ export async function saveTurnoDataBatch(registros) {
     try {
         for (const reg of registros) {
             await database.run(
-                `INSERT OR REPLACE INTO turno_history (data, turno, grupo, maquina, porcentagem) 
-                 VALUES (?, ?, ?, ?, ?)`,
-                [reg.data, reg.turno, reg.grupo, reg.maquina, reg.porcentagem]
+                `INSERT OR REPLACE INTO turno_history (data, turno, grupo, maquina, periodo, porcentagem) 
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [reg.data, reg.turno, reg.grupo, reg.maquina, reg.periodo || '', reg.porcentagem]
             );
         }
         
@@ -113,7 +114,7 @@ export async function getTurnoData(data, turno, grupo = null) {
     const database = await getDB();
     
     let query = `
-        SELECT maquina, porcentagem 
+        SELECT maquina, periodo, porcentagem 
         FROM turno_history 
         WHERE data = ? AND turno = ?
     `;
@@ -129,12 +130,13 @@ export async function getTurnoData(data, turno, grupo = null) {
     
     const rows = await database.all(query, params);
     
-    // Converter para formato {maquina: porcentagem}
+    // Converter para formato {maquina: { periodo: porcentagem, ... }}
     const result = {};
     rows.forEach(row => {
-        result[row.maquina] = row.porcentagem;
+        if (!result[row.maquina]) result[row.maquina] = {}
+        result[row.maquina][row.periodo || ''] = row.porcentagem
     });
-    
+
     return result;
 }
 
@@ -143,7 +145,7 @@ export async function getTurnoDataRange(dataInicio, dataFim, grupo = null) {
     const database = await getDB();
     
     let query = `
-        SELECT data, turno, grupo, maquina, porcentagem 
+        SELECT id, data, turno, grupo, maquina, periodo, porcentagem 
         FROM turno_history 
         WHERE data >= ? AND data <= ?
     `;
@@ -248,6 +250,37 @@ export async function deleteTurnoData(data, turno = null, grupo = null) {
     return result.changes;
 }
 
+// Migra nomes de máquinas conforme um mapa { oldName: newName }
+export async function migrateMachineNames(renameMap) {
+    if (!renameMap || typeof renameMap !== 'object') return 0
+    const database = await getDB()
+    let migrated = 0
+    await database.exec('BEGIN TRANSACTION')
+    try {
+        for (const [oldName, newName] of Object.entries(renameMap)) {
+            if (!oldName || !newName || oldName === newName) continue
+            // Buscar todos os registros com oldName
+            const rows = await database.all(`SELECT id, data, turno, grupo, periodo FROM turno_history WHERE maquina = ?`, [oldName])
+            for (const r of rows) {
+                // Verificar se já existe registro com newName para mesma chave
+                const exists = await database.get(`SELECT 1 FROM turno_history WHERE data = ? AND turno = ? AND grupo = ? AND maquina = ? AND periodo = ? LIMIT 1`, [r.data, r.turno, r.grupo, newName, r.periodo])
+                if (exists) {
+                    // Remove o registro antigo para evitar duplicata
+                    await database.run(`DELETE FROM turno_history WHERE id = ?`, [r.id])
+                } else {
+                    await database.run(`UPDATE turno_history SET maquina = ? WHERE id = ?`, [newName, r.id])
+                }
+                migrated++
+            }
+        }
+        await database.exec('COMMIT')
+    } catch (e) {
+        await database.exec('ROLLBACK')
+        throw e
+    }
+    return migrated
+}
+
 // Estatísticas do banco
 export async function getStats() {
     const database = await getDB();
@@ -289,5 +322,7 @@ export default {
     hasData,
     deleteTurnoData,
     getStats,
-    closeDB
+    migrateMachineNames,
+    closeDB,
+    getDBPathExport
 };

@@ -35,6 +35,8 @@ npm run build:win
 
 npm run build:unpack
 
+npm run build:portable
+
 # Build manual
 npx electron-builder
 

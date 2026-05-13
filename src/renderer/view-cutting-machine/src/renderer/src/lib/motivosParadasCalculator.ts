@@ -153,19 +153,17 @@ export function calculateTop3Motivos(
 }
 
 // Função para buscar dados dos motivos (será chamada do main process)
+import ipcHelper from './ipcHelper'
+
 export async function fetchMotivosData(
 	dateStr?: string,
 	turno?: number,
 ): Promise<Record<string, Record<string, string[]>>> {
 	try {
-		// Chama o main process para obter os dados
-		const result = await window.electron.ipcRenderer.invoke(
-			"get-motivos-paradas",
-			{ dateStr, turno },
-		)
+		const result = await ipcHelper.invoke('get-motivos-paradas', { dateStr, turno })
 		return result || {}
 	} catch (error) {
-		console.error("Erro ao buscar dados de motivos:", error)
+		console.error('Erro ao buscar dados de motivos:', error)
 		return {}
 	}
 }
@@ -176,14 +174,10 @@ export async function fetchMotivosDataModeloA(
 	turno?: number,
 ): Promise<Record<string, Record<string, string[]>>> {
 	try {
-		// Chama o main process para obter os dados do ModeloA
-		const result = await window.electron.ipcRenderer.invoke(
-			"get-motivos-paradas-modelo-a",
-			{ dateStr, turno },
-		)
+		const result = await ipcHelper.invoke('get-motivos-paradas-modelo-a', { dateStr, turno })
 		return result || {}
 	} catch (error) {
-		console.error("Erro ao buscar dados de motivos ModeloA:", error)
+		console.error('Erro ao buscar dados de motivos ModeloA:', error)
 		return {}
 	}
 }
@@ -194,14 +188,10 @@ export async function fetchMotivosDataModeloB(
 	turno?: number,
 ): Promise<Record<string, Record<string, string[]>>> {
 	try {
-		// Chama o main process para obter os dados do ModeloB
-		const result = await window.electron.ipcRenderer.invoke(
-			"get-motivos-paradas-modelo-b",
-			{ dateStr, turno },
-		)
+		const result = await ipcHelper.invoke('get-motivos-paradas-modelo-b', { dateStr, turno })
 		return result || {}
 	} catch (error) {
-		console.error("Erro ao buscar dados de motivos ModeloB:", error)
+		console.error('Erro ao buscar dados de motivos ModeloB:', error)
 		return {}
 	}
 }
@@ -212,14 +202,10 @@ export async function fetchMotivosDataModeloC(
 	turno: number,
 ): Promise<Record<string, Record<string, string[]>>> {
 	try {
-		// Chama o main process para obter os dados do ModeloC
-		const result = await window.electron.ipcRenderer.invoke(
-			"get-motivos-paradas-modelo-c",
-			{ dateStr, turno },
-		)
+		const result = await ipcHelper.invoke('get-motivos-paradas-modelo-c', { dateStr, turno })
 		return result || {}
 	} catch (error) {
-		console.error("Erro ao buscar dados de motivos ModeloC:", error)
+		console.error('Erro ao buscar dados de motivos ModeloC:', error)
 		return {}
 	}
 }
@@ -230,13 +216,10 @@ export async function fetchMotivosDataModeloD(
 	turno: number,
 ): Promise<Record<string, Record<string, string[]>>> {
 	try {
-		const result = await window.electron.ipcRenderer.invoke(
-			"get-motivos-paradas-modelo-d",
-			{ dateStr, turno },
-		)
+		const result = await ipcHelper.invoke('get-motivos-paradas-modelo-d', { dateStr, turno })
 		return result || {}
 	} catch (error) {
-		console.error("Erro ao buscar dados de motivos ModeloD:", error)
+		console.error('Erro ao buscar dados de motivos ModeloD:', error)
 		return {}
 	}
 }
@@ -247,13 +230,10 @@ export async function fetchMotivosDataModeloE(
 	turno: number,
 ): Promise<Record<string, Record<string, string[]>>> {
 	try {
-		const result = await window.electron.ipcRenderer.invoke(
-			"get-motivos-paradas-modelo-e",
-			{ dateStr, turno },
-		)
+		const result = await ipcHelper.invoke('get-motivos-paradas-modelo-e', { dateStr, turno })
 		return result || {}
 	} catch (error) {
-		console.error("Erro ao buscar dados de motivos ModeloE:", error)
+		console.error('Erro ao buscar dados de motivos ModeloE:', error)
 		return {}
 	}
 }

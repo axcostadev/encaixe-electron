@@ -38,7 +38,28 @@ export const ipcHelper = {
       throw new Error(`IPC Renderer não está disponível para canal: ${channel}`);
     }
 
+    // If a higher-level electronDb API is available in preload, use it for known DB channels
     try {
+      const dbApi = (window as any).electronDb
+      if (dbApi && typeof dbApi === 'object') {
+        switch (channel) {
+          case 'get-turno-reports':
+            return await dbApi.getTurnoReports(...args)
+          case 'capture-turno-data':
+            return await dbApi.captureTurnoData(...args)
+          case 'get-db-stats':
+            return await dbApi.getDbStats(...args)
+          case 'get-historical-metrics':
+            return await dbApi.getHistoricalMetrics(...args)
+          case 'export-dashboard-pdf':
+            return await dbApi.exportDashboardPdf(...args)
+          case 'import-historical-data':
+            return await dbApi.importHistoricalData(...args)
+          default:
+            break
+        }
+      }
+
       console.log(`[IPC Helper] Invocando ${channel} com args:`, args);
       const result = await window.electron.ipcRenderer.invoke(channel, ...args);
       console.log(`[IPC Helper] Resultado de ${channel}:`, result);

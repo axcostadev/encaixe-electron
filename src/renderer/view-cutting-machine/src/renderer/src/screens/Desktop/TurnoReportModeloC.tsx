@@ -5,6 +5,8 @@ import {
 	fetchMotivosDataModeloC,
 	type Top3MotivosData,
 } from "../../lib/motivosParadasCalculator"
+import ipcHelper from "../../lib/ipcHelper"
+import { usePeriodosConfig } from "../../hooks/usePeriodosConfig"
 
 // Função para definir cor conforme percentual
 function getColor(percentStr: string) {
@@ -28,38 +30,7 @@ const defaultMachineMap = {
 	4: "02-1507",
 }
 
-const periodosTurno1 = [
-	{ inicio: "05:00", fim: "06:00", baseCalculo: 60 },
-	{ inicio: "06:00", fim: "07:00", baseCalculo: 50 },
-	{ inicio: "07:00", fim: "08:00", baseCalculo: 60 },
-	{ inicio: "08:00", fim: "09:00", baseCalculo: 40 },
-	{ inicio: "09:00", fim: "10:00", baseCalculo: 20 },
-	{ inicio: "10:00", fim: "11:00", baseCalculo: 60 },
-	{ inicio: "11:00", fim: "12:00", baseCalculo: 50 },
-	{ inicio: "12:00", fim: "13:20", baseCalculo: 80 },
-]
 
-const periodosTurno2 = [
-	{ inicio: "13:20", fim: "14:00", baseCalculo: 40 },
-	{ inicio: "14:00", fim: "15:00", baseCalculo: 60 },
-	{ inicio: "15:00", fim: "16:00", baseCalculo: 50 },
-	{ inicio: "16:00", fim: "17:00", baseCalculo: 60 },
-	{ inicio: "17:00", fim: "18:00", baseCalculo: 40 },
-	{ inicio: "18:00", fim: "19:00", baseCalculo: 20 },
-	{ inicio: "19:00", fim: "20:00", baseCalculo: 60 },
-	{ inicio: "20:00", fim: "21:40", baseCalculo: 90 },
-]
-
-const periodosTurno3 = [
-	{ inicio: "21:40", fim: "22:00", baseCalculo: 20 },
-	{ inicio: "22:00", fim: "23:00", baseCalculo: 60 },
-	{ inicio: "23:00", fim: "00:00", baseCalculo: 50 },
-	{ inicio: "00:00", fim: "01:00", baseCalculo: 40 },
-	{ inicio: "01:00", fim: "02:00", baseCalculo: 20 },
-	{ inicio: "02:00", fim: "03:00", baseCalculo: 60 },
-	{ inicio: "03:00", fim: "04:00", baseCalculo: 50 },
-	{ inicio: "04:00", fim: "05:00", baseCalculo: 60 },
-]
 
 // Função para salvar dados automaticamente no banco JSON
 async function salvarDadosNoBanco(
@@ -99,7 +70,7 @@ async function salvarDadosNoBanco(
 
 		// Salvar no banco via IPC
 		for (const dado of dadosParaSalvar) {
-			await window.electron?.ipcRenderer?.invoke("insert-turno-report", dado)
+			await ipcHelper.invoke("insert-turno-report", dado)
 		}
 
 		console.log(
@@ -137,7 +108,7 @@ export default function TurnoReportModeloC() {
 		async function loadSettings() {
 			try {
 				// Tenta obter as configurações do main process
-				const res = await window.electron?.ipcRenderer?.invoke("get-settings")
+				const res = await ipcHelper.invoke("get-settings")
 				if (!mounted) return
 				if (res && res.success && res.settings) {
 					// Pode existir um objeto machineGroups com vários grupos (Lectra, Comelz, ...)
@@ -171,16 +142,15 @@ export default function TurnoReportModeloC() {
 		window.addEventListener("settings-saved", onSettingsSaved)
 
 		// Escuta a notificação vinda do main quando reload-settings é chamado
-		const ipc = window.electron?.ipcRenderer
 		const onSettingsUpdated = (_ev: any, _data: any) => {
 			loadSettings()
 		}
-		if (ipc && ipc.on) ipc.on("settings-updated", onSettingsUpdated)
+		ipcHelper.on("settings-updated", onSettingsUpdated)
 
 		return () => {
 			mounted = false
 			window.removeEventListener("settings-saved", onSettingsSaved)
-			if (ipc && ipc.removeListener) ipc.removeListener("settings-updated", onSettingsUpdated)
+			ipcHelper.removeAllListeners("settings-updated")
 		}
 	}, [])
 	// Estado para máquinas ignoradas
@@ -206,6 +176,10 @@ export default function TurnoReportModeloC() {
 		return count > 0 && total === 0
 	}
 	const [turnoSelecionado, setTurnoSelecionado] = useState<null | number>(null) // Nenhum turno selecionado inicialmente
+	const periodosConfig = usePeriodosConfig()
+	const periodosTurno1 = periodosConfig.turno1
+	const periodosTurno2 = periodosConfig.turno2
+	const periodosTurno3 = periodosConfig.turno3
 	const periodosPorTurno = [periodosTurno1, periodosTurno2, periodosTurno3]
 	const periodos =
 		turnoSelecionado !== null ? periodosPorTurno[turnoSelecionado] : []

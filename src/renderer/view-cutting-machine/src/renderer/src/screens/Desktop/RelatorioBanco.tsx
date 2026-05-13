@@ -148,8 +148,9 @@ export default function RelatorioBanco() {
 						console.log(
 							`[CARREGANDO] Solicitando ${qd} turno=${turno} aba=${aba}`,
 						)
-						const res = await window.electron?.ipcRenderer?.invoke(
-							"get-saved-turno-reports",
+						const ipcHelper = (await import('../../lib/ipcHelper')).default
+						const res = await ipcHelper.invoke(
+							'get-saved-turno-reports',
 							{ date: qd, turno, aba },
 						)
 						if (Array.isArray(res)) {
@@ -190,8 +191,8 @@ export default function RelatorioBanco() {
 		let unsubscribe: (() => void) | undefined
 		const loadSettings = async () => {
 			try {
-				const settings =
-					await window.electron?.ipcRenderer?.invoke("get-settings")
+				const ipcHelper = (await import('../../lib/ipcHelper')).default
+				const settings = await ipcHelper.invoke('get-settings')
 				if (settings && settings.machineGroups) {
 					// settings.machineGroups may have the shape { Laser: { name, machineMap: {..} } }
 					// we want to extract the inner machineMap for each group when present
@@ -220,12 +221,18 @@ export default function RelatorioBanco() {
 		loadSettings()
 
 		// subscribe for settings updates from main
-		if (window.electron?.ipcRenderer?.on) {
-			unsubscribe = window.electron.ipcRenderer.on("settings-updated", () => {
-				console.log("settings-updated received, reloading settings...")
-				loadSettings()
-			})
-		}
+		;(async () => {
+			try {
+				const ipcHelper = (await import('../../lib/ipcHelper')).default
+				ipcHelper.on('settings-updated', () => {
+					console.log('settings-updated received, reloading settings...')
+					loadSettings()
+				})
+				unsubscribe = () => ipcHelper.removeAllListeners('settings-updated')
+			} catch (err) {
+				// ignore
+			}
+		})()
 
 		return () => {
 			if (typeof unsubscribe === "function") unsubscribe()

@@ -16,12 +16,13 @@ import {
 	getDataPath as getTurnoReportDataPath,
 	flushSave,
 	dbStats,
-} from "./db-persistent.js"
+} from "./db-compat.js"
 import { createDefaultNetworkSettings } from "./settingsManager.js"
 import { getMachineOccupation } from "./getMachineAmountOcuppation.js"
 import getMachineSpeeds from "./getMachineSpeeds.js"
 import getOccupationData from "./getOccupationData.js"
 import { initializeSettingsManager, getSettings, getDefaultSettings, saveSettings, reloadSettings, getSettingsStats, resetAllSettings } from "./settingsManager.js"
+import { getPeriodosConfig, savePeriodosConfig, getDefaultPeriodosConfig } from "./periodosSettings.js"
 import { readHistoricalTxtData } from "./readTxtHistory.js"
 
 console.log('[SERVER] Imports concluídos, iniciando banco de dados...')
@@ -1090,6 +1091,38 @@ ipcMain.handle("get-data-path", async () => {
 		const detail = formatErrorDetail(err)
 		console.error('[get-data-path] Error:', detail)
 		return { success: false, error: detail.message || 'Erro ao obter caminho de dados', errorDetail: detail }
+	}
+})
+
+// Períodos config — ALWAYS local, never network
+ipcMain.handle("get-periodos-config", async () => {
+	try {
+		const config = getPeriodosConfig()
+		return { success: true, config }
+	} catch (err) {
+		const detail = formatErrorDetail(err)
+		console.error('[get-periodos-config] Error:', detail)
+		return { success: false, error: detail.message || 'Erro ao carregar períodos' }
+	}
+})
+
+ipcMain.handle("save-periodos-config", async (_event, config) => {
+	try {
+		const result = savePeriodosConfig(config)
+		return result
+	} catch (err) {
+		const detail = formatErrorDetail(err)
+		console.error('[save-periodos-config] Error:', detail)
+		return { success: false, error: detail.message || 'Erro ao salvar períodos' }
+	}
+})
+
+ipcMain.handle("get-default-periodos-config", async () => {
+	try {
+		const config = getDefaultPeriodosConfig()
+		return { success: true, config }
+	} catch (err) {
+		return { success: false, error: String(err) }
 	}
 })
 

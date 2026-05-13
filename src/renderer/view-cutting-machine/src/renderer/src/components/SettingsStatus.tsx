@@ -29,14 +29,8 @@ export default function SettingsStatus({ className = "" }: SettingsStatusProps) 
 		setLoading(true)
 		try {
 			console.log("[SettingsStatus] Carregando status das configurações...")
-			
-			// Verifica se o IPC está disponível
-			if (!window.electron || !window.electron.ipcRenderer) {
-				console.error("[SettingsStatus] IPC Renderer não está disponível")
-				return
-			}
-
-			const response = await window.electron.ipcRenderer.invoke("get-settings-status")
+			const ipcHelper = (await import('../lib/ipcHelper')).default
+			const response = await ipcHelper.invoke('get-settings-status')
 			
 			if (response && response.success) {
 				setStatus(response.data)
@@ -56,13 +50,8 @@ export default function SettingsStatus({ className = "" }: SettingsStatusProps) 
 		setLoading(true)
 		try {
 			console.log("[SettingsStatus] Recarregando configurações...")
-			
-			if (!window.electron || !window.electron.ipcRenderer) {
-				console.error("[SettingsStatus] IPC Renderer não está disponível")
-				return
-			}
-
-			const response = await window.electron.ipcRenderer.invoke("reload-settings")
+			const ipcHelper = (await import('../lib/ipcHelper')).default
+			const response = await ipcHelper.invoke('reload-settings')
 			
 			if (response && response.success) {
 				console.log("[SettingsStatus] Configurações recarregadas com sucesso")

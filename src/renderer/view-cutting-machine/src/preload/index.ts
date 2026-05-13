@@ -25,6 +25,16 @@ const api = {
 	},
 }
 
+// Expor uma API de banco simples para o renderer usar (encapsula invoke)
+const dbApi = {
+	getTurnoReports: (params: any) => api.ipcRenderer.invoke('get-turno-reports', params),
+	captureTurnoData: (payload: any) => api.ipcRenderer.invoke('capture-turno-data', payload),
+	getDbStats: () => api.ipcRenderer.invoke('get-db-stats'),
+	getHistoricalMetrics: (params: any) => api.ipcRenderer.invoke('get-historical-metrics', params),
+	exportDashboardPdf: (payload: any) => api.ipcRenderer.invoke('export-dashboard-pdf', payload),
+	importHistoricalData: (payload: any) => api.ipcRenderer.invoke('import-historical-data', payload),
+}
+
 // Criar o objeto electron completo
 const electronObject = {
 	...electronAPI,
@@ -52,6 +62,8 @@ if (process.contextIsolated) {
 	try {
 		console.log("[Preload] Context isolated - using contextBridge")
 		contextBridge.exposeInMainWorld("electron", electronObject)
+			// Expor API de DB no objeto electronDb
+			contextBridge.exposeInMainWorld("electronDb", dbApi)
 		console.log("[Preload] Successfully exposed electron API via contextBridge")
 		contextBridge.exposeInMainWorld("zoom", zoomAPI)
 		
@@ -76,6 +88,8 @@ if (process.contextIsolated) {
 	console.log("[Preload] Context not isolated - setting window properties")
 	// @ts-ignore
 	window.electron = electronObject
+		// @ts-ignore
+		window.electronDb = dbApi
 	// @ts-ignore
 	window.zoom = zoomAPI
 	console.log("[Preload] Successfully set window.electron")

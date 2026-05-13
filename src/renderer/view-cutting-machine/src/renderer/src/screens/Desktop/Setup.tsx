@@ -12,6 +12,18 @@ type GroupConfig = {
 	machineMap: MachineMap
 }
 
+type Periodo = {
+	inicio: string
+	fim: string
+	baseCalculo: number
+}
+
+type PeriodosConfig = {
+	turno1: Periodo[]
+	turno2: Periodo[]
+	turno3: Periodo[]
+}
+
 export default function Setup(): React.ReactElement {
 	const [status, setStatus] = useState<string | null>(null)
 	const [ipcReady, setIpcReady] = useState<boolean>(false)
@@ -117,6 +129,11 @@ export default function Setup(): React.ReactElement {
 	const [effectiveDataPath, setEffectiveDataPath] = useState<string>('')
 	const [activeGroup, setActiveGroup] = useState<string>("Laser")
 
+	// Períodos config — local only
+	const [periodosConfig, setPeriodosConfig] = useState<PeriodosConfig | null>(null)
+	const [periodosStatus, setPeriodosStatus] = useState<string | null>(null)
+	const [periodosActiveTurno, setPeriodosActiveTurno] = useState<"turno1" | "turno2" | "turno3">("turno1")
+
 	// NOTE: Fatigue state moved to `FatigueSettings` component to keep setup isolated.
 	// See `FatigueSettings.tsx` for managing phrases, periods and shift windows.
 
@@ -145,6 +162,7 @@ export default function Setup(): React.ReactElement {
 				}
 				console.log('[Setup] IPC ready, setting ipcReady=true')
 				setIpcReady(true)
+				// Load machine settings
 				const res = await ipcHelper.invoke("get-settings")
 				if (res && res.success && res.settings) {
 					const s = res.settings
@@ -180,6 +198,16 @@ export default function Setup(): React.ReactElement {
 				console.error("[Setup] Erro ao carregar configurações:", error)
 				setMachineGroups(defaultGroups)
 				setStatus("Erro ao carregar configurações - usando padrões")
+			}
+
+			// Load períodos config (local only)
+			try {
+				const pr = await ipcHelper.invoke("get-periodos-config")
+				if (pr && pr.success && pr.config) {
+					setPeriodosConfig(pr.config)
+				}
+			} catch (e) {
+				console.warn("[Setup] Erro ao carregar períodos:", e)
 			}
 		})()
 	}, [])
@@ -822,6 +850,111 @@ export default function Setup(): React.ReactElement {
 						Isso criará um arquivo <code className="bg-white px-1 rounded">settings.json</code> na pasta AppData de rede configurada acima.
 					</p>
 				</div>
+			</div>
+
+			{/* SEÇÃO 4: PERÍODOS / BASE DE CÁLCULO */}
+			<div className="bg-white border-2 border-orange-300 rounded-lg p-4 mb-6">
+				<h3 className="text-lg font-bold text-orange-900 mb-1 flex items-center gap-2">
+					⏱️ 4. Períodos — Base de Cálculo dos Turnos
+				</h3>
+				<p className="text-sm text-orange-700 mb-1">
+					Define quantos minutos produtivos existem em cada período do turno.<br />
+					<strong>Salvo localmente nesta máquina — nunca na rede.</strong>
+				</p>
+
+				{/* Tab selector */}
+				<div className="flex gap-2 mb-3">
+					{(["turno1", "turno2", "turno3"] as const).map((t, i) => (
+						<button
+							key={t}
+							className={`px-4 py-1 rounded font-bold text-sm ${periodosActiveTurno === t ? "bg-orange-600 text-white" : "bg-gray-200 text-gray-800"}`}
+							onClick={() => setPeriodosActiveTurno(t)}
+						>
+							{i + 1}º Turno
+						</button>
+					))}
+				</div>
+
+				{periodosConfig ? (
+					<>
+						<table className="w-full text-sm border-collapse mb-3">
+							<thead>
+								<tr className="bg-orange-50">
+									<th className="border border-orange-200 px-3 py-1 text-left">Início</th>
+									<th className="border border-orange-200 px-3 py-1 text-left">Fim</th>
+									<th className="border border-orange-200 px-3 py-1 text-center w-36">Base Cálculo (min)</th>
+								</tr>
+							</thead>
+							<tbody>
+								{periodosConfig[periodosActiveTurno].map((p, idx) => (
+									<tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-orange-50"}>
+										<td className="border border-orange-200 px-3 py-1 font-mono text-gray-700">{p.inicio}</td>
+										<td className="border border-orange-200 px-3 py-1 font-mono text-gray-700">{p.fim}</td>
+										<td className="border border-orange-200 px-2 py-1 text-center">
+											<input
+												type="number"
+												min={0}
+												max={999}
+												className="w-24 px-2 py-0.5 border rounded text-center font-mono"
+												value={p.baseCalculo}
+												onChange={(e) => {
+													const val = Math.max(0, Math.min(999, parseInt(e.target.value) || 0))
+													setPeriodosConfig((prev) => {
+														if (!prev) return prev
+														const turnoArr = [...prev[periodosActiveTurno]]
+														turnoArr[idx] = { ...turnoArr[idx], baseCalculo: val }
+														return { ...prev, [periodosActiveTurno]: turnoArr }
+													})
+												}}
+											/>
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+
+						<div className="flex gap-2 items-center flex-wrap">
+							<button
+								className="px-4 py-2 bg-orange-600 text-white rounded font-bold hover:bg-orange-700 transition-colors disabled:opacity-50"
+								disabled={!ipcReady}
+								onClick={async () => {
+									setPeriodosStatus("Salvando...")
+									if (!(await ensureIpc())) {
+										setPeriodosStatus("❌ IPC não disponível")
+										return
+									}
+									const res = await ipcHelper.invoke("save-periodos-config", periodosConfig)
+									if (res && res.success) {
+										setPeriodosStatus("✅ Períodos salvos localmente")
+									} else {
+										setPeriodosStatus(`❌ Erro: ${res?.error ?? "desconhecido"}`)
+									}
+								}}
+							>
+								💾 Salvar Períodos
+							</button>
+							<button
+								className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors text-sm"
+								onClick={async () => {
+									if (confirm("Restaurar os valores padrão dos períodos?")) {
+										const res = await ipcHelper.invoke("get-default-periodos-config")
+										if (res && res.success && res.config) {
+											setPeriodosConfig(res.config)
+											setPeriodosStatus("Padrões restaurados — clique em Salvar para aplicar")
+										}
+									}
+								}}
+							>
+								↺ Restaurar Padrão
+							</button>
+							{periodosStatus && (
+								<span className="text-sm text-gray-700">{periodosStatus}</span>
+							)}
+						</div>
+					</>
+				) : (
+					<p className="text-sm text-gray-500">Carregando períodos...</p>
+				)}
 			</div>
 
 			{/* SEÇÃO 5: AÇÕES PRINCIPAIS */}

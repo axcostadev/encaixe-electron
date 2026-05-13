@@ -32,17 +32,23 @@ export const RankingByPeriod: React.FC<Props> = ({
 	useEffect(() => {
 		if (machinesProp) return
 		const grupoKey = grupo === "laser" ? "laser" : grupo === "lectra" ? "lectra" : grupo === "emma" ? "emma" : grupo === "comelz" ? "comelz" : grupo === "ComelzMontagem" ? "ComelzMontagem" : grupo === "ComelzSolas" ? "ComelzSolas" : grupo
-		window.electron.ipcRenderer.invoke("get-settings").then((settings: any) => {
-			const grp = settings?.machineGroups?.[grupoKey]
-			if (grp?.machineMap) {
-				const map = grp.machineMap as Record<string, string>
-				setSettingsMachines(
-					Object.entries(map)
-						.sort(([a], [b]) => Number(a) - Number(b))
-						.map(([label, id]) => ({ id, label: label.padStart(2, "0") }))
-				)
+		;(async () => {
+			try {
+				const ipcHelper = (await import('../lib/ipcHelper')).default
+				const settings = await ipcHelper.invoke('get-settings')
+				const grp = settings?.machineGroups?.[grupoKey]
+				if (grp?.machineMap) {
+					const map = grp.machineMap as Record<string, string>
+					setSettingsMachines(
+						Object.entries(map)
+							.sort(([a], [b]) => Number(a) - Number(b))
+							.map(([label, id]) => ({ id, label: label.padStart(2, '0') }))
+					)
+				}
+			} catch (err) {
+				console.error('RankingByPeriod get-settings error', err)
 			}
-		})
+		})()
 
 		const handler = (_event: any, settings: any) => {
 			const grp = settings?.machineGroups?.[grupoKey]
@@ -51,13 +57,14 @@ export const RankingByPeriod: React.FC<Props> = ({
 				setSettingsMachines(
 					Object.entries(map)
 						.sort(([a], [b]) => Number(a) - Number(b))
-						.map(([label, id]) => ({ id, label: label.padStart(2, "0") }))
+						.map(([label, id]) => ({ id, label: label.padStart(2, '0') }))
 				)
 			}
 		}
-		window.electron.ipcRenderer.on("settings-updated", handler)
+		const ipc = (await import('../lib/ipcHelper')).default
+		ipc.on('settings-updated', handler)
 		return () => {
-			window.electron.ipcRenderer.removeListener("settings-updated", handler)
+			ipc.removeAllListeners('settings-updated')
 		}
 	}, [machinesProp, grupo])
 
