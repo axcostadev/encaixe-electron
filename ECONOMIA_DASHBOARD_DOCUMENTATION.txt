@@ -1,0 +1,122 @@
+================================================================================
+                    TODA A LÓGICA DO DASHBOARD ECONOMIA
+================================================================================
+
+📌 LOCALIZAÇÃO DOS ARQUIVOS
+================================================================================
+
+src/renderer/src/pages/EconomiaPage/
+├── EconomiaPage.tsx      (104 KB - Toda a lógica)
+└── EconomiaPage.css      (17 KB - Estilos e layouts)
+
+
+🎯 ARQUITETURA GERAL
+================================================================================
+
+O Dashboard Economia é composto por 3 abas principais:
+
+1️⃣ Aba "Economia Dashboard" (Dashboard Visual)
+2️⃣ Aba "Busca Dados" (Pesquisa em arquivos CGC/OFCC)
+3️⃣ Aba "Banco de Dados" (Persistência e gerenciamento)
+
+
+🔍 ESTRUTURA DE DADOS E TIPOS
+================================================================================
+
+Interface Principal:
+-------------------
+export interface CadastroInfo {
+  id?: number
+  artigo: string
+  modelo: string
+  componente: string
+  apelido: string
+  material: string
+  cor: string
+  largura: string
+  tipoTecido?: number
+  paresCriac?: string
+  conjugNavalha?: string
+  placaPorPar?: string
+  camada?: string
+  espacamento?: string
+  comprimentoMax?: string
+}
+
+
+Estados Principais:
+-------------------
+const [rows, setRows] = useState<any[]>([])
+const [loading, setLoading] = useState(false)
+const [highContrast, setHighContrast] = useState(false)
+const [summary, setSummary] = useState<any>(null)
+const [byModelo, setByModelo] = useState<any[]>([])
+const [byMaterial, setByMaterial] = useState<any[]>([])
+const [tab, setTab] = useState<'dashboard'|'busca'|'banco'>()
+
+
+📊 ABA 1: ECONOMIA DASHBOARD
+================================================================================
+
+Características:
+- Visualização de gráficos com economia por modelo e material
+- Filtros dinâmicos por período e modelo
+- Cards de resumo com métricas financeiras
+- Modo alto contraste para acessibilidade
+- Tabela de detalhes com últimos registros
+
+
+🔎 ABA 2: BUSCA DADOS
+================================================================================
+
+Objetivo: Buscar linhas em arquivos CGC/OFCC e permitir edição em tempo real
+
+
+💾 ABA 3: BANCO DE DADOS
+================================================================================
+
+Objetivo: Gerenciar todos os registros salvos com filtros, ordenação e exportação
+
+
+✨ FEATURES AVANÇADAS
+================================================================================
+
+1. Validação Inteligente (30%):
+- Se Encaixe diferir >= 30% do Previsto, pede confirmação
+- Se usuário cancelar, campo fica bloqueado por 1 segundo
+- Evita edições acidentais
+
+2. Navegação com Teclado:
+- Arrow Down: próxima linha
+- Arrow Up: linha anterior
+- Enter: salva e foca próxima
+- Tab: comportamento padrão
+
+3. Sincronização com Arquivo:
+- Busca primeiro no banco (salvamentos anteriores)
+- Se não encontrar, busca no CGC.txt
+- Se não encontrar, busca no OFCC.txt (fallback)
+
+4. Modo Alto Contraste:
+- Toggle no header do dashboard
+- Persisted em localStorage
+- Inverte cores para melhor acessibilidade
+
+5. Charts Dinâmicos:
+- Y-axis simétrico (red bars = excesso, green bars = economia)
+- Labels verticais rotacionados para evitar overlap
+- Suporte a visualização em R$ ou %
+- Manual override para Y-axis max
+
+
+📈 PERFORMANCE
+================================================================================
+
+- useMemo para filtros do banco (evita re-renders)
+- requestAnimationFrame para scroll suave
+- Lazy loading de gráficos (renderiza após tab ficar ativa)
+- Refs para tracking síncrono (evita race conditions)
+
+================================================================================
+                            FIM DA DOCUMENTAÇÃO
+================================================================================
